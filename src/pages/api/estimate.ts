@@ -44,7 +44,7 @@ function parseItems(value: unknown): EstimatedItem[] {
     const item = entry as Record<string, unknown>;
     const name = typeof item.name === "string" ? item.name.trim().slice(0, 90) : "";
     const amount = typeof item.amount === "string" ? item.amount.trim().slice(0, 90) : "";
-    const calories = asNumber(item.calories);
+    const calories = Math.round(asNumber(item.calories));
 
     if (!name || !amount || calories <= 0 || calories > 10000) {
       throw new Error("Gemini returned an incomplete nutrition estimate.");
