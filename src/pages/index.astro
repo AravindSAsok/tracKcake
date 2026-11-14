@@ -1,0 +1,293 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="trackcake — Your food, in focus">
+  <div class="app-shell" id="top">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#top" aria-label="trackcake home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 36 36" fill="none">
+              <path d="M18 3.5c7.4 0 13.4 6 13.4 13.4S25.4 30.3 18 30.3 4.6 24.3 4.6 16.9 10.6 3.5 18 3.5Z" fill="currentColor" opacity=".16"/>
+              <path d="M18 5.8c6.2 0 11.2 5 11.2 11.2S24.2 28.2 18 28.2 6.8 23.2 6.8 17 11.8 5.8 18 5.8Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M18 6v22M7.2 17h21.6M10.4 9.4l15.2 15.2M25.6 9.4 10.4 24.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M17.8 5.7c-.4-2 1-3.8 3.6-4.2" stroke="#91B96A" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="brand-name">track<span>cake</span></span>
+        </a>
+
+        <nav class="top-nav" aria-label="Main navigation">
+          <a class="nav-link active" href="#overview">Overview</a>
+          <a class="nav-link" href="#diary">Food diary</a>
+        </nav>
+
+        <div class="top-actions">
+          <div class="storage-status" id="storage-status" title="Where your diary is saved">
+            <span class="status-dot"></span>
+            <span id="storage-label">On this device</span>
+          </div>
+          <button class="icon-button goal-shortcut" id="goal-shortcut" type="button" aria-label="Edit daily calorie goal" title="Edit daily goal">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18" /></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <section class="welcome-row" id="overview">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-mark"></span> YOUR PERSONAL FOOD DIARY</p>
+          <h1>Eat well. <em>Feel good.</em></h1>
+          <p class="welcome-copy">A little more awareness, one meal at a time.</p>
+        </div>
+        <div class="date-card">
+          <span class="date-icon" aria-hidden="true">◷</span>
+          <div>
+            <strong id="current-date">Today</strong>
+            <span>Rolling 24-hour view</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="overview-grid" aria-label="Nutrition overview">
+        <article class="calorie-card">
+          <div class="card-heading inverse-heading">
+            <div>
+              <p class="card-kicker">YOUR CALORIE BALANCE</p>
+              <h2>Every bite counts.</h2>
+            </div>
+            <span class="live-pill"><span></span> LIVE</span>
+          </div>
+
+          <div class="calorie-content">
+            <div class="progress-ring" id="calorie-ring" style="--progress: 0deg" role="img" aria-label="Calorie goal progress">
+              <div class="ring-center">
+                <span class="ring-label">EATEN</span>
+                <strong id="calories-total">0</strong>
+                <span class="ring-unit">kcal</span>
+              </div>
+            </div>
+
+            <div class="calorie-copy">
+              <p class="muted-inverse">REMAINING TO YOUR GOAL</p>
+              <div class="remaining-line">
+                <strong id="remaining-value">2,000</strong>
+                <span>kcal left</span>
+              </div>
+              <p class="progress-caption" id="progress-caption">Set a goal and start logging your meals.</p>
+              <div class="progress-track"><span id="progress-fill"></span></div>
+              <div class="progress-ends">
+                <span>0 kcal</span>
+                <span id="goal-label">2,000 kcal goal</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="calorie-footer">
+            <span><span class="footer-spark">✳</span> Based on your last 24 hours</span>
+            <button class="text-button inverse-button" id="edit-goal" type="button">Edit daily goal <span aria-hidden="true">↗</span></button>
+          </div>
+        </article>
+
+        <article class="macro-card">
+          <div class="card-heading">
+            <div>
+              <p class="card-kicker">NUTRIENT SNAPSHOT</p>
+              <h2>What's on your plate</h2>
+            </div>
+            <span class="macro-icon" aria-hidden="true">◌</span>
+          </div>
+          <p class="card-description">A quick look at your macros over the last 24 hours.</p>
+
+          <div class="macro-list">
+            <div class="macro-row">
+              <div class="macro-meta"><span class="macro-dot protein-dot"></span><span>Protein</span><strong id="protein-total">0 g</strong></div>
+              <div class="macro-track"><span id="protein-bar" class="protein-bar"></span></div>
+            </div>
+            <div class="macro-row">
+              <div class="macro-meta"><span class="macro-dot carbs-dot"></span><span>Carbs</span><strong id="carbs-total">0 g</strong></div>
+              <div class="macro-track"><span id="carbs-bar" class="carbs-bar"></span></div>
+            </div>
+            <div class="macro-row">
+              <div class="macro-meta"><span class="macro-dot fat-dot"></span><span>Fat</span><strong id="fat-total">0 g</strong></div>
+              <div class="macro-track"><span id="fat-bar" class="fat-bar"></span></div>
+            </div>
+          </div>
+
+          <div class="macro-footnote"><span aria-hidden="true">ⓘ</span> Macro values are estimates and may be incomplete.</div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <div class="main-column">
+          <section class="quick-add-card" aria-labelledby="quick-add-title">
+            <div class="section-heading quick-heading">
+              <div>
+                <p class="card-kicker">QUICK FOOD LOG</p>
+                <h2 id="quick-add-title">What did you eat?</h2>
+                <p>Describe your food naturally. Gemini can estimate the portions and nutrition.</p>
+              </div>
+              <span class="ai-orb" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
+              </span>
+            </div>
+
+            <form id="quick-add-form" class="quick-form">
+              <label class="sr-only" for="food-description">Describe what you ate and how much</label>
+              <textarea id="food-description" rows="2" maxlength="700" placeholder="e.g. 2 idlis, one cup of sambar and a banana..." required></textarea>
+              <div class="quick-form-bottom">
+                <div class="quick-controls">
+                  <label class="control-label" for="quick-meal">Meal
+                    <select id="quick-meal">
+                      <option value="breakfast">Breakfast</option>
+                      <option value="lunch">Lunch</option>
+                      <option value="dinner">Dinner</option>
+                      <option value="snack">Snack</option>
+                    </select>
+                  </label>
+                  <label class="control-label" for="quick-time">Eaten at
+                    <input id="quick-time" type="datetime-local" />
+                  </label>
+                </div>
+                <div class="quick-buttons">
+                  <button class="secondary-button" id="manual-add" type="button">
+                    <span aria-hidden="true">＋</span> Manual entry
+                  </button>
+                  <button class="primary-button" id="estimate-button" type="submit">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
+                    <span>Estimate with AI</span>
+                  </button>
+                </div>
+              </div>
+              <p class="form-hint" id="estimate-hint"><span aria-hidden="true">✦</span> You'll review every estimate before it is added to your diary.</p>
+            </form>
+          </section>
+
+          <section class="diary-section" id="diary" aria-labelledby="diary-title">
+            <div class="diary-heading">
+              <div>
+                <p class="card-kicker">YOUR FOOD DIARY</p>
+                <h2 id="diary-title">Last 24 hours <span class="diary-count" id="diary-count">0 entries</span></h2>
+              </div>
+              <span class="range-total" id="range-total">0 kcal logged</span>
+            </div>
+
+            <div class="history-list" id="history-list" aria-live="polite"></div>
+            <div class="empty-state" id="history-empty">
+              <div class="empty-illustration" aria-hidden="true">
+                <span class="empty-plate"></span>
+                <span class="empty-leaf">✳</span>
+              </div>
+              <h3>Your diary starts with a bite.</h3>
+              <p>Log your first meal above and it will show up here.</p>
+              <button class="text-button" id="empty-add" type="button">Add your first food <span aria-hidden="true">↗</span></button>
+            </div>
+            <p class="history-note">Only foods eaten within the last 24 hours appear here. Older entries stay saved.</p>
+          </section>
+        </div>
+
+        <aside class="side-column">
+          <section class="goal-card">
+            <div class="side-card-heading">
+              <span class="side-card-icon goal-icon" aria-hidden="true">◎</span>
+              <span class="side-card-label">DAILY TARGET</span>
+              <button class="plain-icon-button" id="goal-edit-small" type="button" aria-label="Edit calorie goal">↗</button>
+            </div>
+            <div class="goal-number"><strong id="side-goal">2,000</strong><span>kcal</span></div>
+            <p>Keep your target realistic and sustainable.</p>
+            <div class="goal-divider"></div>
+            <div class="goal-mini-row"><span>Logged in last 24h</span><strong id="side-consumed">0 kcal</strong></div>
+            <div class="goal-mini-row"><span>Daily target</span><strong id="side-target">2,000 kcal</strong></div>
+          </section>
+
+          <section class="note-card">
+            <div class="note-art" aria-hidden="true">
+              <span class="note-sun"></span>
+              <span class="note-fruit">●</span>
+              <span class="note-leaf">⌁</span>
+            </div>
+            <p class="note-kicker">A GENTLE REMINDER</p>
+            <h3>Progress, not perfection.</h3>
+            <p>Estimates are a starting point. Adjust portions and calories to reflect what you actually ate.</p>
+          </section>
+
+          <div class="privacy-note">
+            <span aria-hidden="true">⌑</span>
+            <p>Your food diary stays private. Cloud sync is optional.</p>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="page-footer">
+        <span>Made for a little more mindful eating <span aria-hidden="true">♡</span></span>
+        <span>trackcake <span class="footer-version">· nutrition estimates are not medical advice</span></span>
+      </footer>
+    </main>
+  </div>
+
+  <dialog class="app-dialog" id="entry-dialog" aria-labelledby="entry-heading">
+    <form id="entry-form" class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">FOOD DIARY</p><h2 id="entry-heading">Add a food</h2></div>
+        <button class="dialog-close" type="button" data-close="entry-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <div class="form-grid">
+        <label class="field full-field">Food name<input id="entry-name" maxlength="90" required placeholder="e.g. Vegetable upma" /></label>
+        <label class="field full-field">Amount / portion<input id="entry-amount" maxlength="90" required placeholder="e.g. 1 medium bowl (200 g)" /></label>
+        <label class="field">Calories (kcal)<input id="entry-calories" type="number" min="0" max="10000" step="1" required /></label>
+        <label class="field">Meal
+          <select id="entry-meal">
+            <option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option>
+          </select>
+        </label>
+        <label class="field">Protein (g)<input id="entry-protein" type="number" min="0" max="1000" step="0.1" value="0" /></label>
+        <label class="field">Carbs (g)<input id="entry-carbs" type="number" min="0" max="1000" step="0.1" value="0" /></label>
+        <label class="field">Fat (g)<input id="entry-fat" type="number" min="0" max="1000" step="0.1" value="0" /></label>
+        <label class="field full-field">Eaten at<input id="entry-time" type="datetime-local" required /></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-close="entry-dialog">Cancel</button>
+        <button class="primary-button" type="submit" id="entry-save">Save food</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="app-dialog review-dialog" id="review-dialog" aria-labelledby="review-heading">
+    <form id="review-form" class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">GEMINI ESTIMATE</p><h2 id="review-heading">Review your food</h2><p class="dialog-subtitle">Check the portions and calories before saving.</p></div>
+        <button class="dialog-close" type="button" data-close="review-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <div id="review-items" class="review-items"></div>
+      <button class="review-add" id="review-add-item" type="button">＋ Add another item</button>
+      <div class="review-total"><span>Total estimate</span><strong id="review-total">0 kcal</strong></div>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-close="review-dialog">Cancel</button>
+        <button class="primary-button" type="submit">Save to diary</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="app-dialog goal-dialog" id="goal-dialog" aria-labelledby="goal-heading">
+    <form id="goal-form" class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">YOUR DAILY TARGET</p><h2 id="goal-heading">Set your calorie goal</h2></div>
+        <button class="dialog-close" type="button" data-close="goal-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <p class="dialog-subtitle">Choose a daily target that makes sense for you. You can change it anytime.</p>
+      <label class="field">Daily calories (kcal)<input id="goal-input" type="number" min="500" max="10000" step="50" required /></label>
+      <p class="field-help">This is a personal tracking target, not a medical recommendation.</p>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-close="goal-dialog">Cancel</button>
+        <button class="primary-button" type="submit">Save goal</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    import "../scripts/app";
+  </script>
+</Layout>
