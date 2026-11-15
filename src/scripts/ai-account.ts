@@ -120,18 +120,44 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
     let mode: "signup" | "signin" = "signup";
-    let activeUser: { id: string; email?: string; is_anonymous?: boolean } | null = null;
+    let activeUser: {
+      id: string;
+      email?: string;
+      is_anonymous?: boolean;
+      user_metadata?: Record<string, unknown>;
+    } | null = null;
+    const displayNameElement = document.getElementById("account-display-name");
+    const displayEmailElement = document.getElementById("account-display-email");
+    const profileSummary = document.getElementById("account-profile-summary");
+    const profileName = document.getElementById("account-profile-name");
+    const profileEmail = document.getElementById("account-profile-email");
+
+    const readableEmailName = (email?: string): string => {
+      const localPart = email?.split("@")[0]?.split("+")[0] || "";
+      const words = localPart.replace(/[._-]+/g, " ").trim();
+      return words ? words.replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase()) : "My account";
+    };
 
     const refreshAccount = async (): Promise<void> => {
       const { data } = await supabase.auth.getUser();
       activeUser = data.user as typeof activeUser;
       const signedIn = Boolean(activeUser && !activeUser.is_anonymous);
-      accountTrigger.textContent = signedIn ? (activeUser?.email || "My account") : "Guest account";
+      const metadata = activeUser?.user_metadata ?? {};
+      const metadataName = [metadata.full_name, metadata.name, metadata.display_name]
+        .find((value) => typeof value === "string" && value.trim()) as string | undefined;
+      const email = activeUser?.email?.trim() || "";
+      const displayName = signedIn ? (metadataName?.trim() || readableEmailName(email)) : "Guest account";
+
+      if (displayNameElement) displayNameElement.textContent = displayName;
+      if (displayEmailElement) displayEmailElement.textContent = signedIn ? email : "Local diary";
+      if (profileName) profileName.textContent = displayName;
+      if (profileEmail) profileEmail.textContent = email || "Email address unavailable";
+      if (profileSummary) profileSummary.hidden = !signedIn;
       accountFields.hidden = signedIn;
       accountSessionActions.hidden = !signedIn;
       accountModeToggle.hidden = signedIn;
       accountStatus.textContent = signedIn
-        ? "Signed in as " + activeUser?.email + ". Your diary is synced to this account."
+        ? "Your diary is synced to this account."
         : "Create an account to keep your diary accessible across devices, or sign in to an existing account.";
       if (!signedIn) setMode("signup");
     };
