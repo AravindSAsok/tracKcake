@@ -157,7 +157,8 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
     attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
   }
 
-  const selectedAttempts = requestedProvider === "auto" ? attempts : attempts.filter((attempt) => attempt.provider === requestedProvider);\n  if (!selectedAttempts.length) throw new Error(requestedProvider === "auto" ? "No AI provider keys are configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in Vercel." : `The ${requestedProvider} provider is not configured in Vercel.`);
+  const selectedAttempts = requestedProvider === "auto" ? attempts : attempts.filter((attempt) => attempt.provider === requestedProvider);
+  if (!selectedAttempts.length) throw new Error(requestedProvider === "auto" ? "No AI provider keys are configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in Vercel." : `The ${requestedProvider} provider is not configured in Vercel.`);
 
   const failures: string[] = [];
   for (const attempt of selectedAttempts) {
