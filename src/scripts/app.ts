@@ -110,19 +110,19 @@ function closeDialog(dialogId: string): void {
   if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
 }
 
-function last24Hours(): FoodEntry[] {
+function todayEntries(): FoodEntry[] {
+  const today = localDateKey(new Date());
   const now = Date.now();
-  const cutoff = now - 24 * 60 * 60 * 1000;
   return entries
     .filter((entry) => {
       const timestamp = new Date(entry.eaten_at).getTime();
-      return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= now;
+      return Number.isFinite(timestamp) && timestamp <= now && localDateKey(entry.eaten_at) === today;
     })
     .sort((a, b) => new Date(b.eaten_at).getTime() - new Date(a.eaten_at).getTime());
 }
 
 function render(): void {
-  const recent = last24Hours();
+  const recent = todayEntries();
   const totalCalories = recent.reduce((sum, entry) => sum + entry.calories, 0);
   const protein = recent.reduce((sum, entry) => sum + entry.protein_g, 0);
   const carbs = recent.reduce((sum, entry) => sum + entry.carbs_g, 0);
@@ -138,11 +138,22 @@ function render(): void {
   byId<HTMLElement>("calories-total").textContent = numberFormat(totalCalories);
   byId<HTMLElement>("remaining-value").textContent = numberFormat(Math.max(0, calorieGoal - totalCalories));
   byId<HTMLElement>("goal-label").textContent = `${numberFormat(calorieGoal)} kcal goal`;
-  byId<HTMLElement>("progress-caption").textContent = totalCalories > calorieGoal
-    ? `${numberFormat(totalCalories - calorieGoal)} kcal above your goal`
+  const overGoal = totalCalories > calorieGoal;
+  byId<HTMLElement>("remaining-value").textContent = numberFormat(overGoal ? totalCalories - calorieGoal : calorieGoal - totalCalories);
+  byId<HTMLElement>("remaining-unit").textContent = overGoal ? "kcal over" : "kcal left";
+  byId<HTMLElement>("progress-caption").textContent = overGoal
+    ? `${numberFormat(totalCalories - calorieGoal)} kcal above your daily goal`
     : totalCalories === 0
       ? "Start logging to see your progress."
-      : `${Math.round(progress * 100)}% of your 24-hour goal used`;
+      : `${Math.round(progress * 100)}% of today's goal used`;
+  const guidance = totalCalories === 0
+    ? "Log your first meal to start tracking today."
+    : overGoal
+      ? "You're over today's target. That's okay — one day doesn't define your progress."
+      : totalCalories >= calorieGoal * 0.9
+        ? "You're close to your daily target. Keep listening to your hunger and energy."
+        : `You're on track. ${numberFormat(calorieGoal - totalCalories)} kcal remain for today.`;
+  byId<HTMLElement>("daily-guidance").textContent = guidance;
 
   byId<HTMLElement>("calorie-ring").style.setProperty("--progress", `${progress * 360}deg`);
   byId<HTMLElement>("progress-fill").style.width = `${progress * 100}%`;
@@ -152,6 +163,32 @@ function render(): void {
   byId<HTMLElement>("protein-total").textContent = `${decimalFormat(protein)} g`;
   byId<HTMLElement>("carbs-total").textContent = `${decimalFormat(carbs)} g`;
   byId<HTMLElement>("fat-total").textContent = `${decimalFormat(fat)} g`;
+
+  const mealTotals: Record<MealType, number> = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
+  for (const entry of recent) mealTotals[entry.meal] += entry.calories;
+  for (const meal of Object.keys(mealTotals) as MealType[]) {
+    byId<HTMLElement>(`meal-${meal}`).textContent = `${numberFormat(mealTotals[meal])} kcal`;
+  }
+
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date();
+    day.setHours(12, 0, 0, 0);
+    day.setDate(day.getDate() - (6 - index));
+    const key = localDateKey(day);
+    const dayTotal = entries.reduce((sum, entry) =>
+      localDateKey(entry.eaten_at) === key && new Date(entry.eaten_at).getTime() <= Date.now()
+        ? sum + entry.calories : sum, 0);
+    const onTrack = dayTotal > 0 && dayTotal >= calorieGoal * 0.9 && dayTotal <= calorieGoal * 1.1;
+    return { day, dayTotal, onTrack };
+  });
+  const onTrackDays = weekDays.filter((day) => day.onTrack).length;
+  byId<HTMLElement>("week-summary").textContent = `${onTrackDays} of 7 near goal`;
+  byId<HTMLElement>("week-days").innerHTML = weekDays.map(({ day, dayTotal, onTrack }) => {
+    const height = dayTotal > 0 ? Math.max(8, Math.min(100, dayTotal / Math.max(1, calorieGoal) * 100)) : 4;
+    const label = new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(day);
+    const title = `${label}: ${numberFormat(dayTotal)} kcal${onTrack ? " · near goal" : ""}`;
+    return `<div class="week-day" title="${title}"><span class="week-bar${onTrack ? " is-on-track" : ""}" style="height:${height}%"></span><span>${label.slice(0, 1)}</span></div>`;
+  }).join("");
 
   const macroCalories = [protein * 4, carbs * 4, fat * 9];
   const macroScale = Math.max(1, ...macroCalories);
