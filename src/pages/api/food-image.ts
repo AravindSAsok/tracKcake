@@ -85,7 +85,7 @@ async function callGemini(key: string, model: string, imageData: string): Promis
       ] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 1400, responseMimeType: "application/json" }
     }),
-    signal: AbortSignal.timeout(18_000)
+    signal: AbortSignal.timeout(12_000)
   });
   if (!response.ok) throw new Error(await readError(response));
   const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
@@ -148,8 +148,6 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
       process.env.GEMINI_VISION_MODEL?.trim(),
       process.env.GEMINI_MODEL?.trim(),
       "gemini-omni-1.2-flash",
-      "gemini-omni-1.1-flash",
-      "gemini-3-flash-preview"
     ].filter((value): value is string => Boolean(value)))];
     for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData) });
   }
