@@ -2120,3 +2120,16 @@ a {
   .quick-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .quick-buttons button { min-width: 0; min-height: 40px; padding: 0 5px; white-space: normal; font-size: 9px; }
 }
+
+
+/* Compact daily tracking: meal totals and weekly consistency */
+.daily-guidance{margin:8px 0 0;color:rgba(255,255,255,.82);font-size:11px;line-height:1.5;max-width:390px}
+.daily-insights{display:grid;grid-template-columns:1.05fr .95fr;gap:0;margin:16px 0 26px;padding:17px 20px;border:1px solid #e8ede5;border-radius:16px;background:#fff;box-shadow:0 5px 20px rgba(38,66,43,.035)}
+.meal-breakdown{padding-right:22px;border-right:1px solid #edf1ea}.weekly-consistency{padding-left:22px}
+.insights-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.insights-heading .card-kicker{margin:0}
+.insights-subtitle,.week-caption{color:#9aa598;font-size:9px}.meal-totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.meal-total{display:flex;flex-direction:column;gap:5px;min-width:0}.meal-total span{color:#899688;font-size:9px}.meal-total strong{color:#3d5943;font-size:12px;font-weight:800;white-space:nowrap}
+.week-summary{color:#597a4d;font-size:10px}.week-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:end;gap:9px;height:43px}
+.week-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:100%;color:#9aa598;font-size:9px}
+.week-bar{display:block;width:100%;max-width:19px;min-height:3px;border-radius:5px 5px 2px 2px;background:#dfe8d9}.week-bar.is-on-track{background:#7ea56b}.week-caption{margin:7px 0 0}
+@media(max-width:620px){.daily-insights{grid-template-columns:1fr;gap:15px;padding:15px;margin:13px 0 22px}.meal-breakdown{padding:0 0 14px;border-right:0;border-bottom:1px solid #edf1ea}.weekly-consistency{padding:0}.meal-totals{gap:5px}.meal-total strong{font-size:11px}.insights-heading{margin-bottom:10px}}
