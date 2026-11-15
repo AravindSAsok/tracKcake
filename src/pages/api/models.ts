@@ -40,11 +40,11 @@ function isStable(id: string): boolean {
   return !/(preview|experimental|(^|[-.])exp($|[-.]))/i.test(id);
 }
 
-function newestFirst(models: GeminiModel[]): GeminiModel[] {
+function newestFirst<T extends { id: string }>(models: T[]): T[] {
   return [...models].sort((a, b) => {
-    const score = versionScore(modelId(b.name ?? "")) - versionScore(modelId(a.name ?? ""));
+    const score = versionScore(b.id) - versionScore(a.id);
     if (score !== 0) return score;
-    return modelId(a.name ?? "").localeCompare(modelId(b.name ?? ""));
+    return a.id.localeCompare(b.id);
   });
 }
 
@@ -62,7 +62,7 @@ async function probeModel(id: string, apiKey: string): Promise<{ model: string; 
           contents: [{ role: "user", parts: [{ text: "Reply with the single word OK." }] }],
           generationConfig: { temperature: 0, maxOutputTokens: 8 }
         }),
-        signal: AbortSignal.timeout(8_000)
+        signal: AbortSignal.timeout(25_000)
       }
     );
     if (response.ok) return { model: id, ok: true, status: response.status };
@@ -133,9 +133,16 @@ export const GET: APIRoute = async ({ request }) => {
       }));
 
     const stable = supported.filter((model) => model.stable);
-    const pro = newestFirst(stable.filter((model) => /-pro(?:-|$)/i.test(model.id)));
-    const flash = newestFirst(stable.filter((model) => /-flash(?:-|$)/i.test(model.id)));
-    const recommended = pro[0] ?? flash[0] ?? newestFirst(stable)[0] ?? newestFirst(supported)[0];
+    const pro = newestFirst(supported.filter((model) =>
+      /gemini-(?:\\d+(?:\\.\\d+)?-)?pro(?:-|$)/i.test(model.id) &&
+      !/(image|tts|deep-research)/i.test(model.id)
+    ));
+    const flash = newestFirst(stable.filter((model) =>
+      /-flash(?:-|$)/i.test(model.id) &&
+      !/(image|tts)/i.test(model.id)
+    ));
+    // Prefer a current stable Flash model for nutrition logging; expose Pro separately.
+    const recommended = flash[0] ?? pro[0] ?? newestFirst(stable)[0] ?? newestFirst(supported)[0];
 
     const result: Record<string, unknown> = {
       checkedAt: new Date().toISOString(),
