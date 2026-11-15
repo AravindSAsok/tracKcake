@@ -20,7 +20,7 @@ async function probe(
   const endpoint = provider === "groq"
     ? "https://api.groq.com/openai/v1/models"
     : provider === "openrouter"
-      ? "https://openrouter.ai/api/v1/models"
+      ? "https://openrouter.ai/api/v1/models/user?output_modalities=text&endpoints=%2Fapi%2Fv1%2Fchat%2Fcompletions"
       : "https://generativelanguage.googleapis.com/v1beta/models";
 
   try {
@@ -51,9 +51,16 @@ async function probe(
 
     const payload = await response.json() as { data?: ModelRecord[]; models?: ModelRecord[] };
     const records = (payload.data ?? payload.models ?? []).filter((model) => {
-      if (provider !== "gemini") return Boolean(model.id);
-      return Boolean(model.name) && (!model.supportedGenerationMethods ||
-        model.supportedGenerationMethods.includes("generateContent"));
+      const id = (model.id ?? model.name ?? "").toLowerCase();
+      if (provider === "groq") {
+        return Boolean(model.id) && !/(whisper|orpheus|prompt-guard|safeguard|embedding|tts|transcrib|speech)/.test(id);
+      }
+      if (provider === "gemini") {
+        return Boolean(model.name) &&
+          (!model.supportedGenerationMethods || model.supportedGenerationMethods.includes("generateContent")) &&
+          !/(preview-tts|\\btts\\b|image|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
+      }
+      return Boolean(model.id);
     });
     const ids = records.map((model) => {
       const id = model.id ?? model.name ?? "";
