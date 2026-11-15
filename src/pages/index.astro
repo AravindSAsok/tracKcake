@@ -222,7 +222,14 @@ import Layout from "../layouts/Layout.astro";
               <button class="history-clear" id="history-clear" type="button">All dates</button>
             </div>
 
+            <p class="history-state" id="history-loading" role="status" hidden>Loading your food history…</p>
+            <p class="history-state history-error" id="history-error" role="alert" hidden></p>
             <div class="history-list" id="history-list" aria-live="polite"></div>
+            <nav class="history-pagination" id="history-pagination" aria-label="Food history pages" hidden>
+              <button class="history-page-button" id="history-previous" type="button" disabled>← Previous</button>
+              <span id="history-page-label" aria-live="polite">Page 1 of 1</span>
+              <button class="history-page-button" id="history-next" type="button" disabled>Next →</button>
+            </nav>
             <div class="empty-state" id="history-empty">
               <div class="empty-illustration" aria-hidden="true">
                 <span class="empty-plate"></span>
