@@ -184,9 +184,15 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
 
 export const POST: APIRoute = async ({ request }) => {
   let description: string;
+  let providerChoice: Provider | "auto" = "auto";
   try {
-    const body = await request.json() as { description?: unknown };
+    const body = await request.json() as { description?: unknown; provider?: unknown };
     description = typeof body.description === "string" ? body.description.trim() : "";
+    const requested = body.provider ?? "auto";
+    if (!["auto", "groq", "gemini", "openrouter"].includes(String(requested))) {
+      return json({ error: "Choose auto, groq, gemini or openrouter." }, 400);
+    }
+    providerChoice = requested as Provider | "auto";
   } catch {
     return json({ error: "Please enter a food description." }, 400);
   }
