@@ -134,7 +134,7 @@ async function callGemini(apiKey: string, model: string, prompt: string): Promis
   return content;
 }
 
-async function estimateWithFallback(description: string): Promise<ProviderResult> {
+async function estimateWithFallback(description: string, requestedProvider: Provider | "auto" = "auto"): Promise<ProviderResult> {
   const prompt = promptFor(description);
   const groqKey = process.env.GROQ_API_KEY?.trim();
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
@@ -157,10 +157,10 @@ async function estimateWithFallback(description: string): Promise<ProviderResult
     attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
   }
 
-  if (!attempts.length) throw new Error("No AI provider keys are configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in Vercel.");
+  const selectedAttempts = requestedProvider === "auto" ? attempts : attempts.filter((attempt) => attempt.provider === requestedProvider);\n  if (!selectedAttempts.length) throw new Error(requestedProvider === "auto" ? "No AI provider keys are configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in Vercel." : `The ${requestedProvider} provider is not configured in Vercel.`);
 
   const failures: string[] = [];
-  for (const attempt of attempts) {
+  for (const attempt of selectedAttempts) {
     const started = Date.now();
     try {
       const raw = await attempt.run();
@@ -193,7 +193,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (description.length > 700) return json({ error: "Please keep the food description under 700 characters." }, 400);
 
   try {
-    const result = await estimateWithFallback(description);
+    const result = await estimateWithFallback(description, providerChoice);
     return json({
       items: result.items,
       total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),
