@@ -24,7 +24,12 @@ import Layout from "../layouts/Layout.astro";
         </nav>
 
         <div class="top-actions">
-          <button class="secondary-button account-trigger" id="account-trigger" type="button">Guest account</button>
+          <button class="secondary-button account-trigger" id="account-trigger" type="button" aria-haspopup="dialog" aria-controls="account-dialog">
+            <span class="account-trigger-copy">
+              <strong id="account-display-name">Guest account</strong>
+              <small id="account-display-email"></small>
+            </span>
+          </button>
           <div class="storage-status" id="storage-status" title="Where your diary is saved">
             <span class="status-dot"></span>
             <span id="storage-label">On this device</span>
@@ -277,6 +282,11 @@ import Layout from "../layouts/Layout.astro";
         <button class="dialog-close" type="button" data-close="account-dialog" aria-label="Close dialog">×</button>
       </div>
       <p class="dialog-subtitle" id="account-status">Create an account to access your food diary on other devices.</p>
+      <div class="account-profile-summary" id="account-profile-summary" hidden>
+        <span class="account-profile-label">SIGNED-IN PROFILE</span>
+        <strong id="account-profile-name"></strong>
+        <span id="account-profile-email"></span>
+      </div>
       <button class="secondary-button" id="account-resend" type="button" hidden>Resend verification email</button>
       <div id="account-fields">
         <label class="field full-field">Email address<input id="account-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com" /></label>
