@@ -2108,3 +2108,6 @@ a {
 .calkie-compose button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .calkie-privacy{margin:0;padding:0 12px 10px;background:#fff;text-align:center;color:#9aa398;font-size:9px}
 @media(max-width:620px){.history-filters{flex-wrap:wrap}.history-filter{flex:1}.history-filter input{width:100%;min-width:0}.history-clear{flex:0 0 auto}.calkie-launcher{right:14px;bottom:14px}.calkie-panel{right:10px;bottom:78px;width:calc(100vw - 20px);height:min(640px,calc(100dvh - 95px))}}
+
+/* Keep verification actions hidden until an auth response requires them. */
+#account-resend[hidden] { display: none !important; }
