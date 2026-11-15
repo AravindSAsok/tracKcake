@@ -5,7 +5,7 @@ export const prerender = false;
 export const maxDuration = 60;
 
 type Provider = "groq" | "gemini" | "openrouter";
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 type FoodRow = {
   name: string; amount: string; calories: number; protein_g: number;
   carbs_g: number; fat_g: number; meal_type: string; eaten_at: string; source: string;
