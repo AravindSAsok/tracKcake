@@ -388,7 +388,7 @@ async function saveManualEntry(event: SubmitEvent): Promise<void> {
     return;
   }
 
-  const existing = editingId ? entries.find((entry) => entry.id === editingId) : undefined;
+  const existing = editingId ? (historyEntries.find((entry) => entry.id === editingId) ?? entries.find((entry) => entry.id === editingId)) : undefined;
   const entry: FoodEntry = {
     id: existing?.id ?? crypto.randomUUID(),
     name,
