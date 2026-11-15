@@ -61,7 +61,7 @@ async function probeModel(id: string, apiKey: string): Promise<{ model: string; 
         body: JSON.stringify({
           contents: [{
             role: "user",
-            parts: [{ text: "Return exactly this JSON object and nothing else: {\\"ok\\":true}" }]
+            parts: [{ text: 'Return exactly this JSON object and nothing else: {"ok":true}' }]
           }],
           generationConfig: {
             temperature: 0,
