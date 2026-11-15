@@ -1,13 +1,7 @@
 import type { APIRoute } from "astro";
 
 export const prerender = false;
-
-type GeminiPart = { text?: string };
-type GeminiResponse = {
-  candidates?: Array<{
-    content?: { parts?: GeminiPart[] };
-  }>;
-};
+export const maxDuration = 60;
 
 type EstimatedItem = {
   name: string;
@@ -18,13 +12,13 @@ type EstimatedItem = {
   fat_g: number;
 };
 
+type Provider = "groq" | "gemini" | "openrouter";
+type ProviderResult = { items: EstimatedItem[]; model: string; provider: Provider };
+
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store"
-    }
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
   });
 
 function asNumber(value: unknown): number {
@@ -34,45 +28,160 @@ function asNumber(value: unknown): number {
 }
 
 function parseItems(value: unknown): EstimatedItem[] {
-  if (!Array.isArray(value)) throw new Error("Gemini did not return a food list.");
-
+  if (!Array.isArray(value)) throw new Error("The AI provider did not return a food list.");
   const items = value.slice(0, 10).map((entry): EstimatedItem => {
-    if (!entry || typeof entry !== "object") {
-      throw new Error("Gemini returned an invalid food item.");
-    }
-
+    if (!entry || typeof entry !== "object") throw new Error("The AI provider returned an invalid food item.");
     const item = entry as Record<string, unknown>;
     const name = typeof item.name === "string" ? item.name.trim().slice(0, 90) : "";
     const amount = typeof item.amount === "string" ? item.amount.trim().slice(0, 90) : "";
     const calories = Math.round(asNumber(item.calories));
-
     if (!name || !amount || calories <= 0 || calories > 10000) {
-      throw new Error("Gemini returned an incomplete nutrition estimate.");
+      throw new Error("The AI provider returned an incomplete nutrition estimate.");
     }
-
     return {
-      name,
-      amount,
-      calories,
+      name, amount, calories,
       protein_g: asNumber(item.protein_g),
       carbs_g: asNumber(item.carbs_g),
       fat_g: asNumber(item.fat_g)
     };
   });
-
-  if (items.length === 0) throw new Error("No foods were found in that description.");
+  if (!items.length) throw new Error("No foods were found in that description.");
   return items;
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+function extractJson(text: string): unknown {
+  const cleaned = text.replace(/^\u0060\u0060\u0060(?:json)?\s*/i, "").replace(/\s*\u0060\u0060\u0060$/, "").trim();
+  const parsed = JSON.parse(cleaned) as { items?: unknown };
+  return parsed.items;
+}
 
-  if (!apiKey) {
-    return json({
-      error: "Gemini is not connected yet. Add GEMINI_API_KEY to your server environment to enable food estimates. You can still log food manually."
-    }, 503);
+const promptFor = (description: string) => [
+  "You are a careful nutrition estimation assistant.",
+  "Estimate nutrition for the foods and portion sizes described by the user.",
+  "Split a meal into separate food items when useful. Use realistic edible portion estimates.",
+  "If an amount is vague, choose a sensible common serving and state it in amount.",
+  'Return only JSON: {"items":[{"name":"food name","amount":"portion and unit","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}]}',
+  "Calories are kcal. Macros are grams. Use non-negative numbers. No advice, markdown, or extra keys.",
+  "Food description:", description
+].join("\n");
+
+async function readError(response: Response): Promise<string> {
+  try {
+    const body = await response.json() as { error?: { message?: string } | string; message?: string };
+    return typeof body.error === "string" ? body.error : body.error?.message || body.message || `HTTP ${response.status}`;
+  } catch {
+    return `HTTP ${response.status}`;
+  }
+}
+
+async function callOpenAICompatible(
+  provider: "groq" | "openrouter",
+  apiKey: string,
+  model: string,
+  prompt: string
+): Promise<string> {
+  const endpoint = provider === "groq"
+    ? "https://api.groq.com/openai/v1/chat/completions"
+    : "https://openrouter.ai/api/v1/chat/completions";
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(provider === "openrouter" ? {
+        "HTTP-Referer": "https://trackcake.vercel.app",
+        "X-Title": "TrackCake"
+      } : {})
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: "Return only valid JSON matching the requested nutrition schema. Never include markdown." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 1200,
+      response_format: { type: "json_object" }
+    }),
+    signal: AbortSignal.timeout(9_000)
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) throw new Error("Empty response from provider.");
+  return content;
+}
+
+async function callGemini(apiKey: string, model: string, prompt: string): Promise<string> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 1400, responseMimeType: "application/json" }
+      }),
+      signal: AbortSignal.timeout(9_000)
+    }
+  );
+  if (!response.ok) throw new Error(await readError(response));
+  const payload = await response.json() as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim();
+  if (!content) throw new Error("Empty response from Gemini.");
+  return content;
+}
+
+async function estimateWithFallback(description: string): Promise<ProviderResult> {
+  const prompt = promptFor(description);
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  const geminiKey = process.env.GEMINI_API_KEY?.trim();
+  const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+  const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
+
+  if (groqKey) {
+    const model = process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile";
+    attempts.push({ provider: "groq", model, run: () => callOpenAICompatible("groq", groqKey, model, prompt) });
+  }
+  if (geminiKey) {
+    const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
+    attempts.push({ provider: "gemini", model, run: () => callGemini(geminiKey, model, prompt) });
+    if (model !== "gemini-3.6-flash") {
+      attempts.push({ provider: "gemini", model: "gemini-3.6-flash", run: () => callGemini(geminiKey, "gemini-3.6-flash", prompt) });
+    }
+  }
+  if (openRouterKey) {
+    const model = process.env.OPENROUTER_MODEL?.trim() || "openrouter/free";
+    attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
   }
 
+  if (!attempts.length) throw new Error("No AI provider keys are configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in Vercel.");
+
+  const failures: string[] = [];
+  for (const attempt of attempts) {
+    const started = Date.now();
+    try {
+      const raw = await attempt.run();
+      const items = parseItems(extractJson(raw));
+      console.info("[trackcake-ai] provider succeeded", {
+        provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started
+      });
+      return { items, model: attempt.model, provider: attempt.provider };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown provider error";
+      failures.push(`${attempt.provider}/${attempt.model}: ${message.slice(0, 180)}`);
+      console.warn("[trackcake-ai] provider failed", {
+        provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started,
+        error: message.slice(0, 180)
+      });
+    }
+  }
+  throw new Error(failures.join(" | ").slice(0, 900));
+}
+
+export const POST: APIRoute = async ({ request }) => {
   let description: string;
   try {
     const body = await request.json() as { description?: unknown };
@@ -80,110 +189,23 @@ export const POST: APIRoute = async ({ request }) => {
   } catch {
     return json({ error: "Please enter a food description." }, 400);
   }
-
   if (!description) return json({ error: "Please enter what you ate." }, 400);
-  if (description.length > 700) {
-    return json({ error: "Please keep the food description under 700 characters." }, 400);
-  }
-
-  const model = process.env.GEMINI_MODEL?.trim() || "gemini-4-hydrogen";
-  const fallbackModel = "gemini-3.6-flash";
-  const prompt = [
-    "You are a careful nutrition estimation assistant.",
-    "Estimate the nutrition for the foods and portion sizes described by the user.",
-    "Split a meal into separate food items when that makes the result more useful.",
-    "Use realistic edible portion estimates. If an amount is vague, choose a sensible common serving and say so in the amount field.",
-    "Return only valid JSON with this exact shape:",
-    '{"items":[{"name":"food name","amount":"portion and unit","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}]}',
-    "Calories are kcal. Macros are grams. Use non-negative numbers. Do not include advice, markdown, or extra keys.",
-    "Food description:",
-    description
-  ].join("\n");
+  if (description.length > 700) return json({ error: "Please keep the food description under 700 characters." }, 400);
 
   try {
-    const callModel = (modelId: string) => fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(modelId) + ":generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 4096,
-            responseMimeType: "application/json"
-          }
-        }),
-        signal: AbortSignal.timeout(25_000)
-      }
-    );
-
-    let usedModel = model;
-    let response: Response;
-    try {
-      response = await callModel(model);
-    } catch (primaryError) {
-      if (model === fallbackModel) throw primaryError;
-      console.warn("Primary Gemini model request failed; trying fallback.", { model });
-      response = await callModel(fallbackModel);
-      usedModel = fallbackModel;
-    }
-
-    if (!response.ok && [404, 429, 503].includes(response.status) && model !== fallbackModel) {
-      console.warn("Primary Gemini model unavailable; trying fallback.", { model, status: response.status });
-      const fallbackResponse = await callModel(fallbackModel);
-      if (fallbackResponse.ok) {
-        response = fallbackResponse;
-        usedModel = fallbackModel;
-      } else {
-        console.warn("Gemini fallback also failed.", { model: fallbackModel, status: fallbackResponse.status });
-        response = fallbackResponse;
-        usedModel = fallbackModel;
-      }
-    }
-    if (!response.ok) {
-      console.warn("Gemini nutrition request failed.", { model: usedModel, status: response.status });
-      return json({
-        error: response.status === 429
-          ? "Gemini is rate-limited right now. Please try again shortly."
-          : response.status === 503
-            ? "Gemini is temporarily busy. Please try again in a moment."
-            : response.status === 404
-              ? "The configured Gemini model is unavailable for this API key. Update GEMINI_MODEL."
-              : `Gemini could not complete the estimate (HTTP ${response.status}). Check the API key and model setting.`
-      }, 502);
-    }
-
-    const payload = await response.json() as GeminiResponse;
-    const generatedText = payload.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text ?? "")
-      .join("")
-      .trim();
-
-    if (!generatedText) throw new Error("Gemini returned an empty response.");
-
-    const cleaned = generatedText
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```$/, "")
-      .trim();
-    const parsed = JSON.parse(cleaned) as { items?: unknown };
-    const items = parseItems(parsed.items);
-
+    const result = await estimateWithFallback(description);
     return json({
-      items,
-      total_calories: items.reduce((sum, item) => sum + item.calories, 0),
-      model: usedModel,
+      items: result.items,
+      total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),
+      provider: result.provider,
+      model: result.model,
       confidence: "estimate"
     });
   } catch (error) {
-    console.error("Nutrition estimate failed:", error);
+    console.error("[trackcake-ai] all configured providers failed", error);
     return json({
-      error: error instanceof Error && error.name === "TimeoutError"
-        ? "The nutrition estimate took too long. Please try again."
-        : "The nutrition estimate could not be read. Try describing the food and portion more clearly."
+      error: "All configured AI providers failed this request. Check provider keys, model access and quotas, then try again.",
+      detail: error instanceof Error ? error.message.slice(0, 900) : "Unknown provider error"
     }, 502);
   }
 };
