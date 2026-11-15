@@ -367,7 +367,7 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
     const response = await fetch("/api/estimate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description })
+      body: JSON.stringify({ description, provider: byId<HTMLSelectElement>("quick-provider").value || "auto" })
     });
     const payload = await response.json() as EstimateResponse;
     if (!response.ok) throw new Error(payload.error || "The food estimate could not be completed.");
