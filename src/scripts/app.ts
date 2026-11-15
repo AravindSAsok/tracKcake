@@ -7,7 +7,9 @@ import {
   saveGoal as persistGoal,
   updateEntry,
   type FoodEntry,
-  type MealType
+  type HistoryPage,
+  type MealType,
+  fetchHistoryPage
 } from "../lib/store";
 
 type DraftItem = {
@@ -46,6 +48,10 @@ let entries: FoodEntry[] = [];
 let calorieGoal = DEFAULT_CALORIE_GOAL;
 let editingId: string | null = null;
 let toastTimer: number | undefined;
+let historyEntries: FoodEntry[] = [];
+let historyPage = 1;
+let historyRequest = 0;
+const HISTORY_PAGE_SIZE = 20;
 
 const mealLabels: Record<MealType, string> = {
   breakfast: "Breakfast",
@@ -199,7 +205,7 @@ function render(): void {
   byId<HTMLElement>("diary-count").textContent = `${recent.length} ${recent.length === 1 ? "entry" : "entries"}`;
   byId<HTMLElement>("range-total").textContent = `${numberFormat(totalCalories)} kcal logged`;
 
-  renderHistory(recent);
+  void renderHistory();
   renderStorageStatus();
 }
 
@@ -222,64 +228,106 @@ function localDateKey(value: string | Date): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
-function renderHistory(_recent: FoodEntry[]): void {
+async function renderHistory(): Promise<void> {
   const dateInput = document.getElementById("history-date") as HTMLInputElement | null;
   const searchInput = document.getElementById("history-search") as HTMLInputElement | null;
   const selectedDate = dateInput?.value ?? "";
-  const search = (searchInput?.value ?? "").trim().toLocaleLowerCase();
-  const filtered = entries
-    .filter((entry) => !selectedDate || localDateKey(entry.eaten_at) === selectedDate)
-    .filter((entry) => !search || [entry.name, entry.amount, entry.meal_type].some((value) => value.toLocaleLowerCase().includes(search)))
-    .sort((a, b) => new Date(b.eaten_at).getTime() - new Date(a.eaten_at).getTime());
+  const search = (searchInput?.value ?? "").trim();
+  const loading = document.getElementById("history-loading") as HTMLElement | null;
+  const errorState = document.getElementById("history-error") as HTMLElement | null;
+  const pagination = document.getElementById("history-pagination") as HTMLElement | null;
+  const pageLabel = document.getElementById("history-page-label") as HTMLElement | null;
+  const previous = document.getElementById("history-previous") as HTMLButtonElement | null;
+  const next = document.getElementById("history-next") as HTMLButtonElement | null;
+  const request = ++historyRequest;
 
-  emptyState.hidden = filtered.length > 0;
-  entriesList.hidden = filtered.length === 0;
-  byId<HTMLElement>("diary-count").textContent = `${filtered.length} ${filtered.length === 1 ? "entry" : "entries"}`;
-  byId<HTMLElement>("range-total").textContent = `${numberFormat(filtered.reduce((sum, entry) => sum + entry.calories, 0))} kcal logged`;
+  if (loading) loading.hidden = false;
+  if (errorState) errorState.hidden = true;
+  if (pagination) pagination.hidden = false;
 
-  if (filtered.length === 0) {
+  try {
+    const result: HistoryPage = await fetchHistoryPage({
+      page: historyPage,
+      pageSize: HISTORY_PAGE_SIZE,
+      date: selectedDate,
+      search
+    });
+    if (request !== historyRequest) return;
+
+    if (result.entries.length === 0 && result.total > 0 && historyPage > 1) {
+      historyPage = Math.max(1, historyPage - 1);
+      return void renderHistory();
+    }
+
+    historyEntries = result.entries;
+    const totalPages = Math.max(1, Math.ceil(result.total / HISTORY_PAGE_SIZE));
+    emptyState.hidden = result.entries.length > 0;
+    entriesList.hidden = result.entries.length === 0;
+    byId<HTMLElement>("diary-count").textContent = `${result.total} ${result.total === 1 ? "entry" : "entries"}`;
+    byId<HTMLElement>("range-total").textContent = `${numberFormat(result.entries.reduce((sum, entry) => sum + entry.calories, 0))} kcal on this page`;
+
+    if (result.entries.length === 0) {
+      entriesList.innerHTML = "";
+      const title = emptyState.querySelector("h3");
+      const copy = emptyState.querySelector("p");
+      if (title) title.textContent = search || selectedDate ? "No matching food found." : "Your diary starts with a bite.";
+      if (copy) copy.textContent = search || selectedDate ? "Try another date or a different search." : "Log your first meal above and it will show up here.";
+    } else {
+      entriesList.innerHTML = result.entries.map((entry) => {
+        const meal = mealLabels[entry.meal_type] ?? "Snack";
+        const icon = mealIcons[entry.meal_type] ?? "✳";
+        const time = new Intl.DateTimeFormat("en-IN", {
+          day: "numeric",
+          month: "short",
+          hour: "numeric",
+          minute: "2-digit"
+        }).format(new Date(entry.eaten_at));
+
+        return `
+          <article class="food-row">
+            <div class="food-icon food-${entry.meal_type}" aria-hidden="true">${icon}</div>
+            <div class="food-details">
+              <div class="food-title-line">
+                <h3>${escapeHtml(entry.name)}</h3>
+                <span class="meal-chip">${meal}</span>
+                ${entry.source === "ai" ? '<span class="ai-chip">AI estimate</span>' : ""}
+              </div>
+              <p>${escapeHtml(entry.amount)} <span>·</span> ${time}</p>
+            </div>
+            <div class="food-nutrition">
+              <strong>${numberFormat(entry.calories)} <small>kcal</small></strong>
+              <span>P ${decimalFormat(entry.protein_g)} · C ${decimalFormat(entry.carbs_g)} · F ${decimalFormat(entry.fat_g)}</span>
+            </div>
+            <div class="food-actions">
+              <button class="row-action" type="button" data-action="edit" data-id="${escapeHtml(entry.id)}" aria-label="Edit ${escapeHtml(entry.name)}" title="Edit food">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.4-.9L20 7.5 16.5 4 4.9 15.6 4 20Z"/></svg>
+              </button>
+              <button class="row-action delete-action" type="button" data-action="delete" data-id="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}" title="Delete food">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5"/></svg>
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    if (pageLabel) pageLabel.textContent = `Page ${historyPage} of ${totalPages} · ${result.total} total`;
+    if (previous) previous.disabled = historyPage <= 1;
+    if (next) next.disabled = historyPage >= totalPages;
+    if (pagination) pagination.hidden = result.total === 0;
+  } catch (error) {
+    if (request !== historyRequest) return;
     entriesList.innerHTML = "";
-    const title = emptyState.querySelector("h3");
-    const copy = emptyState.querySelector("p");
-    if (title) title.textContent = search || selectedDate ? "No matching food found." : "Your diary starts with a bite.";
-    if (copy) copy.textContent = search || selectedDate ? "Try another date or a different search." : "Log your first meal above and it will show up here.";
-    return;
+    entriesList.hidden = true;
+    emptyState.hidden = true;
+    if (errorState) {
+      errorState.textContent = error instanceof Error ? error.message : "Food history could not be loaded. Please try again.";
+      errorState.hidden = false;
+    }
+    if (pagination) pagination.hidden = true;
+  } finally {
+    if (request === historyRequest && loading) loading.hidden = true;
   }
-
-  entriesList.innerHTML = filtered.map((entry) => {
-    const meal = mealLabels[entry.meal_type] ?? "Snack";
-    const icon = mealIcons[entry.meal_type] ?? "✳";
-    const time = new Intl.DateTimeFormat("en-IN", {
-      hour: "numeric",
-      minute: "2-digit"
-    }).format(new Date(entry.eaten_at));
-
-    return `
-      <article class="food-row">
-        <div class="food-icon food-${entry.meal_type}" aria-hidden="true">${icon}</div>
-        <div class="food-details">
-          <div class="food-title-line">
-            <h3>${escapeHtml(entry.name)}</h3>
-            <span class="meal-chip">${meal}</span>
-            ${entry.source === "ai" ? '<span class="ai-chip">AI estimate</span>' : ""}
-          </div>
-          <p>${escapeHtml(entry.amount)} <span>·</span> ${time}</p>
-        </div>
-        <div class="food-nutrition">
-          <strong>${numberFormat(entry.calories)} <small>kcal</small></strong>
-          <span>P ${decimalFormat(entry.protein_g)} · C ${decimalFormat(entry.carbs_g)} · F ${decimalFormat(entry.fat_g)}</span>
-        </div>
-        <div class="food-actions">
-          <button class="row-action" type="button" data-action="edit" data-id="${escapeHtml(entry.id)}" aria-label="Edit ${escapeHtml(entry.name)}" title="Edit food">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.4-.9L20 7.5 16.5 4 4.9 15.6 4 20Z"/></svg>
-          </button>
-          <button class="row-action delete-action" type="button" data-action="delete" data-id="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}" title="Delete food">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5"/></svg>
-          </button>
-        </div>
-      </article>
-    `;
-  }).join("");
 }
 
 function setQuickDefaults(): void {
@@ -722,7 +770,7 @@ async function saveReview(event: SubmitEvent): Promise<void> {
 }
 
 async function removeFood(id: string): Promise<void> {
-  const entry = entries.find((item) => item.id === id);
+  const entry = historyEntries.find((item) => item.id === id) ?? entries.find((item) => item.id === id);
   if (!entry) return;
   if (!window.confirm(`Delete "${entry.name}" from your diary?`)) return;
 
