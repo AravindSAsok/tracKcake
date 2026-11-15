@@ -2133,3 +2133,159 @@ a {
 .week-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:100%;color:#9aa598;font-size:9px}
 .week-bar{display:block;width:100%;max-width:19px;min-height:3px;border-radius:5px 5px 2px 2px;background:#dfe8d9}.week-bar.is-on-track{background:#7ea56b}.week-caption{margin:7px 0 0}
 @media(max-width:620px){.daily-insights{grid-template-columns:1fr;gap:15px;padding:15px;margin:13px 0 22px}.meal-breakdown{padding:0 0 14px;border-right:0;border-bottom:1px solid #edf1ea}.weekly-consistency{padding:0}.meal-totals{gap:5px}.meal-total strong{font-size:11px}.insights-heading{margin-bottom:10px}}
+
+
+/* Device-adaptive polish: stable sizing, touch controls and a phone-native Calkie sheet. */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.app-shell, .page-content, .main-column, .quick-add-card, .diary-section {
+  min-width: 0;
+}
+img, svg, video, canvas { max-width: 100%; }
+button, a, select, input, textarea { touch-action: manipulation; }
+
+@media (max-width: 680px) {
+  .topbar { height: auto; min-height: 60px; }
+  .topbar-inner {
+    min-height: 60px;
+    height: auto;
+    padding: 8px 12px;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  .brand { flex: 0 0 auto; }
+  .top-nav { gap: 10px; min-height: 38px; }
+  .top-actions { gap: 6px; min-width: 0; }
+  .account-trigger {
+    max-width: 104px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-inline: 9px;
+  }
+  .page-content { width: 100%; padding-inline: 14px; }
+  .overview-grid, .content-grid { min-width: 0; }
+  .quick-controls { min-width: 0; }
+  .control-label { min-width: 0; }
+  .control-label select, .control-label input {
+    width: 100%;
+    min-width: 0;
+  }
+  .quick-buttons { width: 100%; }
+  .history-filters { min-width: 0; }
+  .app-dialog {
+    width: calc(100vw - 20px);
+    max-width: 570px;
+    max-height: calc(100dvh - 24px);
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    overscroll-behavior: contain;
+  }
+  .dialog-form { min-width: 0; }
+  .field input, .field select,
+  .control-label input, .control-label select,
+  .history-filter input,
+  .calkie-model-row select,
+  .calkie-compose textarea,
+  .quick-form textarea {
+    font-size: 16px;
+  }
+
+  /* Calkie becomes a true full-screen phone surface instead of a floating desktop card. */
+  .calkie-panel {
+    position: fixed;
+    inset: 0;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: none;
+    overscroll-behavior: contain;
+  }
+  .calkie-header {
+    flex: 0 0 auto;
+    min-height: 68px;
+    padding: 10px 14px;
+  }
+  .calkie-model-row {
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .calkie-model-row label { min-width: 0; font-size: 10px; }
+  .calkie-model-row select {
+    height: 42px;
+    min-width: 0;
+    padding: 0 10px;
+    font-size: 16px;
+  }
+  .calkie-messages {
+    flex: 1 1 0;
+    min-height: 0;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px;
+  }
+  .calkie-suggestions {
+    flex: 0 0 auto;
+    padding: 8px 12px 10px;
+  }
+  .calkie-suggestions button {
+    min-height: 38px;
+    font-size: 12px;
+  }
+  .calkie-compose {
+    flex: 0 0 auto;
+    align-items: flex-end;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .calkie-compose textarea {
+    min-height: 44px;
+    max-height: 112px;
+    font-size: 16px;
+  }
+  .calkie-compose button {
+    width: 46px;
+    height: 46px;
+  }
+  .calkie-privacy {
+    flex: 0 0 auto;
+    padding-bottom: 8px;
+    font-size: 10px;
+  }
+  .calkie-launcher {
+    right: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    min-height: 54px;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar-inner { gap: 6px; }
+  .brand-name { font-size: 16px; }
+  .top-nav { gap: 7px; }
+  .nav-link { font-size: 9px; }
+  .top-actions { gap: 5px; }
+  .account-trigger { max-width: 84px; font-size: 9px; }
+  .quick-add-card { padding-inline: 13px; }
+  .quick-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .quick-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .quick-buttons button { font-size: 8px; }
+  .calorie-content { gap: 10px; }
+  .progress-ring { width: 100px; height: 100px; flex-basis: 100px; }
+  .ring-center { width: 86px; height: 86px; }
+}
