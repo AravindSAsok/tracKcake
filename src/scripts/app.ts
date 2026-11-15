@@ -541,7 +541,7 @@ async function estimatePhoto(): Promise<void> {
     while (true) {
       const { value, done } = await reader.read();
       buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-      const lines = buffer.split("\\n");
+      const lines = buffer.split("\n");
       buffer = lines.pop() || "";
       for (const line of lines) {
         if (!line.trim()) continue;
