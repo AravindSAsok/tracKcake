@@ -43,12 +43,12 @@ The app works without any environment variables. In local mode, entries and your
 
 ```dotenv
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-4-hydrogen
 ```
 
 3. Restart the dev server or redeploy.
 
-The key is read only by `src/pages/api/estimate.ts` and is sent to Google from the server. It is never placed in a `PUBLIC_*` variable or browser bundle. You can change `GEMINI_MODEL` without changing application code.
+The key is read only by `src/pages/api/estimate.ts` and is sent to Google from the server. It is never placed in a `PUBLIC_*` variable or browser bundle. The tested default model is `gemini-4-hydrogen`; the endpoint automatically falls back to `gemini-3.6-flash` if the primary model is temporarily unavailable or rate-limited. You can change `GEMINI_MODEL` without changing application code.
 
 ## Configure Supabase (optional)
 
