@@ -48,10 +48,17 @@ function newestFirst<T extends { id: string }>(models: T[]): T[] {
   });
 }
 
-async function probeModel(id: string, apiKey: string): Promise<{ model: string; ok: boolean; status: number; jsonResponse?: boolean; error?: string }> {
+async function probeModel(id: string, apiKey: string): Promise<{
+  model: string;
+  ok: boolean;
+  status: number;
+  jsonResponse?: boolean;
+  sample?: { name: string; amount: string; calories: number };
+  error?: string;
+}> {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(id)}:generateContent`,
+      \`https://generativelanguage.googleapis.com/v1beta/models/\${encodeURIComponent(id)}:generateContent\`,
       {
         method: "POST",
         headers: {
@@ -61,11 +68,13 @@ async function probeModel(id: string, apiKey: string): Promise<{ model: string; 
         body: JSON.stringify({
           contents: [{
             role: "user",
-            parts: [{ text: 'Return exactly this JSON object and nothing else: {"ok":true}' }]
+            parts: [{
+              text: 'Estimate nutrition for exactly one medium banana. Return ONLY JSON with this shape: {"items":[{"name":"food name","amount":"portion","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}]}. No markdown.'
+            }]
           }],
           generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 20,
+            temperature: 0.2,
+            maxOutputTokens: 256,
             responseMimeType: "application/json"
           }
         }),
@@ -75,19 +84,42 @@ async function probeModel(id: string, apiKey: string): Promise<{ model: string; 
 
     if (response.ok) {
       const payload = await response.json() as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>;
       };
       const generatedText = payload.candidates?.[0]?.content?.parts
         ?.map((part) => part.text ?? "")
         .join("")
         .trim() ?? "";
-      let jsonResponse = false;
+      let first: Record<string, unknown> | undefined;
       try {
-        jsonResponse = JSON.parse(generatedText)?.ok === true;
+        const parsed = JSON.parse(generatedText) as { items?: unknown };
+        if (Array.isArray(parsed.items) && parsed.items[0] && typeof parsed.items[0] === "object") {
+          first = parsed.items[0] as Record<string, unknown>;
+        }
       } catch {
-        jsonResponse = false;
+        first = undefined;
       }
-      return { model: id, ok: jsonResponse, status: response.status, jsonResponse };
+      const valid = Boolean(
+        first &&
+        typeof first.name === "string" &&
+        typeof first.amount === "string" &&
+        ["calories", "protein_g", "carbs_g", "fat_g"].every((key) =>
+          typeof first?.[key] === "number" && Number.isFinite(first[key] as number)
+        )
+      );
+      return {
+        model: id,
+        ok: valid,
+        status: response.status,
+        jsonResponse: valid,
+        ...(valid ? {
+          sample: {
+            name: String(first!.name),
+            amount: String(first!.amount),
+            calories: Number(first!.calories)
+          }
+        } : {})
+      };
     }
 
     const text = await response.text();
