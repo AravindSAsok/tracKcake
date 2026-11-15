@@ -148,9 +148,15 @@ export const GET: APIRoute = async ({ request }) => {
       models: supported
     };
 
-    if (new URL(request.url).searchParams.get("probe") === "1" && recommended) {
-      let probe = await probeModel(recommended.id, apiKey);
-      if (!probe.ok && flash[0] && flash[0].id !== recommended.id) {
+    const requestUrl = new URL(request.url);
+    const requestedModel = requestUrl.searchParams.get("model");
+    const requestedIsSupported = requestedModel
+      ? supported.some((model) => model.id === requestedModel)
+      : false;
+
+    if (requestUrl.searchParams.get("probe") === "1" && (requestedIsSupported || recommended)) {
+      let probe = await probeModel(requestedIsSupported ? requestedModel! : recommended!.id, apiKey);
+      if (!requestedIsSupported && !probe.ok && flash[0] && flash[0].id !== recommended?.id) {
         const fallback = await probeModel(flash[0].id, apiKey);
         if (fallback.ok) probe = fallback;
         result.fallbackProbe = fallback;
@@ -159,7 +165,7 @@ export const GET: APIRoute = async ({ request }) => {
       result.workingRecommendedModel = probe.ok ? probe.model : null;
       console.info("[gemini-model-check] result", {
         available: supported.length,
-        selected: recommended.id,
+        selected: probe.model,
         probeStatus: probe.status
       });
     }
