@@ -431,12 +431,19 @@ async function estimatePhoto(): Promise<void> {
       }),
       signal: AbortSignal.timeout(55_000)
     });
-    const payload = await response.json() as {
+    const responseText = await response.text();
+    let payload: {
       items?: DraftItem[];
       error?: string;
+      detail?: string;
       provider?: string;
       model?: string;
     };
+    try {
+      payload = JSON.parse(responseText) as typeof payload;
+    } catch {
+      throw new Error(`Photo service returned an unexpected response (HTTP ${response.status}). Please retry; if it continues, contact support.`);
+    }
     if (!response.ok) {
       const detail = (payload as { detail?: string }).detail;
       throw new Error(detail ? (payload.error || "Photo analysis failed.") + " " + detail : payload.error || "The photo could not be analysed.");
