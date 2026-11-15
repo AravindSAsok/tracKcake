@@ -147,24 +147,38 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
     const models = modelChoice ? [modelChoice] : [...new Set([
       process.env.GEMINI_VISION_MODEL?.trim(),
       process.env.GEMINI_MODEL?.trim(),
-      "gemini-2.5-flash",
-      "gemini-2.0-flash"
+      "gemini-omni-1.2-flash",
+      "gemini-omni-1.1-flash",
+      "gemini-3-flash-preview"
     ].filter((value): value is string => Boolean(value)))];
     for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData) });
   }
-  if (keys.groq) {
-    const model = modelChoice || process.env.GROQ_VISION_MODEL?.trim() || "meta-llama/llama-4-scout-17b-16e-instruct";
+  // The current Groq model-list response for this key exposes text-only models.
+  // Enable Groq photo analysis only when an explicit vision-capable model is configured.
+  if (keys.groq && (modelChoice || process.env.GROQ_VISION_MODEL?.trim())) {
+    const model = modelChoice || process.env.GROQ_VISION_MODEL!.trim();
     attempts.push({ provider: "groq", model, run: () => callCompatibleVision("groq", keys.groq!, model, dataUrl) });
   }
   if (keys.openrouter) {
-    const model = modelChoice || process.env.OPENROUTER_VISION_MODEL?.trim() || "google/gemini-2.5-flash";
-    attempts.push({ provider: "openrouter", model, run: () => callCompatibleVision("openrouter", keys.openrouter!, model, dataUrl) });
+    const models = modelChoice ? [modelChoice] : [...new Set([
+      process.env.OPENROUTER_VISION_MODEL?.trim(),
+      "google/gemini-omni-1.2-flash",
+      "qwen/qwen3-vl-8b-instruct"
+    ].filter((value): value is string => Boolean(value)))];
+    for (const model of models) {
+      attempts.push({ provider: "openrouter", model, run: () => callCompatibleVision("openrouter", keys.openrouter!, model, dataUrl) });
+    }
   }
 
   const selected = providerChoice === "auto" ? attempts : attempts.filter((item) => item.provider === providerChoice);
-  if (!selected.length) throw new Error(providerChoice === "auto"
-    ? "No AI provider keys are configured. Add your Groq, Gemini or OpenRouter key in Vercel."
-    : `The ${providerChoice} provider is not configured in Vercel.`);
+  if (!selected.length) {
+    if (providerChoice === "groq") {
+      throw new Error("Your current Groq API key exposes text-only models, not a confirmed vision model. Choose Gemini or OpenRouter for food photos, or configure GROQ_VISION_MODEL in Vercel.");
+    }
+    throw new Error(providerChoice === "auto"
+      ? "No image-capable AI provider is configured. Check your Gemini or OpenRouter vision model access."
+      : `The ${providerChoice} provider is not configured for image analysis.`);
+  }
 
   const failures: string[] = [];
   for (const attempt of selected) {
