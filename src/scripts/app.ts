@@ -385,7 +385,7 @@ async function compressFoodPhoto(file: File): Promise<Blob> {
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
     if (!blob) throw new Error("Your browser could not compress this photo.");
-    if (blob.size > 3.5 * 1024 * 1024) throw new Error("This photo is still too large after compression. Please choose a smaller image.");
+    if (blob.size > 2.7 * 1024 * 1024) throw new Error("This photo is still too large after compression. Please choose a smaller image.");
     return blob;
   } finally {
     bitmap.close();
@@ -411,12 +411,24 @@ async function estimatePhoto(): Promise<void> {
   button.textContent = "Analysing photo…";
   try {
     const compressed = await compressFoodPhoto(file);
-    const body = new FormData();
-    body.append("image", compressed, "food-photo.jpg");
-    body.append("provider", byId<HTMLSelectElement>("quick-provider").value || "auto");
+    const imageData = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === "string" ? reader.result : "";
+        const comma = result.indexOf(",");
+        if (comma < 0) reject(new Error("Your browser could not read this photo."));
+        else resolve(result.slice(comma + 1));
+      };
+      reader.onerror = () => reject(new Error("Your browser could not read this photo."));
+      reader.readAsDataURL(compressed);
+    });
     const response = await fetch("/api/food-image", {
       method: "POST",
-      body,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: imageData,
+        provider: byId<HTMLSelectElement>("quick-provider").value || "auto"
+      }),
       signal: AbortSignal.timeout(55_000)
     });
     const payload = await response.json() as {
