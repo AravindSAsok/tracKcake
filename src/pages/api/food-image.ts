@@ -255,7 +255,7 @@ export const POST: APIRoute = async ({ request }) => {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       const send = (event: Record<string, unknown>) => {
-        controller.enqueue(encoder.encode(JSON.stringify(event) + "\\n"));
+        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
       };
       void (async () => {
         try {
