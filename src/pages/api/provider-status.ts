@@ -58,9 +58,9 @@ async function probe(
       if (provider === "gemini") {
         return Boolean(model.name) &&
           (!model.supportedGenerationMethods || model.supportedGenerationMethods.includes("generateContent")) &&
-          !/(tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
+          !/(2\\.5|tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
       }
-      return Boolean(model.id) && !(/:batch$|image|audio|speech|transcrib|tts|lyria|video|embedding/.test(id));
+      return Boolean(model.id) && !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(id));
     });
     const ids = records.map((model) => {
       const id = model.id ?? model.name ?? "";
@@ -76,7 +76,7 @@ async function probe(
     const preferred = provider === "groq"
       ? ["llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"]
       : provider === "gemini"
-        ? ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
+        ? ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"]
         : ["openrouter/free", ...ids.filter((id) => id.endsWith(":free")).slice(0, 4)];
 
     return {
