@@ -142,7 +142,9 @@ launcher.addEventListener("click", () => {
   panel.hidden = !panel.hidden;
   if (!panel.hidden) {
     void loadHistory();
-    input.focus();
+    // Avoid opening the mobile keyboard just because the chat panel was opened.
+    // This prevents the browser from resizing the whole page before the user starts typing.
+    if (!window.matchMedia("(pointer: coarse)").matches) input.focus();
   }
 });
 closeButton.addEventListener("click", () => { panel.hidden = true; });
