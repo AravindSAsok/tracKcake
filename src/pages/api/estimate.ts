@@ -86,7 +86,8 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Please keep the food description under 700 characters." }, 400);
   }
 
-  const model = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL?.trim() || "gemini-4-hydrogen";
+  const fallbackModel = "gemini-3.6-flash";
   const prompt = [
     "You are a careful nutrition estimation assistant.",
     "Estimate the nutrition for the foods and portion sizes described by the user.",
@@ -100,8 +101,8 @@ export const POST: APIRoute = async ({ request }) => {
   ].join("\n");
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    const callModel = (modelId: string) => fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(modelId) + ":generateContent",
       {
         method: "POST",
         headers: {
@@ -112,6 +113,7 @@ export const POST: APIRoute = async ({ request }) => {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.2,
+            maxOutputTokens: 4096,
             responseMimeType: "application/json"
           }
         }),
@@ -119,11 +121,39 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
 
+    let usedModel = model;
+    let response: Response;
+    try {
+      response = await callModel(model);
+    } catch (primaryError) {
+      if (model === fallbackModel) throw primaryError;
+      console.warn("Primary Gemini model request failed; trying fallback.", { model });
+      response = await callModel(fallbackModel);
+      usedModel = fallbackModel;
+    }
+
+    if (!response.ok && [404, 429, 503].includes(response.status) && model !== fallbackModel) {
+      console.warn("Primary Gemini model unavailable; trying fallback.", { model, status: response.status });
+      const fallbackResponse = await callModel(fallbackModel);
+      if (fallbackResponse.ok) {
+        response = fallbackResponse;
+        usedModel = fallbackModel;
+      } else {
+        console.warn("Gemini fallback also failed.", { model: fallbackModel, status: fallbackResponse.status });
+        response = fallbackResponse;
+        usedModel = fallbackModel;
+      }
+    }
     if (!response.ok) {
+      console.warn("Gemini nutrition request failed.", { model: usedModel, status: response.status });
       return json({
         error: response.status === 429
-          ? "Gemini is receiving too many requests. Please try again shortly."
-          : `Gemini could not complete the estimate (HTTP ${response.status}). Check the API key and model setting.`
+          ? "Gemini is rate-limited right now. Please try again shortly."
+          : response.status === 503
+            ? "Gemini is temporarily busy. Please try again in a moment."
+            : response.status === 404
+              ? "The configured Gemini model is unavailable for this API key. Update GEMINI_MODEL."
+              : `Gemini could not complete the estimate (HTTP ${response.status}). Check the API key and model setting.`
       }, 502);
     }
 
@@ -145,6 +175,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({
       items,
       total_calories: items.reduce((sum, item) => sum + item.calories, 0),
+      model: usedModel,
       confidence: "estimate"
     });
   } catch (error) {
