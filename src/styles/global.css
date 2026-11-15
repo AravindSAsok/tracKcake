@@ -2440,3 +2440,12 @@ body.calkie-open::before {
 .calkie-launcher-face{width:48px;height:48px;border-radius:50%}
 .calkie-avatar{width:52px;height:52px;border-radius:16px}
 @media(max-width:680px){.calkie-launcher-face{width:46px;height:46px}.calkie-avatar{width:48px;height:48px}}
+
+
+/* Nutrition provenance in the photo review */
+.review-item-heading{flex-wrap:wrap;}
+.review-source{flex-basis:100%;font-size:.72rem;line-height:1.4;color:#28734d;margin:2px 0 8px 2.4rem;}
+.review-source-estimate{color:#8a6a2f;}
+/* Keep Calkie's supplied artwork fully visible in both avatar sizes. */
+.calkie-avatar img,.calkie-launcher-face img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;}
+.calkie-avatar,.calkie-launcher-face{overflow:hidden;}
