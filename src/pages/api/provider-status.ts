@@ -58,9 +58,9 @@ async function probe(
       if (provider === "gemini") {
         return Boolean(model.name) &&
           (!model.supportedGenerationMethods || model.supportedGenerationMethods.includes("generateContent")) &&
-          !/(tts|image|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
+          !/(tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
       }
-      return Boolean(model.id) && !/(\\:batch$|image|audio|speech|transcrib|tts|lyria|video|embedding)/.test(id);
+      return Boolean(model.id) && !(/:batch$|image|audio|speech|transcrib|tts|lyria|video|embedding/.test(id));
     });
     const ids = records.map((model) => {
       const id = model.id ?? model.name ?? "";
