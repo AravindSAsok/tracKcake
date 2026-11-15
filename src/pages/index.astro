@@ -52,7 +52,7 @@ import Layout from "../layouts/Layout.astro";
           <span class="date-icon" aria-hidden="true">◷</span>
           <div>
             <strong id="current-date">Today</strong>
-            <span>Rolling 24-hour view</span>
+            <span>Calendar day · 12 AM to 12 AM</span>
           </div>
         </div>
       </section>
@@ -93,7 +93,7 @@ import Layout from "../layouts/Layout.astro";
           </div>
 
           <div class="calorie-footer">
-            <span><span class="footer-spark">✳</span> Based on your last 24 hours</span>
+            <span><span class="footer-spark">✳</span> Based on today · 12 AM–12 AM</span>
             <button class="text-button inverse-button" id="edit-goal" type="button">Edit daily goal <span aria-hidden="true">↗</span></button>
           </div>
         </article>
@@ -106,7 +106,7 @@ import Layout from "../layouts/Layout.astro";
             </div>
             <span class="macro-icon" aria-hidden="true">◌</span>
           </div>
-          <p class="card-description">A quick look at your macros over the last 24 hours.</p>
+          <p class="card-description">A quick look at your macros for today.</p>
 
           <div class="macro-list">
             <div class="macro-row">
@@ -141,6 +141,20 @@ import Layout from "../layouts/Layout.astro";
           <div class="insights-heading"><p class="card-kicker">LAST 7 DAYS</p><strong class="week-summary" id="week-summary">0 of 7 near goal</strong></div>
           <div class="week-days" id="week-days" aria-label="Daily calorie progress for the last seven days"></div>
           <p class="week-caption">Days within 10% of your daily target</p>
+        </div>
+      </section>
+
+      <section class="day-timeline-card" aria-labelledby="day-timeline-title">
+        <div class="day-timeline-heading">
+          <div>
+            <p class="card-kicker">TODAY'S FOOD</p>
+            <h2 id="day-timeline-title">What you ate today</h2>
+            <p>Midnight to midnight · 12:00 AM – 11:59 PM</p>
+          </div>
+          <span class="day-timeline-total" id="day-timeline-total">0 kcal · 0 foods</span>
+        </div>
+        <div class="day-timeline-list" id="day-timeline-list" aria-live="polite">
+          <p class="day-timeline-empty">Your meals will appear here as you log them.</p>
         </div>
       </section>
 
@@ -253,7 +267,7 @@ import Layout from "../layouts/Layout.astro";
             <div class="goal-number"><strong id="side-goal">2,000</strong><span>kcal</span></div>
             <p>Keep your target realistic and sustainable.</p>
             <div class="goal-divider"></div>
-            <div class="goal-mini-row"><span>Logged in last 24h</span><strong id="side-consumed">0 kcal</strong></div>
+            <div class="goal-mini-row"><span>Logged today</span><strong id="side-consumed">0 kcal</strong></div>
             <div class="goal-mini-row"><span>Daily target</span><strong id="side-target">2,000 kcal</strong></div>
           </section>
 
