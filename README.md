@@ -1,119 +1,203 @@
-# trackcake
+# TrackCake
 
-A calm, lightweight food and calorie tracker. Describe what you ate, choose Groq, Gemini, or OpenRouter and an available model, review the nutrition estimate, and save it to your food diary.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AravindSAsok/tracKcake/main/public/favicon.svg" width="88" alt="TrackCake logo" />
+</p>
 
-## What it does
+<h3 align="center">A thoughtful food diary with AI-assisted nutrition tracking.</h3>
 
-- Log food in natural language, including portions (for example, "2 idlis, one cup of sambar and a banana").
-- Discover the model catalog available from each configured Groq, Gemini, and OpenRouter API key, then select a provider and model or keep automatic fallback.
-- Review and edit every suggested item before saving. Estimates are never saved automatically.
-- Add or edit entries manually whenever you need to correct an amount or calorie value.
-- Search your complete food diary by date, food name, portion, or meal.
-- Ask Calkie, your private AI food assistant, questions about meals, calories, macros, and eating patterns.
-- Set your own daily calorie goal.
-- Create an email/password account or continue as a guest with private Supabase cloud storage; local browser storage remains the fallback.
+<p align="center">
+  <a href="https://trackcake.vercel.app"><strong>Open the live app</strong></a>
+  · <a href="https://github.com/AravindSAsok/tracKcake/issues">Report an issue</a>
+</p>
 
-Nutrition values are estimates, not medical advice. Actual calories vary with portion size, recipe, and preparation.
+<p align="center">
+  <img alt="Astro" src="https://img.shields.io/badge/Astro-5.x-BC52EE?logo=astro&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Auth%20%7C%20Postgres-3FCF8E?logo=supabase&logoColor=white" />
+  <img alt="Vercel" src="https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel&logoColor=white" />
+</p>
 
-## Stack
+TrackCake makes food logging easier without hiding the details. Add meals manually, describe them in natural language, or submit a food photo for an AI-assisted estimate. Review and edit suggested foods, portions, calories, and macros before saving them to your diary.
 
-- Astro + TypeScript
-- Astro Vercel server adapter for private AI provider endpoints
-- Groq, Gemini, and OpenRouter REST APIs (server-side only)
-- Supabase Auth + Postgres with Row Level Security (optional cloud persistence)
-- Local browser storage as an immediate fallback
+**Live app:** [trackcake.vercel.app](https://trackcake.vercel.app)
+
+> Nutrition values are estimates for personal tracking, not medical advice. Image recognition and portion estimation can be wrong; review every result.
+
+## Features
+
+- **Three food-entry workflows:** manual logging, natural-language estimates, and photo-based food recognition.
+- **Multi-provider AI:** connect Groq, Google Gemini, and OpenRouter; discover models available to configured API keys.
+- **Model selection and fallback:** select a provider/model or use automatic provider fallback.
+- **Review before saving:** AI suggestions are editable and never silently added to the diary.
+- **Food diary:** edit and delete entries, search and filter history, and review meal-level breakdowns.
+- **Daily nutrition goals:** track calories and macronutrients against a personal calorie target.
+- **Calkie assistant:** ask questions about your diary through a floating chat interface, with provider/model selection and saved conversation history.
+- **Flexible persistence:** use local browser storage or Supabase Auth and cloud-backed PostgreSQL storage.
+- **Packaged-food lookup:** photo analysis can identify product details and attempt nutrition verification using Open Food Facts.
+
+## Screenshots
+
+A curated screenshot set is not currently committed. Add real application captures under docs/screenshots/ and link them here when available; do not use mockups that suggest features the app does not have.
+
+## Technology
+
+| Layer | Technology |
+| --- | --- |
+| Framework | Astro 5 |
+| Language | TypeScript |
+| Server runtime | Astro server output; Vercel adapter, with standalone Node adapter option for Render |
+| Authentication and database | Supabase Auth, PostgreSQL, Row Level Security |
+| AI providers | Groq, Google Gemini, OpenRouter |
+| Product nutrition lookup | Open Food Facts |
+| Hosting | Vercel |
+
+## Architecture
+
+~~~mermaid
+flowchart TD
+  U[User] --> UI[Astro diary interface]
+  UI --> M[Manual entry]
+  UI --> T[Text estimate]
+  UI --> P[Photo estimate]
+  T --> API[Server API routes]
+  P --> API
+  API --> AI[Groq / Gemini / OpenRouter]
+  P --> OFF[Open Food Facts lookup]
+  AI --> R[Review and edit]
+  OFF --> R
+  M --> DB[Local storage or Supabase]
+  R --> DB
+  DB --> D[Diary, goals and nutrition summaries]
+  D --> C[Calkie assistant]
+  C --> API
+~~~
+
+Provider credentials stay on the server. In cloud mode, Supabase Auth identifies the user and PostgreSQL Row Level Security scopes diary data to that user.
 
 ## Run locally
 
-Requirements: Node.js 20.19+ and npm.
+**Requirements:** Node.js 22 and npm.
 
-```bash
+~~~bash
+git clone https://github.com/AravindSAsok/tracKcake.git
+cd tracKcake
 npm install
 cp .env.example .env
 npm run dev
-```
+~~~
 
-Open http://localhost:4321.
+Open [http://localhost:4321](http://localhost:4321).
 
-The app works without any environment variables. In local mode, entries and your goal stay in this browser on this device. The AI estimate button will explain how to configure an AI provider until at least one provider key is supplied; manual logging and editing remain available.
+The app can start without environment variables. Manual logging and local browser storage are available in local-only mode. Configure an AI provider for AI-assisted estimates; configure Supabase if you want cloud persistence and account-based access.
 
-## Configure AI providers
+## Environment variables
 
-1. Create an API key in Google AI Studio.
-2. Add the following server-only environment variable to `.env` and your hosting provider:
+Add the credentials for the services you intend to use to your local .env file:
 
-```dotenv
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-3.6-flash
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=openai/gpt-oss-20b
-OPENROUTER_API_KEY=your_openrouter_api_key
-OPENROUTER_MODEL=openrouter/free
-```
+~~~dotenv
+GROQ_API_KEY=
+GROQ_MODEL=
+GEMINI_API_KEY=
+GEMINI_MODEL=
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
+PUBLIC_SUPABASE_URL=
+PUBLIC_SUPABASE_ANON_KEY=
+~~~
 
-3. Restart the dev server or redeploy.
+Never commit .env files or expose AI provider keys through PUBLIC_ variables. The Supabase URL and anon/publishable key are browser configuration and must be protected by the included Row Level Security policies. Never put a Supabase service-role key in the browser.
 
-Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.6-flash`), and the free `baidu/ernie-5.5-flash-preview:free` model on OpenRouter by default, with `inclusionai/ling-3.2-flash:free` as its fallback. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint and returns the available model IDs for the selector; it never returns secret values. OpenRouter's catalog can include models whose use still depends on your account credits and provider availability.
+### AI providers and model catalogue
 
-## Configure Supabase (optional)
+1. Create an API key with one or more supported providers.
+2. Add the corresponding server-side variable(s) to .env or your hosting environment.
+3. Restart the development server or redeploy.
+4. Use the provider selector to retrieve the model catalogue available to each configured key.
 
-The app starts in local mode. To enable cloud persistence:
+The provider-status endpoint queries provider model-list APIs and returns model IDs and availability status, not secret values. Catalogues, account access, rate limits, and model availability can change. A model appearing in a catalogue does not guarantee every request will succeed.
+
+Automatic mode tries configured providers in the server-defined order and can fall back after a provider error. Selecting a specific provider keeps the request on that provider.
+
+### Supabase setup (optional)
 
 1. Create a Supabase project.
-2. In Supabase Authentication settings, enable **Anonymous sign-ins**. The app creates a browser-scoped anonymous session so database rows can be protected by `auth.uid()` without requiring a sign-up form. Users can create an email/password account or sign in from the account button; new empty accounts can inherit the current browser diary on first load.
-3. Run `supabase/migrations/202611150001_trackcake.sql` in the Supabase SQL Editor.
-4. Add the project URL and publishable/anon key to `.env`:
+2. Enable **Anonymous sign-ins** if guest cloud sessions are required.
+3. Run the SQL migration in supabase/migrations/ in the Supabase SQL Editor.
+4. Set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY.
+5. Restart the app.
 
-```dotenv
-PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=your_supabase_publishable_or_anon_key
-```
+The migration creates the food diary and tracker settings tables, indexes, grants, and user-scoped Row Level Security policies. Anonymous sessions are browser-dependent; create or sign in to a recoverable account before relying on access across devices.
 
-5. Restart or redeploy. The footer status will show whether the app is using local storage or Supabase.
+## Build and verify
 
-The migration enables RLS and restricts each food entry and goal to the authenticated user ID. The browser key is safe to expose only with these policies enabled. **Never add a Supabase service-role key to this app.**
-
-Anonymous accounts persist in the browser's Supabase session. Clearing browser storage or moving to another browser can make an anonymous account inaccessible; add a real sign-in/recovery flow before relying on cross-device access.
-
-## Deploy
-
-This project uses the Astro Vercel adapter because the AI provider endpoints need a server runtime.
-
-1. Push the repository to GitHub and import it into Vercel.
-2. Set the framework preset to Astro (Vercel normally detects it).
-3. Add `GEMINI_API_KEY` and, optionally, `GEMINI_MODEL`, `PUBLIC_SUPABASE_URL`, and `PUBLIC_SUPABASE_ANON_KEY` in Vercel Project Settings → Environment Variables.
-4. Redeploy after adding or changing environment variables.
-
-For a local production build:
-
-```bash
+~~~bash
 npm run check
 npm run build
 npm run preview
-```
+~~~
 
-A static-only GitHub Pages deployment cannot run the private Gemini API route. Use a server-capable host such as Vercel for the complete app.
+| Command | Purpose |
+| --- | --- |
+| npm run dev | Start the development server |
+| npm run check | Run Astro and TypeScript diagnostics |
+| npm run build | Create the production build |
+| npm run preview | Preview the production build locally |
 
-## Project layout
+## Deployment
 
-```text
+The production application uses the Astro Vercel adapter because AI features require server-side API routes.
+
+1. Import this repository into Vercel.
+2. Keep the framework preset set to Astro.
+3. Add the required AI keys and optional Supabase variables to project environment settings.
+4. Deploy and verify the production build.
+
+A standalone Node adapter option is available for Render builds using TRACKCAKE_HOST=render. Static-only hosting cannot run the server API routes needed by AI estimates and Calkie.
+
+## Project structure
+
+~~~text
 src/
-  lib/                 Supabase/local storage adapter
-  pages/
-    api/estimate.ts    Server-side multi-provider nutrition estimate
-    api/assistant.ts  Authenticated, user-scoped Calkie assistant
-    api/provider-status.ts  Available AI model catalogue
-    index.astro        Dashboard
-  scripts/app.ts       Browser interactions and diary state
-  scripts/calkie.ts    Per-account Calkie chat UI
-  styles/global.css   Responsive app styling
+├── layouts/                  Shared page layout
+├── lib/                      Storage and Supabase integration
+├── pages/
+│   ├── index.astro           Main food diary interface
+│   └── api/
+│       ├── estimate.ts       Text-based nutrition estimation
+│       ├── food-image.ts     Image-based food recognition and estimation
+│       ├── provider-status.ts Provider/model discovery
+│       └── assistant.ts      Authenticated Calkie API
+├── scripts/
+│   ├── app.ts                Diary and food-entry interactions
+│   ├── ai-account.ts         Provider/model selector and account flows
+│   └── calkie.ts             Floating assistant interface
+└── styles/
+    └── global.css            Application styles
 supabase/
-  migrations/          Postgres schema, indexes, and RLS policies
-```
+└── migrations/               Database schema and RLS policies
+~~~
 
-## Privacy and accuracy
+## Privacy and nutrition accuracy
 
-- The Gemini request contains only the food description entered for that estimate.
-- API keys remain server-side.
-- Cloud mode uses Supabase anonymous auth and row-level security; no service-role credential is used.
-- Calorie and macro values are approximations. Review the suggested portions and edit the result to match what you actually ate.
+- AI provider keys are used by server-side routes and must remain secret.
+- Supabase cloud data is protected by user-scoped Row Level Security policies.
+- Calkie requires a valid Supabase session to retrieve diary context and conversation history.
+- Food text and photos are sent to the selected AI provider for analysis. Do not submit information you do not want processed by that provider.
+- Packaged-food verification is best-effort and depends on matching Open Food Facts product data.
+- Food names, portions, calories, and macros generated by AI may be inaccurate. Review and correct every estimate.
+
+## Contributing
+
+Focused issues and pull requests are welcome. Read agent.md before changing authentication, storage, provider handling, or diary behavior.
+
+## Maintainer
+
+Built and maintained by **Aravind S Asok**.
+
+- Portfolio: [aravindsasok.netlify.app](https://aravindsasok.netlify.app/)
+- GitHub: [@AravindSAsok](https://github.com/AravindSAsok)
+
+---
+
+<p align="center">Made with care for more mindful food tracking.</p>
