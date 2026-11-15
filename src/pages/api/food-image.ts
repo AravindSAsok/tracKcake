@@ -5,12 +5,9 @@ export const maxDuration = 60;
 
 type Provider = "groq" | "gemini" | "openrouter";
 type FoodItem = {
-  name: string;
-  amount: string;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
+  name: string; amount: string; calories: number; protein_g: number; carbs_g: number; fat_g: number;
+  brand?: string; product_name?: string; barcode?: string;
+  nutrition_source?: string; nutrition_basis?: string;
 };
 type Result = { items: FoodItem[]; provider: Provider; model: string };
 
@@ -50,20 +47,63 @@ function parseItems(raw: string): FoodItem[] {
     }
     return {
       name, amount, calories,
-      protein_g: number(row.protein_g),
-      carbs_g: number(row.carbs_g),
-      fat_g: number(row.fat_g)
+      protein_g: number(row.protein_g), carbs_g: number(row.carbs_g), fat_g: number(row.fat_g),
+      brand: typeof row.brand === "string" ? row.brand.trim().slice(0, 80) : undefined,
+      product_name: typeof row.product_name === "string" ? row.product_name.trim().slice(0, 100) : undefined,
+      barcode: typeof row.barcode === "string" && /^\\d{8,14}$/.test(row.barcode) ? row.barcode : undefined
     };
   });
+}
+
+
+async function verifyPackagedProduct(item: FoodItem): Promise<FoodItem> {
+  const query = [item.brand, item.product_name || item.name].filter(Boolean).join(" ").trim();
+  if (!query || (!item.brand && !item.product_name && !item.barcode)) return item;
+  try {
+    const url = item.barcode
+      ? `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(item.barcode)}.json?fields=code,product_name,brands,quantity,nutriments`
+      : `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6&fields=code,product_name,brands,quantity,nutriments`;
+    const response = await fetch(url, { headers: { "User-Agent": "TrackCake/1.0 (food nutrition verification)" }, signal: AbortSignal.timeout(4500) });
+    if (!response.ok) return item;
+    const payload = await response.json() as { status?: number; product?: any; products?: any[] };
+    const candidates = payload.product ? [payload.product] : payload.products || [];
+    const norm = (value: unknown) => String(value || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
+    const brand = norm(item.brand);
+    const product = norm(item.product_name || item.name);
+    const match = candidates.find((candidate) => {
+      const candidateBrand = norm(candidate.brands);
+      const candidateName = norm(candidate.product_name);
+      const brandMatch = !brand || candidateBrand.includes(brand) || brand.includes(candidateBrand);
+      const nameMatch = product.split(" ").filter((part) => part.length > 2).filter((part) => candidateName.includes(part)).length >= Math.min(2, product.split(" ").filter((part) => part.length > 2).length);
+      return brandMatch && nameMatch;
+    });
+    if (!match) return item;
+    const n = match.nutriments || {};
+    const kcal100 = Number(n["energy-kcal_100g"] ?? n["energy-kcal_value"]);
+    if (!Number.isFinite(kcal100) || kcal100 <= 0 || kcal100 > 900) return item;
+    const amountMatch = item.amount.match(/(\\d+(?:\\.\\d+)?)\\s*(g|gram|grams)\\b/i);
+    const grams = amountMatch ? Number(amountMatch[1]) : 0;
+    if (!grams) return { ...item, name: [match.brands, match.product_name].filter(Boolean).join(" ").slice(0,90) || item.name, nutrition_source: "Open Food Facts · verified product match", nutrition_basis: `${Math.round(kcal100)} kcal per 100 g; portion weight needs confirmation` };
+    const scale = grams / 100;
+    const macro = (key: string) => { const value = Number(n[key + "_100g"]); return Number.isFinite(value) && value >= 0 ? Math.round(value * scale * 10) / 10 : 0; };
+    return { ...item, name: [match.brands, match.product_name].filter(Boolean).join(" ").slice(0,90) || item.name,
+      calories: Math.round(kcal100 * scale), protein_g: macro("proteins"), carbs_g: macro("carbohydrates"), fat_g: macro("fat"),
+      nutrition_source: "Open Food Facts · brand and product matched", nutrition_basis: `${Math.round(kcal100)} kcal per 100 g · calculated for ${grams} g` };
+  } catch (error) {
+    console.warn("[trackcake-photo] product nutrition lookup unavailable", error instanceof Error ? error.message : "unknown error");
+    return item;
+  }
 }
 
 const visionPrompt = [
   "You are a careful food and nutrition estimation assistant.",
   "Inspect the provided meal photo. Identify each visible food item separately when possible.",
   "Estimate realistic edible portion sizes from visual cues. Do not claim exact weights or ingredients that cannot be seen.",
+  "For packaged products, carefully read visible brand, exact product name, flavour, net weight and barcode if legible. Do NOT invent a barcode. Return brand and product_name separately when identifiable.",
+  "For packaged products, do not guess nutrition facts from brand recognition. Give a conservative visual estimate only as fallback; exact product nutrition will be checked against a product database.",
   "For mixed dishes, identify the dish by its visible appearance and use a cautious typical nutrition estimate.",
   "If the image is not food or the food cannot be identified, return an empty items array.",
-  "Return only JSON in this exact shape: {\"items\":[{\"name\":\"food name\",\"amount\":\"estimated portion\",\"calories\":number,\"protein_g\":number,\"carbs_g\":number,\"fat_g\":number}]}",
+  "Return only JSON in this exact shape: {\"items\":[{\"name\":\"food name\",\"amount\":\"estimated portion\",\"brand\":\"brand or empty\",\"product_name\":\"exact product or empty\",\"barcode\":\"digits only or empty\",\"calories\":number,\"protein_g\":number,\"carbs_g\":number,\"fat_g\":number}]}",
   "Calories are kcal; macros are grams. Use non-negative numeric values. No markdown or extra commentary."
 ].join("\n");
 
@@ -195,7 +235,8 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
       message: `Trying ${attempt.provider} · ${attempt.model}`
     });
     try {
-      const items = parseItems(await attempt.run());
+      const parsedItems = parseItems(await attempt.run());
+      const items = await Promise.all(parsedItems.map(verifyPackagedProduct));
       console.info("[trackcake-photo] vision provider succeeded", { provider: attempt.provider, model: attempt.model });
       onProgress({ stage: "success", provider: attempt.provider, model: attempt.model, message: "Food analysis complete." });
       return { items, provider: attempt.provider, model: attempt.model };
@@ -267,7 +308,7 @@ export const POST: APIRoute = async ({ request }) => {
             total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),
             provider: result.provider,
             model: result.model,
-            confidence: "visual_estimate"
+            confidence: result.items.some((item) => item.nutrition_source) ? "product_verified_or_visual_estimate" : "visual_estimate"
           });
         } catch (error) {
           const detail = error instanceof Error ? error.message : "Unknown image analysis error";
