@@ -214,7 +214,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (model && provider === "auto") return json({ error: "Choose a provider before selecting a model." }, 400);
   if (!(image instanceof File)) return json({ error: "Choose a food photo first." }, 400);
   if (!image.type.startsWith("image/")) return json({ error: "That file is not an image." }, 400);
-  if (image.size > 8 * 1024 * 1024) return json({ error: "Please choose an image smaller than 8 MB." }, 413);
+  if (image.size > 4 * 1024 * 1024) return json({ error: "Please choose an image smaller than 4 MB." }, 413);
   if (!["image/jpeg", "image/png", "image/webp"].includes(image.type)) {
     return json({ error: "Please use a JPG, PNG or WebP image." }, 415);
   }
