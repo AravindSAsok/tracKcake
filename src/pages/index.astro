@@ -254,6 +254,7 @@ import Layout from "../layouts/Layout.astro";
         <button class="dialog-close" type="button" data-close="account-dialog" aria-label="Close dialog">×</button>
       </div>
       <p class="dialog-subtitle" id="account-status">Create an account to access your food diary on other devices.</p>
+      <button class="secondary-button" id="account-resend" type="button" hidden>Resend verification email</button>
       <div id="account-fields">
         <label class="field full-field">Email address<input id="account-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com" /></label>
         <label class="field full-field">Password<input id="account-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="At least 8 characters" /></label>
