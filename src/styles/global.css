@@ -2060,3 +2060,51 @@ a {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Searchable, date-based food history */
+.history-filters{display:flex;align-items:end;gap:10px;margin:18px 0 15px;padding:13px;background:#fbfcfa;border:1px solid #e8ede5;border-radius:14px}
+.history-filter{display:flex;flex-direction:column;gap:6px;color:#7e8b7e;font-size:10px;font-weight:700;letter-spacing:.3px}
+.history-filter input{height:38px;min-width:150px;padding:0 11px;border:1px solid #e3e9df;border-radius:9px;background:#fff;color:#334638;font-size:12px;letter-spacing:0}
+.history-search{flex:1}
+.history-search input{width:100%;min-width:100px}
+.history-clear{height:38px;padding:0 13px;border:1px solid #e1e9dc;border-radius:9px;background:#eef4e9;color:#456343;font-size:11px;font-weight:700;white-space:nowrap}
+.history-clear:hover{background:#e3eddc}
+.history-note{margin-top:13px}
+/* Calkie personal assistant */
+.calkie-launcher{position:fixed;right:25px;bottom:24px;z-index:50;display:flex;align-items:center;gap:10px;padding:9px 17px 9px 9px;border:1px solid #d9e6d2;border-radius:999px;background:#fff;box-shadow:0 12px 38px rgba(28,62,39,.18);color:#254a35;font-weight:700;font-size:13px;transition:transform .2s,box-shadow .2s}
+.calkie-launcher:hover{transform:translateY(-3px);box-shadow:0 16px 42px rgba(28,62,39,.22)}
+.calkie-launcher-face,.calkie-avatar{display:grid;place-items:center;flex:none;width:43px;height:43px;border-radius:15px;background:#edf4e7}
+.calkie-launcher-face svg,.calkie-avatar svg{width:38px;height:38px}
+.calkie-panel{position:fixed;right:25px;bottom:92px;z-index:51;display:flex;flex-direction:column;width:min(410px,calc(100vw - 28px));height:min(650px,calc(100dvh - 125px));min-height:420px;overflow:hidden;border:1px solid #dfe8da;border-radius:22px;background:#fff;box-shadow:0 22px 70px rgba(28,53,35,.22)}
+.calkie-panel[hidden]{display:none}
+.calkie-header{display:flex;align-items:center;gap:11px;padding:15px 16px;background:linear-gradient(120deg,#f0f5eb,#fbfcf9);border-bottom:1px solid #e8eee4}
+.calkie-avatar{width:44px;height:44px;border:1px solid #dce8d4}
+.calkie-heading{display:flex;flex-direction:column;gap:3px;min-width:0}
+.calkie-heading strong{font-family:Manrope,sans-serif;font-size:16px;color:#254632}
+.calkie-heading span{font-size:10px;color:#879487}
+.calkie-close{margin-left:auto;width:32px;height:32px;border:0;border-radius:10px;background:transparent;color:#6c7c6c;font-size:24px}
+.calkie-close:hover{background:#e8efe3}
+.calkie-model-row{display:grid;grid-template-columns:1fr 1.2fr;gap:9px;padding:11px 14px;border-bottom:1px solid #edf0eb}
+.calkie-model-row label{display:flex;flex-direction:column;gap:5px;color:#879286;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+.calkie-model-row select{width:100%;height:34px;min-width:0;padding:0 8px;border:1px solid #e3e9df;border-radius:8px;background:#fbfcfa;color:#405343;font-size:10px;text-transform:none;letter-spacing:0}
+.calkie-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:11px;padding:15px;background:#fcfdfa}
+.calkie-welcome{margin:auto 8px;max-width:290px;text-align:center;color:#405342}
+.calkie-welcome .calkie-wave{display:grid;place-items:center;width:38px;height:38px;margin:0 auto 10px;border-radius:13px;background:#edf4e7;color:#729365;font-size:20px}
+.calkie-welcome strong{font-family:Manrope,sans-serif;font-size:16px}
+.calkie-welcome p{font-size:12px;line-height:1.6;color:#879286}
+.calkie-message{max-width:88%;padding:10px 12px;border-radius:14px;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.calkie-message.user{align-self:flex-end;border-bottom-right-radius:5px;background:#315840;color:#fff}
+.calkie-message.assistant{align-self:flex-start;border:1px solid #e6ece2;border-bottom-left-radius:5px;background:#fff;color:#354638}
+.calkie-message.error{border-color:#f1d9cf;background:#fff8f5;color:#995d46}
+.calkie-typing{align-self:flex-start;color:#83917f;font-size:11px;padding:5px 8px}
+.calkie-suggestions{display:flex;gap:7px;overflow-x:auto;padding:0 13px 10px;scrollbar-width:none}
+.calkie-suggestions button{flex:none;padding:7px 10px;border:1px solid #e2eadd;border-radius:999px;background:#f6f9f3;color:#597052;font-size:10px;font-weight:600}
+.calkie-suggestions button:hover{background:#edf4e7}
+.calkie-compose{display:flex;align-items:flex-end;gap:8px;padding:11px 12px;border-top:1px solid #edf0eb;background:#fff}
+.calkie-compose textarea{flex:1;resize:none;max-height:100px;min-height:42px;padding:11px 12px;border:1px solid #e3e9df;border-radius:12px;background:#fbfcfa;color:#334638;font-size:12px;line-height:1.45}
+.calkie-compose button{display:grid;place-items:center;flex:none;width:42px;height:42px;border:0;border-radius:12px;background:#315840;color:#fff}
+.calkie-compose button:disabled{opacity:.5}
+.calkie-compose button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.calkie-privacy{margin:0;padding:0 12px 10px;background:#fff;text-align:center;color:#9aa398;font-size:9px}
+@media(max-width:620px){.history-filters{flex-wrap:wrap}.history-filter{flex:1}.history-filter input{width:100%;min-width:0}.history-clear{flex:0 0 auto}.calkie-launcher{right:14px;bottom:14px}.calkie-panel{right:10px;bottom:78px;width:calc(100vw - 20px);height:min(640px,calc(100dvh - 95px))}}

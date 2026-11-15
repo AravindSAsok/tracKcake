@@ -178,16 +178,37 @@ function renderStorageStatus(): void {
     : "Your diary is saved in this browser. Add Supabase credentials for cloud sync.";
 }
 
-function renderHistory(recent: FoodEntry[]): void {
-  emptyState.hidden = recent.length > 0;
-  entriesList.hidden = recent.length === 0;
+function localDateKey(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
 
-  if (recent.length === 0) {
+function renderHistory(_recent: FoodEntry[]): void {
+  const dateInput = document.getElementById("history-date") as HTMLInputElement | null;
+  const searchInput = document.getElementById("history-search") as HTMLInputElement | null;
+  const selectedDate = dateInput?.value ?? "";
+  const search = (searchInput?.value ?? "").trim().toLocaleLowerCase();
+  const filtered = entries
+    .filter((entry) => !selectedDate || localDateKey(entry.eaten_at) === selectedDate)
+    .filter((entry) => !search || [entry.name, entry.amount, entry.meal_type].some((value) => value.toLocaleLowerCase().includes(search)))
+    .sort((a, b) => new Date(b.eaten_at).getTime() - new Date(a.eaten_at).getTime());
+
+  emptyState.hidden = filtered.length > 0;
+  entriesList.hidden = filtered.length === 0;
+  byId<HTMLElement>("diary-count").textContent = `${filtered.length} ${filtered.length === 1 ? "entry" : "entries"}`;
+  byId<HTMLElement>("range-total").textContent = `${numberFormat(filtered.reduce((sum, entry) => sum + entry.calories, 0))} kcal logged`;
+
+  if (filtered.length === 0) {
     entriesList.innerHTML = "";
+    const title = emptyState.querySelector("h3");
+    const copy = emptyState.querySelector("p");
+    if (title) title.textContent = search || selectedDate ? "No matching food found." : "Your diary starts with a bite.";
+    if (copy) copy.textContent = search || selectedDate ? "Try another date or a different search." : "Log your first meal above and it will show up here.";
     return;
   }
 
-  entriesList.innerHTML = recent.map((entry) => {
+  entriesList.innerHTML = filtered.map((entry) => {
     const meal = mealLabels[entry.meal_type] ?? "Snack";
     const icon = mealIcons[entry.meal_type] ?? "✳";
     const time = new Intl.DateTimeFormat("en-IN", {
@@ -493,6 +514,12 @@ function bindEvents(): void {
   goalForm.addEventListener("submit", (event) => void saveGoal(event));
 
   byId<HTMLButtonElement>("manual-add").addEventListener("click", () => openManualEntry());
+  const historyDate = document.getElementById("history-date") as HTMLInputElement | null;
+  const historySearch = document.getElementById("history-search") as HTMLInputElement | null;
+  const historyClear = document.getElementById("history-clear") as HTMLButtonElement | null;
+  historyDate?.addEventListener("change", () => render());
+  historySearch?.addEventListener("input", () => render());
+  historyClear?.addEventListener("click", () => { if (historyDate) historyDate.value = ""; render(); });
   byId<HTMLButtonElement>("empty-add").addEventListener("click", () => openManualEntry());
   byId<HTMLButtonElement>("goal-shortcut").addEventListener("click", openGoalDialog);
   byId<HTMLButtonElement>("edit-goal").addEventListener("click", openGoalDialog);
@@ -555,6 +582,8 @@ function bindEvents(): void {
 
 async function initialize(): Promise<void> {
   setQuickDefaults();
+  const historyDate = document.getElementById("history-date") as HTMLInputElement | null;
+  if (historyDate) historyDate.value = localDateKey(new Date());
   bindEvents();
 
   try {

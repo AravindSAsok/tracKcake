@@ -8,7 +8,8 @@ A calm, lightweight food and calorie tracker. Describe what you ate, choose Groq
 - Discover the model catalog available from each configured Groq, Gemini, and OpenRouter API key, then select a provider and model or keep automatic fallback.
 - Review and edit every suggested item before saving. Estimates are never saved automatically.
 - Add or edit entries manually whenever you need to correct an amount or calorie value.
-- See a rolling **last 24 hours** food history, calorie total, and macro breakdown.
+- Search your complete food diary by date, food name, portion, or meal.
+- Ask Calkie, your private AI food assistant, questions about meals, calories, macros, and eating patterns.
 - Set your own daily calorie goal.
 - Create an email/password account or continue as a guest with private Supabase cloud storage; local browser storage remains the fallback.
 
@@ -100,8 +101,11 @@ src/
   lib/                 Supabase/local storage adapter
   pages/
     api/estimate.ts    Server-side multi-provider nutrition estimate
+    api/assistant.ts  Authenticated, user-scoped Calkie assistant
+    api/provider-status.ts  Available AI model catalogue
     index.astro        Dashboard
   scripts/app.ts       Browser interactions and diary state
+  scripts/calkie.ts    Per-account Calkie chat UI
   styles/global.css   Responsive app styling
 supabase/
   migrations/          Postgres schema, indexes, and RLS policies
