@@ -52,7 +52,7 @@ OPENROUTER_MODEL=openrouter/free
 
 3. Restart the dev server or redeploy.
 
-Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.6-flash`), and the free `inclusionai/ling-3.2-flash:free` model on OpenRouter by default. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint; it never returns secret values.
+Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.6-flash`), and the free `baidu/ernie-5.5-flash-preview:free` model on OpenRouter by default, with `inclusionai/ling-3.2-flash:free` as its fallback. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint; it never returns secret values.
 
 ## Configure Supabase (optional)
 
