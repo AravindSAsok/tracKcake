@@ -154,8 +154,8 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
     for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData) });
   }
   // Groq is attempted only when an explicitly configured vision model is available.
-  if (keys.groq && process.env.GROQ_VISION_MODEL?.trim()) {
-    const model = providerChoice === "groq" && modelChoice ? modelChoice : process.env.GROQ_VISION_MODEL.trim();
+  if (keys.groq && (process.env.GROQ_VISION_MODEL?.trim() || (providerChoice === "groq" && modelChoice))) {
+    const model = providerChoice === "groq" && modelChoice ? modelChoice : process.env.GROQ_VISION_MODEL!.trim();
     attempts.push({ provider: "groq", model, run: () => callCompatibleVision("groq", keys.groq!, model, dataUrl) });
   }
   if (keys.openrouter) {
