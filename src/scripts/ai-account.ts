@@ -108,6 +108,7 @@ const accountSignout = document.getElementById("account-signout") as HTMLButtonE
 const accountSessionActions = document.getElementById("account-session-actions");
 const accountEmail = document.getElementById("account-email") as HTMLInputElement | null;
 const accountPassword = document.getElementById("account-password") as HTMLInputElement | null;
+const accountResend = document.getElementById("account-resend") as HTMLButtonElement | null;
 
 if (accountTrigger && accountDialog && accountForm && accountFields && accountStatus && accountModeToggle && accountSubmit && accountSignout && accountSessionActions && accountEmail && accountPassword) {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -161,26 +162,98 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       accountSubmit.textContent = mode === "signup" ? "Creating…" : "Signing in…";
       try {
         if (mode === "signup") {
-          const { data, error } = await supabase.auth.signUp({ email, password });
-          if (error) throw error;
-          if (data.session && data.user && !data.user.is_anonymous) {
-            window.location.reload();
-            return;
+          const { data: sessionData } = await supabase.auth.getSession();
+          const isGuest = Boolean(sessionData.session?.user.is_anonymous);
+          const redirectTo = window.location.origin + "/";
+
+          if (isGuest) {
+            // Upgrade the current guest instead of creating a second user.
+            // This keeps the guest's cloud diary attached to the same auth user ID.
+            const { data, error } = await supabase.auth.updateUser(
+              { email, password },
+              { emailRedirectTo: redirectTo }
+            );
+            if (error) throw error;
+            if (data.user && !data.user.is_anonymous && sessionData.session) {
+              window.location.reload();
+              return;
+            }
+            if (accountResend) accountResend.hidden = false;
+            accountStatus.textContent = "Almost there! Supabase sent a verification link to " + email + ". Open it to finish creating your account. Your existing guest diary will stay attached to it.";
+          } else {
+            const { data, error } = await supabase.auth.signUp({
+              email,
+              password,
+              options: { emailRedirectTo: redirectTo }
+            });
+            if (error) throw error;
+            if (data.session && data.user && !data.user.is_anonymous) {
+              window.location.reload();
+              return;
+            }
+            if (accountResend) accountResend.hidden = false;
+            accountStatus.textContent = "We sent a verification link to " + email + ". Open that email, confirm your address, then return here to sign in.";
           }
-          accountStatus.textContent = "Check your email to confirm your account. After confirmation, return to Trackcake and sign in. Your guest diary remains saved on this device.";
         } else {
           localStorage.setItem("trackcake.guest-backup.entries.v1", localStorage.getItem("trackcake.entries.v1") || "[]");
           localStorage.setItem("trackcake.guest-backup.goal.v1", localStorage.getItem("trackcake.goal.v1") || "2000");
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            if ((error as { code?: string }).code === "email_not_confirmed") {
+              if (accountResend) accountResend.hidden = false;
+              accountStatus.textContent = "This email hasn't been verified yet. Tap Resend verification email below, then open the link before signing in.";
+              return;
+            }
+            throw error;
+          }
+          const guestEntries = JSON.parse(localStorage.getItem("trackcake.guest-backup.entries.v1") || "[]") as Array<Record<string, unknown>>;
+          const guestGoal = Number(localStorage.getItem("trackcake.guest-backup.goal.v1") || "2000");
+          if (data.user && guestEntries.length) {
+            const rows = guestEntries.filter((row) => row && typeof row.id === "string").map((row) => ({ ...row, user_id: data.user!.id }));
+            if (rows.length) {
+              const { error: importError } = await supabase.from("food_entries").upsert(rows, { onConflict: "id" });
+              if (importError) console.warn("Guest diary import will remain available in this browser.", importError);
+            }
+          }
           window.location.reload();
           return;
         }
       } catch (error) {
-        accountStatus.textContent = error instanceof Error ? error.message : "Account action failed. Please try again.";
+        const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
+        if (code === "email_not_confirmed") {
+          if (accountResend) accountResend.hidden = false;
+          accountStatus.textContent = "Please verify your email first. You can resend the confirmation link below.";
+        } else {
+          accountStatus.textContent = error instanceof Error ? error.message : "Account action failed. Please try again.";
+        }
       } finally {
         accountSubmit.disabled = false;
         setMode(mode);
+      }
+    });
+
+    accountResend?.addEventListener("click", async () => {
+      const email = accountEmail.value.trim();
+      if (!email) {
+        accountStatus.textContent = "Enter your email address first.";
+        accountEmail.focus();
+        return;
+      }
+      accountResend.disabled = true;
+      accountResend.textContent = "Sending…";
+      try {
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: { emailRedirectTo: window.location.origin + "/" }
+        });
+        if (error) throw error;
+        accountStatus.textContent = "A fresh verification link has been sent to " + email + ". Check your inbox and spam folder.";
+      } catch (error) {
+        accountStatus.textContent = error instanceof Error ? error.message : "Could not resend the verification email.";
+      } finally {
+        accountResend.disabled = false;
+        accountResend.textContent = "Resend verification email";
       }
     });
 
