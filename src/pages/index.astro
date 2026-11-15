@@ -75,9 +75,10 @@ import Layout from "../layouts/Layout.astro";
               <p class="muted-inverse">REMAINING TO YOUR GOAL</p>
               <div class="remaining-line">
                 <strong id="remaining-value">2,000</strong>
-                <span>kcal left</span>
+                <span id="remaining-unit">kcal left</span>
               </div>
               <p class="progress-caption" id="progress-caption">Set a goal and start logging your meals.</p>
+              <p class="daily-guidance" id="daily-guidance" aria-live="polite">Log your first meal to see your daily progress.</p>
               <div class="progress-track"><span id="progress-fill"></span></div>
               <div class="progress-ends">
                 <span>0 kcal</span>
@@ -119,6 +120,23 @@ import Layout from "../layouts/Layout.astro";
 
           <div class="macro-footnote"><span aria-hidden="true">ⓘ</span> Macro values are estimates and may be incomplete.</div>
         </article>
+      </section>
+
+      <section class="daily-insights" aria-label="Today's meals and weekly consistency">
+        <div class="meal-breakdown">
+          <div class="insights-heading"><p class="card-kicker">TODAY&#39;S MEALS</p><span class="insights-subtitle">Calories by meal</span></div>
+          <div class="meal-totals">
+            <div class="meal-total"><span>Breakfast</span><strong id="meal-breakfast">0 kcal</strong></div>
+            <div class="meal-total"><span>Lunch</span><strong id="meal-lunch">0 kcal</strong></div>
+            <div class="meal-total"><span>Dinner</span><strong id="meal-dinner">0 kcal</strong></div>
+            <div class="meal-total"><span>Snacks</span><strong id="meal-snack">0 kcal</strong></div>
+          </div>
+        </div>
+        <div class="weekly-consistency">
+          <div class="insights-heading"><p class="card-kicker">LAST 7 DAYS</p><strong class="week-summary" id="week-summary">0 of 7 near goal</strong></div>
+          <div class="week-days" id="week-days" aria-label="Daily calorie progress for the last seven days"></div>
+          <p class="week-caption">Days within 10% of your daily target</p>
+        </div>
       </section>
 
       <section class="content-grid">
