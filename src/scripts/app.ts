@@ -34,6 +34,7 @@ const quickForm = byId<HTMLFormElement>("quick-add-form");
 const quickDescription = byId<HTMLTextAreaElement>("food-description");
 const quickMeal = byId<HTMLSelectElement>("quick-meal");
 const quickTime = byId<HTMLInputElement>("quick-time");
+const photoInput = byId<HTMLInputElement>("food-photo-input");
 const entryDialog = byId<HTMLDialogElement>("entry-dialog");
 const entryForm = byId<HTMLFormElement>("entry-form");
 const reviewDialog = byId<HTMLDialogElement>("review-dialog");
@@ -370,6 +371,88 @@ function updateReviewTotal(): void {
   byId<HTMLElement>("review-total").textContent = `${numberFormat(total)} kcal`;
 }
 
+async function compressFoodPhoto(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Your browser could not prepare this photo.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob) throw new Error("Your browser could not compress this photo.");
+    if (blob.size > 5 * 1024 * 1024) throw new Error("This photo is still too large after compression. Please choose a smaller image.");
+    return blob;
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function estimatePhoto(): Promise<void> {
+  const file = photoInput.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    showToast("Choose a photo from your camera or gallery.", "error");
+    photoInput.value = "";
+    return;
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    showToast("Please choose a photo smaller than 12 MB.", "error");
+    photoInput.value = "";
+    return;
+  }
+
+  const button = byId<HTMLButtonElement>("photo-add");
+  button.disabled = true;
+  button.textContent = "Analysing photo…";
+  try {
+    const compressed = await compressFoodPhoto(file);
+    const body = new FormData();
+    body.append("image", compressed, "food-photo.jpg");
+    body.append("provider", byId<HTMLSelectElement>("quick-provider").value || "auto");
+    const response = await fetch("/api/food-image", {
+      method: "POST",
+      body,
+      signal: AbortSignal.timeout(55_000)
+    });
+    const payload = await response.json() as {
+      items?: DraftItem[];
+      error?: string;
+      provider?: string;
+      model?: string;
+    };
+    if (!response.ok) {
+      const detail = (payload as { detail?: string }).detail;
+      throw new Error(detail ? (payload.error || "Photo analysis failed.") + " " + detail : payload.error || "The photo could not be analysed.");
+    }
+    if (!Array.isArray(payload.items) || payload.items.length === 0) {
+      throw new Error("No food was identified. Try a clearer photo with the food visible.");
+    }
+    const drafts = payload.items.map((item) => ({
+      name: String(item.name ?? "").slice(0, 90),
+      amount: String(item.amount ?? "").slice(0, 90),
+      calories: Math.max(0, Number(item.calories) || 0),
+      protein_g: Math.max(0, Number(item.protein_g) || 0),
+      carbs_g: Math.max(0, Number(item.carbs_g) || 0),
+      fat_g: Math.max(0, Number(item.fat_g) || 0)
+    }));
+    renderReviewItems(drafts);
+    const attribution = document.getElementById("estimate-attribution");
+    if (attribution) attribution.textContent = "Photo estimate · " + (payload.provider || "AI") + " · " + (payload.model || "vision model");
+    openDialog(reviewDialog);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not analyse this photo.", "error");
+  } finally {
+    button.disabled = false;
+    button.innerHTML = '<span aria-hidden="true">▧</span> Photo entry';
+    photoInput.value = "";
+  }
+}
+
 async function estimateFood(event: SubmitEvent): Promise<void> {
   event.preventDefault();
   const description = quickDescription.value.trim();
@@ -514,6 +597,8 @@ function bindEvents(): void {
   goalForm.addEventListener("submit", (event) => void saveGoal(event));
 
   byId<HTMLButtonElement>("manual-add").addEventListener("click", () => openManualEntry());
+  byId<HTMLButtonElement>("photo-add").addEventListener("click", () => photoInput.click());
+  photoInput.addEventListener("change", () => void estimatePhoto());
   const historyDate = document.getElementById("history-date") as HTMLInputElement | null;
   const historySearch = document.getElementById("history-search") as HTMLInputElement | null;
   const historyClear = document.getElementById("history-clear") as HTMLButtonElement | null;
