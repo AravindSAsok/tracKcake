@@ -171,7 +171,7 @@ function render(): void {
   byId<HTMLElement>("fat-total").textContent = `${decimalFormat(fat)} g`;
 
   const mealTotals: Record<MealType, number> = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
-  for (const entry of recent) mealTotals[entry.meal] += entry.calories;
+  for (const entry of recent) mealTotals[entry.meal_type] += entry.calories;
   for (const meal of Object.keys(mealTotals) as MealType[]) {
     byId<HTMLElement>(`meal-${meal}`).textContent = `${numberFormat(mealTotals[meal])} kcal`;
   }
@@ -195,6 +195,32 @@ function render(): void {
     const title = `${label}: ${numberFormat(dayTotal)} kcal${onTrack ? " · near goal" : ""}`;
     return `<div class="week-day" title="${title}"><span class="week-bar${onTrack ? " is-on-track" : ""}" style="height:${height}%"></span><span>${label.slice(0, 1)}</span></div>`;
   }).join("");
+
+  const dayTimeline = byId<HTMLDivElement>("day-timeline-list");
+  const dayTotal = byId<HTMLElement>("day-timeline-total");
+  dayTotal.textContent = `${numberFormat(totalCalories)} kcal · ${recent.length} ${recent.length === 1 ? "food" : "foods"}`;
+  dayTimeline.innerHTML = recent.length
+    ? recent.map((entry) => {
+        const time = new Intl.DateTimeFormat("en-IN", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true
+        }).format(new Date(entry.eaten_at));
+        const meal = mealLabels[entry.meal_type] ?? "Snack";
+        const icon = mealIcons[entry.meal_type] ?? "✳";
+        return `
+          <article class="day-timeline-item">
+            <time class="day-timeline-time" datetime="${escapeHtml(entry.eaten_at)}">${time}</time>
+            <span class="day-timeline-icon" aria-hidden="true">${icon}</span>
+            <div class="day-timeline-food">
+              <strong>${escapeHtml(entry.name)}</strong>
+              <span>${escapeHtml(entry.amount)} · ${meal}</span>
+            </div>
+            <strong class="day-timeline-calories">${numberFormat(entry.calories)} <small>kcal</small></strong>
+          </article>
+        `;
+      }).join("")
+    : '<p class="day-timeline-empty">Nothing logged yet today. Add your first food and it will appear here.</p>';
 
   const macroCalories = [protein * 4, carbs * 4, fat * 9];
   const macroScale = Math.max(1, ...macroCalories);
