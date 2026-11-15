@@ -138,16 +138,24 @@ async function sendMessage(message: string): Promise<void> {
   }
 }
 
+const setCalkieOpen = (open: boolean): void => {
+  panel.hidden = !open;
+  document.body.classList.toggle("calkie-open", open);
+  launcher.setAttribute("aria-expanded", String(open));
+  if (open) void loadHistory();
+};
+
+launcher.setAttribute("aria-expanded", "false");
 launcher.addEventListener("click", () => {
-  panel.hidden = !panel.hidden;
-  if (!panel.hidden) {
-    void loadHistory();
-    // Avoid opening the mobile keyboard just because the chat panel was opened.
-    // This prevents the browser from resizing the whole page before the user starts typing.
-    if (!window.matchMedia("(pointer: coarse)").matches) input.focus();
-  }
+  const opening = panel.hidden;
+  setCalkieOpen(opening);
+  // Do not summon the mobile keyboard merely by opening the assistant.
+  if (opening && !window.matchMedia("(pointer: coarse)").matches) input.focus();
 });
-closeButton.addEventListener("click", () => { panel.hidden = true; });
+closeButton.addEventListener("click", () => setCalkieOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !panel.hidden) setCalkieOpen(false);
+});
 providerSelect.addEventListener("change", () => void loadModels());
 form.addEventListener("submit", (event) => {
   event.preventDefault();
