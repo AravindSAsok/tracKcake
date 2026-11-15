@@ -119,7 +119,7 @@ async function callOpenAICompatible(
       ],
       temperature: 0.2,
       max_tokens: 1200,
-      response_format: { type: "json_object" }
+      ...(provider === "groq" ? { response_format: { type: "json_object" } } : {})
     }),
     signal: AbortSignal.timeout(9_000)
   });
