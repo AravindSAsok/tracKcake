@@ -171,9 +171,9 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
     }
   }
   if (openRouterKey) {
-    const model = process.env.OPENROUTER_MODEL?.trim() || "inclusionai/ling-3.2-flash:free";
+    const model = process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free";
     attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
-    const fallbackModel = "baidu/ernie-5.5-flash-preview:free";
+    const fallbackModel = "inclusionai/ling-3.2-flash:free";
     if (model !== fallbackModel) {
       attempts.push({ provider: "openrouter", model: fallbackModel, run: () => callOpenAICompatible("openrouter", openRouterKey, fallbackModel, prompt) });
     }
