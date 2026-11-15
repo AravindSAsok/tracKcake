@@ -1,16 +1,16 @@
 # trackcake
 
-A calm, lightweight food and calorie tracker. Describe what you ate, review a Gemini-powered nutrition estimate, and save it to your food diary.
+A calm, lightweight food and calorie tracker. Describe what you ate, choose Groq, Gemini, or OpenRouter and an available model, review the nutrition estimate, and save it to your food diary.
 
 ## What it does
 
 - Log food in natural language, including portions (for example, "2 idlis, one cup of sambar and a banana").
-- Ask Groq, Gemini, or OpenRouter for an estimated calorie and macronutrient breakdown, with automatic fallback.
+- Discover the model catalog available from each configured Groq, Gemini, and OpenRouter API key, then select a provider and model or keep automatic fallback.
 - Review and edit every suggested item before saving. Estimates are never saved automatically.
 - Add or edit entries manually whenever you need to correct an amount or calorie value.
 - See a rolling **last 24 hours** food history, calorie total, and macro breakdown.
 - Set your own daily calorie goal.
-- Save locally in the browser before cloud credentials are configured; optionally enable private Supabase cloud storage later.
+- Create an email/password account or continue as a guest with private Supabase cloud storage; local browser storage remains the fallback.
 
 Nutrition values are estimates, not medical advice. Actual calories vary with portion size, recipe, and preparation.
 
@@ -52,14 +52,14 @@ OPENROUTER_MODEL=openrouter/free
 
 3. Restart the dev server or redeploy.
 
-Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.8-flash`), and the free `baidu/ernie-5.5-flash-preview:free` model on OpenRouter by default, with `inclusionai/ling-3.2-flash:free` as its fallback. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint; it never returns secret values.
+Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.8-flash`), and the free `baidu/ernie-5.5-flash-preview:free` model on OpenRouter by default, with `inclusionai/ling-3.2-flash:free` as its fallback. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint and returns the available model IDs for the selector; it never returns secret values. OpenRouter's catalog can include models whose use still depends on your account credits and provider availability.
 
 ## Configure Supabase (optional)
 
 The app starts in local mode. To enable cloud persistence:
 
 1. Create a Supabase project.
-2. In Supabase Authentication settings, enable **Anonymous sign-ins**. The app creates a browser-scoped anonymous session so database rows can be protected by `auth.uid()` without requiring a sign-up form.
+2. In Supabase Authentication settings, enable **Anonymous sign-ins**. The app creates a browser-scoped anonymous session so database rows can be protected by `auth.uid()` without requiring a sign-up form. Users can create an email/password account or sign in from the account button; new empty accounts can inherit the current browser diary on first load.
 3. Run `supabase/migrations/202611150001_trackcake.sql` in the Supabase SQL Editor.
 4. Add the project URL and publishable/anon key to `.env`:
 

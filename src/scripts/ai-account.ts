@@ -1,0 +1,189 @@
+import { createClient } from "@supabase/supabase-js";
+
+type ProviderModel = { id: string; name: string };
+type ProviderStatus = {
+  provider: string;
+  configured: boolean;
+  ok: boolean;
+  modelCount: number;
+  models?: ProviderModel[];
+  message?: string;
+};
+type StatusResponse = { providers?: ProviderStatus[] };
+
+const providerSelect = document.getElementById("quick-provider") as HTMLSelectElement | null;
+const modelSelect = document.getElementById("quick-model") as HTMLSelectElement | null;
+const modelStatus = document.getElementById("quick-model-status");
+const estimateUrl = "/api/estimate";
+
+async function loadModels(): Promise<void> {
+  if (!providerSelect || !modelSelect) return;
+  const selectedProvider = providerSelect.value;
+  modelSelect.replaceChildren();
+  if (selectedProvider === "auto") {
+    modelSelect.add(new Option("Automatic fallback", ""));
+    modelSelect.disabled = true;
+    if (modelStatus) modelStatus.textContent = "Automatic fallback is enabled.";
+    return;
+  }
+
+  modelSelect.disabled = true;
+  modelSelect.add(new Option("Loading available models…", ""));
+  if (modelStatus) modelStatus.textContent = "Checking models available to your API key…";
+
+  try {
+    const response = await fetch("/api/provider-status", { cache: "no-store" });
+    const payload = await response.json() as StatusResponse;
+    const provider = payload.providers?.find((item) => item.provider === selectedProvider);
+    modelSelect.replaceChildren();
+
+    if (!provider?.configured) {
+      modelSelect.add(new Option("API key not configured", ""));
+      if (modelStatus) modelStatus.textContent = "Add this provider's API key in Vercel.";
+      return;
+    }
+    if (!provider.ok || !provider.models?.length) {
+      modelSelect.add(new Option("Model list unavailable", ""));
+      if (modelStatus) modelStatus.textContent = provider.message || "Could not retrieve this provider's models.";
+      return;
+    }
+
+    modelSelect.add(new Option("Use configured default", ""));
+    for (const model of provider.models) {
+      const label = model.name && model.name !== model.id ? model.name + " · " + model.id : model.id;
+      modelSelect.add(new Option(label, model.id));
+    }
+    modelSelect.disabled = false;
+    if (modelStatus) modelStatus.textContent = provider.modelCount.toLocaleString() + " models returned by " + selectedProvider + ".";
+  } catch {
+    modelSelect.replaceChildren(new Option("Model list unavailable", ""));
+    if (modelStatus) modelStatus.textContent = "Could not reach the model-list endpoint.";
+  }
+}
+
+if (providerSelect && modelSelect) {
+  providerSelect.addEventListener("change", () => void loadModels());
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    if (url.endsWith(estimateUrl) && typeof init?.body === "string") {
+      try {
+        const body = JSON.parse(init.body) as Record<string, unknown>;
+        if (providerSelect.value !== "auto" && modelSelect.value) body.model = modelSelect.value;
+        else delete body.model;
+        init = { ...init, body: JSON.stringify(body) };
+      } catch {
+        // Leave malformed requests unchanged; the API route returns its normal validation error.
+      }
+    }
+    return nativeFetch(input, init);
+  }) as typeof window.fetch;
+  void loadModels();
+}
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL?.trim();
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY?.trim();
+const accountTrigger = document.getElementById("account-trigger") as HTMLButtonElement | null;
+const accountDialog = document.getElementById("account-dialog") as HTMLDialogElement | null;
+const accountForm = document.getElementById("account-form") as HTMLFormElement | null;
+const accountFields = document.getElementById("account-fields");
+const accountStatus = document.getElementById("account-status");
+const accountModeToggle = document.getElementById("account-mode-toggle") as HTMLButtonElement | null;
+const accountSubmit = document.getElementById("account-submit") as HTMLButtonElement | null;
+const accountSignout = document.getElementById("account-signout") as HTMLButtonElement | null;
+const accountSessionActions = document.getElementById("account-session-actions");
+const accountEmail = document.getElementById("account-email") as HTMLInputElement | null;
+const accountPassword = document.getElementById("account-password") as HTMLInputElement | null;
+
+if (accountTrigger && accountDialog && accountForm && accountFields && accountStatus && accountModeToggle && accountSubmit && accountSignout && accountSessionActions && accountEmail && accountPassword) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    accountTrigger.disabled = true;
+    accountTrigger.textContent = "Cloud account unavailable";
+    accountStatus.textContent = "Add the public Supabase URL and anon key to enable accounts.";
+  } else {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+    let mode: "signup" | "signin" = "signup";
+    let activeUser: { id: string; email?: string; is_anonymous?: boolean } | null = null;
+
+    const refreshAccount = async (): Promise<void> => {
+      const { data } = await supabase.auth.getUser();
+      activeUser = data.user as typeof activeUser;
+      const signedIn = Boolean(activeUser && !activeUser.is_anonymous);
+      accountTrigger.textContent = signedIn ? (activeUser?.email || "My account") : "Guest account";
+      accountFields.hidden = signedIn;
+      accountSessionActions.hidden = !signedIn;
+      accountModeToggle.hidden = signedIn;
+      accountStatus.textContent = signedIn
+        ? "Signed in as " + activeUser?.email + ". Your diary is synced to this account."
+        : "Create an account to keep your diary accessible across devices, or sign in to an existing account.";
+      if (!signedIn) setMode("signup");
+    };
+
+    const setMode = (nextMode: "signup" | "signin"): void => {
+      mode = nextMode;
+      accountSubmit.textContent = mode === "signup" ? "Create account" : "Sign in";
+      accountModeToggle.textContent = mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
+      if (accountPassword) accountPassword.autocomplete = mode === "signup" ? "new-password" : "current-password";
+    };
+
+    accountTrigger.addEventListener("click", () => {
+      void refreshAccount().then(() => {
+        if (!accountDialog.open) accountDialog.showModal();
+      });
+    });
+    accountModeToggle.addEventListener("click", () => setMode(mode === "signup" ? "signin" : "signup"));
+
+    accountForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const email = accountEmail.value.trim();
+      const password = accountPassword.value;
+      if (!email || password.length < 8) {
+        accountStatus.textContent = "Enter a valid email and a password with at least 8 characters.";
+        return;
+      }
+      accountSubmit.disabled = true;
+      accountSubmit.textContent = mode === "signup" ? "Creating…" : "Signing in…";
+      try {
+        if (mode === "signup") {
+          const { data, error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+          if (data.session && data.user && !data.user.is_anonymous) {
+            window.location.reload();
+            return;
+          }
+          accountStatus.textContent = "Check your email to confirm your account. After confirmation, return to Trackcake and sign in. Your guest diary remains saved on this device.";
+        } else {
+          localStorage.setItem("trackcake.guest-backup.entries.v1", localStorage.getItem("trackcake.entries.v1") || "[]");
+          localStorage.setItem("trackcake.guest-backup.goal.v1", localStorage.getItem("trackcake.goal.v1") || "2000");
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          window.location.reload();
+          return;
+        }
+      } catch (error) {
+        accountStatus.textContent = error instanceof Error ? error.message : "Account action failed. Please try again.";
+      } finally {
+        accountSubmit.disabled = false;
+        setMode(mode);
+      }
+    });
+
+    accountSignout.addEventListener("click", async () => {
+      accountSignout.disabled = true;
+      try {
+        localStorage.removeItem("trackcake.entries.v1");
+        localStorage.removeItem("trackcake.goal.v1");
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        window.location.reload();
+      } catch (error) {
+        accountStatus.textContent = error instanceof Error ? error.message : "Could not sign out.";
+        accountSignout.disabled = false;
+      }
+    });
+
+    void refreshAccount();
+  }
+}

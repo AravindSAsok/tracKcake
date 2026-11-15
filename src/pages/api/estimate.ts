@@ -152,7 +152,7 @@ async function callGemini(apiKey: string, model: string, prompt: string): Promis
   return content;
 }
 
-async function estimateWithFallback(description: string, requestedProvider: Provider | "auto" = "auto"): Promise<ProviderResult> {
+async function estimateWithFallback(description: string, requestedProvider: Provider | "auto" = "auto", requestedModel?: string): Promise<ProviderResult> {
   const prompt = promptFor(description);
   const groqKey = process.env.GROQ_API_KEY?.trim();
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
@@ -160,21 +160,21 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
   const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
 
   if (groqKey) {
-    const model = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
+    const model = requestedModel || process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
     attempts.push({ provider: "groq", model, run: () => callOpenAICompatible("groq", groqKey, model, prompt) });
   }
   if (geminiKey) {
-    const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+    const model = requestedModel || process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
     attempts.push({ provider: "gemini", model, run: () => callGemini(geminiKey, model, prompt) });
-    if (model !== "gemini-3.6-flash") {
+    if (!requestedModel && model !== "gemini-3.6-flash") {
       attempts.push({ provider: "gemini", model: "gemini-3.6-flash", run: () => callGemini(geminiKey, "gemini-3.6-flash", prompt) });
     }
   }
   if (openRouterKey) {
-    const model = process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free";
+    const model = requestedModel || process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free";
     attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
     const fallbackModel = "inclusionai/ling-3.2-flash:free";
-    if (model !== fallbackModel) {
+    if (!requestedModel && model !== fallbackModel) {
       attempts.push({ provider: "openrouter", model: fallbackModel, run: () => callOpenAICompatible("openrouter", openRouterKey, fallbackModel, prompt) });
     }
   }
@@ -207,10 +207,20 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
 export const POST: APIRoute = async ({ request }) => {
   let description: string;
   let providerChoice: Provider | "auto" = "auto";
+  let modelChoice: string | undefined;
   try {
-    const body = await request.json() as { description?: unknown; provider?: unknown };
+    const body = await request.json() as { description?: unknown; provider?: unknown; model?: unknown };
     description = typeof body.description === "string" ? body.description.trim() : "";
     const requested = body.provider ?? "auto";
+    if (body.model !== undefined && body.model !== null && body.model !== "") {
+      if (typeof body.model !== "string" || body.model.length > 200 || !/^[a-zA-Z0-9._:/-]+$/.test(body.model)) {
+        return json({ error: "Choose a valid model from the model list." }, 400);
+      }
+      modelChoice = body.model;
+    }
+    if (modelChoice && requested === "auto") {
+      return json({ error: "Choose a specific AI provider before selecting a model." }, 400);
+    }
     if (!["auto", "groq", "gemini", "openrouter"].includes(String(requested))) {
       return json({ error: "Choose auto, groq, gemini or openrouter." }, 400);
     }
@@ -222,7 +232,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (description.length > 700) return json({ error: "Please keep the food description under 700 characters." }, 400);
 
   try {
-    const result = await estimateWithFallback(description, providerChoice);
+    const result = await estimateWithFallback(description, providerChoice, modelChoice);
     return json({
       items: result.items,
       total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),

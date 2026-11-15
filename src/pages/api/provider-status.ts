@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 export const prerender = false;
 export const maxDuration = 20;
 
-type ModelRecord = { id?: string; name?: string; supportedGenerationMethods?: string[]; pricing?: { prompt?: string; completion?: string } };
+type ModelRecord = { id?: string; name?: string; displayName?: string; supportedGenerationMethods?: string[]; pricing?: { prompt?: string; completion?: string } };
 
 const responseJson = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -14,7 +14,7 @@ async function probe(
   provider: "groq" | "gemini" | "openrouter",
   key: string | undefined
 ) {
-  if (!key) return { provider, configured: false, ok: false, status: "missing_key", modelCount: 0, models: [] as string[] };
+  if (!key) return { provider, configured: false, ok: false, status: "missing_key", modelCount: 0, models: [] as Array<{ id: string; name: string }> };
 
   const started = Date.now();
   const endpoint = provider === "groq"
@@ -45,7 +45,7 @@ async function probe(
           : response.status === 429
             ? "The provider rate-limited the model-list request."
             : `The provider returned HTTP ${response.status}.`,
-        latencyMs: Date.now() - started, modelCount: 0, models: [] as string[]
+        latencyMs: Date.now() - started, modelCount: 0, models: [] as Array<{ id: string; name: string }>
       };
     }
 
@@ -60,6 +60,12 @@ async function probe(
       return id.replace(/^models\//, "");
     }).filter(Boolean);
 
+    const modelOptions = records.map((model) => {
+      const rawId = model.id ?? model.name ?? "";
+      const id = rawId.replace(/^models\\//, "");
+      return id ? { id, name: model.displayName || id } : null;
+    }).filter((model): model is { id: string; name: string } => Boolean(model));
+
     const preferred = provider === "groq"
       ? ["llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"]
       : provider === "gemini"
@@ -70,14 +76,15 @@ async function probe(
       provider, configured: true, ok: true, status: response.status,
       latencyMs: Date.now() - started, modelCount: ids.length,
       recommendedModels: [...new Set(preferred.filter((id) => id === "openrouter/free" || ids.includes(id)))].slice(0, 5),
-      sampleModels: ids.slice(0, 8)
+      sampleModels: ids.slice(0, 8),
+      models: modelOptions
     };
   } catch (error) {
     return {
       provider, configured: true, ok: false,
       status: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network_error",
       message: "Could not reach the provider model-list endpoint.",
-      latencyMs: Date.now() - started, modelCount: 0, models: [] as string[]
+      latencyMs: Date.now() - started, modelCount: 0, models: [] as Array<{ id: string; name: string }>
     };
   }
 }

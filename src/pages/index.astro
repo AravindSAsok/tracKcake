@@ -24,6 +24,7 @@ import Layout from "../layouts/Layout.astro";
         </nav>
 
         <div class="top-actions">
+          <button class="secondary-button account-trigger" id="account-trigger" type="button">Guest account</button>
           <div class="storage-status" id="storage-status" title="Where your diary is saved">
             <span class="status-dot"></span>
             <span id="storage-label">On this device</span>
@@ -158,6 +159,12 @@ import Layout from "../layouts/Layout.astro";
                       <option value="openrouter">OpenRouter</option>
                     </select>
                   </label>
+                  <label class="control-label" for="quick-model">Model
+                    <select id="quick-model" disabled>
+                      <option value="">Automatic fallback</option>
+                    </select>
+                  </label>
+                  <span class="model-status" id="quick-model-status" aria-live="polite">Automatic fallback is enabled.</span>
                 </div>
                 <div class="quick-buttons">
                   <button class="secondary-button" id="manual-add" type="button">
@@ -235,6 +242,27 @@ import Layout from "../layouts/Layout.astro";
     </main>
   </div>
 
+  <dialog class="app-dialog account-dialog" id="account-dialog" aria-labelledby="account-heading">
+    <form id="account-form" class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">YOUR TRACKCAKE ACCOUNT</p><h2 id="account-heading">Keep your diary with you</h2></div>
+        <button class="dialog-close" type="button" data-close="account-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <p class="dialog-subtitle" id="account-status">Create an account to access your food diary on other devices.</p>
+      <div id="account-fields">
+        <label class="field full-field">Email address<input id="account-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com" /></label>
+        <label class="field full-field">Password<input id="account-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="At least 8 characters" /></label>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="account-mode-toggle" type="button">Already have an account? Sign in</button>
+          <button class="primary-button" id="account-submit" type="submit">Create account</button>
+        </div>
+      </div>
+      <div class="dialog-actions" id="account-session-actions" hidden>
+        <button class="secondary-button" id="account-signout" type="button">Sign out</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="app-dialog" id="entry-dialog" aria-labelledby="entry-heading">
     <form id="entry-form" class="dialog-form">
       <div class="dialog-heading">
@@ -297,5 +325,6 @@ import Layout from "../layouts/Layout.astro";
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>
     import "../scripts/app";
+    import "../scripts/ai-account";
   </script>
 </Layout>
