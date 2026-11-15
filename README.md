@@ -34,7 +34,7 @@ npm run dev
 
 Open http://localhost:4321.
 
-The app works without any environment variables. In local mode, entries and your goal stay in this browser on this device. The AI estimate button will explain how to configure Gemini until a key is supplied; manual logging and editing remain available.
+The app works without any environment variables. In local mode, entries and your goal stay in this browser on this device. The AI estimate button will explain how to configure an AI provider until at least one provider key is supplied; manual logging and editing remain available.
 
 ## Configure AI providers
 
@@ -52,7 +52,7 @@ OPENROUTER_MODEL=openrouter/free
 
 3. Restart the dev server or redeploy.
 
-Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.8-flash`), and the free `baidu/ernie-5.5-flash-preview:free` model on OpenRouter by default, with `inclusionai/ling-3.2-flash:free` as its fallback. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint and returns the available model IDs for the selector; it never returns secret values. OpenRouter's catalog can include models whose use still depends on your account credits and provider availability.
+Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.6-flash`), and the free `baidu/ernie-5.5-flash-preview:free` model on OpenRouter by default, with `inclusionai/ling-3.2-flash:free` as its fallback. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint and returns the available model IDs for the selector; it never returns secret values. OpenRouter's catalog can include models whose use still depends on your account credits and provider availability.
 
 ## Configure Supabase (optional)
 
@@ -76,7 +76,7 @@ Anonymous accounts persist in the browser's Supabase session. Clearing browser s
 
 ## Deploy
 
-This project uses the Astro Vercel adapter because the Gemini endpoint needs a server runtime.
+This project uses the Astro Vercel adapter because the AI provider endpoints need a server runtime.
 
 1. Push the repository to GitHub and import it into Vercel.
 2. Set the framework preset to Astro (Vercel normally detects it).
@@ -99,7 +99,7 @@ A static-only GitHub Pages deployment cannot run the private Gemini API route. U
 src/
   lib/                 Supabase/local storage adapter
   pages/
-    api/estimate.ts    Server-side Gemini nutrition estimate
+    api/estimate.ts    Server-side multi-provider nutrition estimate
     index.astro        Dashboard
   scripts/app.ts       Browser interactions and diary state
   styles/global.css   Responsive app styling
