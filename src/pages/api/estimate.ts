@@ -173,6 +173,10 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
   if (openRouterKey) {
     const model = process.env.OPENROUTER_MODEL?.trim() || "inclusionai/ling-3.2-flash:free";
     attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
+    const fallbackModel = "baidu/ernie-5.5-flash-preview:free";
+    if (model !== fallbackModel) {
+      attempts.push({ provider: "openrouter", model: fallbackModel, run: () => callOpenAICompatible("openrouter", openRouterKey, fallbackModel, prompt) });
+    }
   }
 
   const selectedAttempts = requestedProvider === "auto" ? attempts : attempts.filter((attempt) => attempt.provider === requestedProvider);
