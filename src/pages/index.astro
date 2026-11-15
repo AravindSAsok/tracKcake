@@ -167,6 +167,10 @@ import Layout from "../layouts/Layout.astro";
                   <span class="model-status" id="quick-model-status" aria-live="polite">Automatic fallback is enabled.</span>
                 </div>
                 <div class="quick-buttons">
+                  <input id="food-photo-input" type="file" accept="image/*" hidden />
+                  <button class="secondary-button" id="photo-add" type="button">
+                    <span aria-hidden="true">▧</span> Photo entry
+                  </button>
                   <button class="secondary-button" id="manual-add" type="button">
                     <span aria-hidden="true">＋</span> Manual entry
                   </button>
@@ -177,6 +181,7 @@ import Layout from "../layouts/Layout.astro";
                 </div>
               </div>
               <p class="form-hint" id="estimate-hint"><span aria-hidden="true">✦</span> You'll review every estimate before it is added to your diary.</p>
+              <p class="form-hint photo-privacy-hint"><span aria-hidden="true">⌑</span> Photos are used for analysis only and are not saved in your diary.</p>
             </form>
           </section>
 
@@ -349,6 +354,7 @@ import Layout from "../layouts/Layout.astro";
       <div class="calkie-welcome"><span class="calkie-wave">✳</span><strong>Hey! I'm Calkie.</strong><p>I know your food diary. Ask me about meals, calories, macros or your eating patterns.</p></div>
     </div>
     <div class="calkie-suggestions" id="calkie-suggestions">
+      <button type="button" data-prompt="How am I doing against my daily calorie goal?">My calorie goal</button>
       <button type="button" data-prompt="What did I eat yesterday?">Yesterday's food</button>
       <button type="button" data-prompt="How many calories did I eat last week?">Last week's calories</button>
       <button type="button" data-prompt="Which day did I eat the most calories?">My highest day</button>
