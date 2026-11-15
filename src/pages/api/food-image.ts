@@ -196,13 +196,22 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  let form: FormData;
-  try { form = await request.formData(); }
-  catch { return json({ error: "Choose a food photo and try again." }, 400); }
+  // JSON requests are intentionally used here: Astro's CSRF origin guard rejects
+  // cross-site form-encoded POSTs. Keep the guard enabled and avoid multipart uploads.
+  let payload: { image?: unknown; provider?: unknown; model?: unknown };
+  try {
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.toLowerCase().includes("application/json")) {
+      return json({ error: "Please refresh TrackCake and select the photo again." }, 415);
+    }
+    payload = await request.json() as { image?: unknown; provider?: unknown; model?: unknown };
+  } catch {
+    return json({ error: "Choose a food photo and try again." }, 400);
+  }
 
-  const image = form.get("image");
-  const providerRaw = form.get("provider");
-  const modelRaw = form.get("model");
+  const image = payload.image;
+  const providerRaw = payload.provider;
+  const modelRaw = payload.model;
   const provider = typeof providerRaw === "string" ? providerRaw : "auto";
   const model = typeof modelRaw === "string" && modelRaw.trim() ? modelRaw.trim() : undefined;
   if (!(["auto", "groq", "gemini", "openrouter"] as string[]).includes(provider)) {
@@ -212,15 +221,15 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Choose a valid vision model." }, 400);
   }
   if (model && provider === "auto") return json({ error: "Choose a provider before selecting a model." }, 400);
-  if (!(image instanceof File)) return json({ error: "Choose a food photo first." }, 400);
-  if (!image.type.startsWith("image/")) return json({ error: "That file is not an image." }, 400);
-  if (image.size > 4 * 1024 * 1024) return json({ error: "Please choose an image smaller than 4 MB." }, 413);
-  if (!["image/jpeg", "image/png", "image/webp"].includes(image.type)) {
-    return json({ error: "Please use a JPG, PNG or WebP image." }, 415);
+  if (typeof image !== "string" || !image) return json({ error: "Choose a food photo first." }, 400);
+  if (image.length > 3_800_000) return json({ error: "Please choose a smaller photo (under 2.7 MB after compression)." }, 413);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image) || image.length % 4 !== 0) {
+    return json({ error: "The selected photo could not be read. Please choose it again." }, 400);
   }
 
   try {
-    const bytes = Buffer.from(await image.arrayBuffer());
+    const bytes = Buffer.from(image, "base64");
+    if (bytes.length > 2_800_000) return json({ error: "Please choose a smaller photo." }, 413);
     const imageData = bytes.toString("base64");
     const result = await analyseImage(imageData, provider as Provider | "auto", model);
     return json({
