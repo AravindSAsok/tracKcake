@@ -166,14 +166,18 @@ export async function loadTrackerData(): Promise<TrackerData> {
       normalizeRow(row as Record<string, unknown>)
     );
 
-    // First-time cloud setup: copy this browser's local diary into the new account.
+    // First-time cloud setup: import this browser's diary using fresh IDs.
+    // Local IDs may belong to another account, so never upsert them into this user's rows.
     if (remoteEntries.length === 0 && localEntries.length > 0) {
-      const { error } = await client.from("food_entries").upsert(
-        localEntries.map(toRow),
-        { onConflict: "id" }
+      const importedEntries = localEntries.map((entry) => ({
+        ...entry,
+        id: crypto.randomUUID()
+      }));
+      const { error } = await client.from("food_entries").insert(
+        importedEntries.map(toRow)
       );
       if (error) throw error;
-      remoteEntries = localEntries;
+      remoteEntries = importedEntries;
     }
 
     let goal = Number(settingsResult.data?.calorie_goal);
