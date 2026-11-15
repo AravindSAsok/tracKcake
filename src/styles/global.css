@@ -2289,3 +2289,115 @@ button, a, select, input, textarea { touch-action: manipulation; }
   .progress-ring { width: 100px; height: 100px; flex-basis: 100px; }
   .ring-center { width: 86px; height: 86px; }
 }
+
+
+/* Account identity: readable name in the header and complete profile details in the account dialog. */
+.account-trigger {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 290px;
+  text-align: left;
+}
+.account-trigger-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.25;
+}
+.account-trigger-copy strong {
+  max-width: 100%;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.account-trigger-copy small {
+  max-width: 100%;
+  color: #829087;
+  font-size: 9px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.account-profile-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid #e7ede3;
+  border-radius: 13px;
+  background: #f8faf6;
+  min-width: 0;
+}
+.account-profile-summary[hidden] { display: none !important; }
+.account-profile-label {
+  color: #829080;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.account-profile-summary strong {
+  color: #2d4937;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+#account-profile-email {
+  color: #68776b;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  user-select: text;
+}
+.account-dialog .dialog-subtitle { overflow-wrap: anywhere; }
+
+@media (max-width: 680px) {
+  .account-trigger {
+    max-width: min(42vw, 150px);
+    min-height: 42px;
+    padding: 6px 9px;
+  }
+  .account-trigger-copy small { display: none; }
+  .account-trigger-copy strong {
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 380px) {
+  .account-trigger { max-width: 112px; }
+}
+
+/* Calkie stays a dashboard overlay; the dashboard remains mounted and visible behind it. */
+body.calkie-open { overflow: hidden; }
+body.calkie-open::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(18, 34, 24, .34);
+  backdrop-filter: blur(2px);
+}
+.calkie-panel { z-index: 51; }
+@media (max-width: 680px) {
+  .calkie-panel {
+    inset: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    height: auto;
+    max-height: none;
+    border: 1px solid #dfe8da;
+    border-radius: 20px;
+    box-shadow: 0 22px 70px rgba(28,53,35,.28);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .calkie-compose {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
