@@ -134,7 +134,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     const stable = supported.filter((model) => model.stable);
     const pro = newestFirst(supported.filter((model) =>
-      /gemini-(?:\\d+(?:\\.\\d+)?-)?pro(?:-|$)/i.test(model.id) &&
+      /gemini-(?:\d+(?:\.\d+)?-)?pro(?:-|$)/i.test(model.id) &&
       !/(image|tts|deep-research)/i.test(model.id)
     ));
     const flash = newestFirst(stable.filter((model) =>
