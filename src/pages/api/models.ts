@@ -37,7 +37,7 @@ function versionScore(id: string): number {
 }
 
 function isStable(id: string): boolean {
-  return !/(preview|experimental|(^|[-.])exp($|[-.])/i.test(id);
+  return !/(preview|experimental|(^|[-.])exp($|[-.]))/i.test(id);
 }
 
 function newestFirst(models: GeminiModel[]): GeminiModel[] {
