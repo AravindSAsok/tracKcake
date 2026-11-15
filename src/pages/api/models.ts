@@ -48,7 +48,7 @@ function newestFirst(models: GeminiModel[]): GeminiModel[] {
   });
 }
 
-async function probeModel(id: string, apiKey: string): Promise<{ model: string; ok: boolean; status: number }> {
+async function probeModel(id: string, apiKey: string): Promise<{ model: string; ok: boolean; status: number; error?: string }> {
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(id)}:generateContent`,
@@ -65,9 +65,20 @@ async function probeModel(id: string, apiKey: string): Promise<{ model: string; 
         signal: AbortSignal.timeout(8_000)
       }
     );
-    return { model: id, ok: response.ok, status: response.status };
+    if (response.ok) return { model: id, ok: true, status: response.status };
+    const text = await response.text();
+    let message = "";
+    try {
+      message = (JSON.parse(text) as { error?: { message?: string } }).error?.message ?? "";
+    } catch {
+      message = "";
+    }
+    if (/AIza|key=|x-goog-api-key|credential|token/i.test(message)) {
+      message = "Google API rejected the request (sensitive details withheld).";
+    }
+    return { model: id, ok: false, status: response.status, error: message.slice(0, 240) || "No error detail returned." };
   } catch {
-    return { model: id, ok: false, status: 0 };
+    return { model: id, ok: false, status: 0, error: "Network request timed out or failed." };
   }
 }
 
@@ -114,6 +125,7 @@ export const GET: APIRoute = async ({ request }) => {
       .map((model) => ({
         id: modelId(model.name!),
         displayName: model.displayName ?? modelId(model.name!),
+        description: model.description ?? null,
         version: model.version ?? null,
         inputTokenLimit: model.inputTokenLimit ?? null,
         outputTokenLimit: model.outputTokenLimit ?? null,
