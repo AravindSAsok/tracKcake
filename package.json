@@ -10,9 +10,11 @@
     "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
     "preview": "astro preview --host 0.0.0.0",
-    "check": "astro check"
+    "check": "astro check",
+    "start:render": "node ./dist/server/entry.mjs"
   },
   "dependencies": {
+    "@astrojs/node": "^9.4.3",
     "@astrojs/vercel": "^8.2.0",
     "@supabase/supabase-js": "^2.57.4",
     "astro": "^5.15.0"
