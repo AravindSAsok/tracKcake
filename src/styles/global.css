@@ -2413,3 +2413,22 @@ body.calkie-open::before {
 .history-page-button:disabled{opacity:.42;cursor:not-allowed}
 #history-page-label{min-width:130px;text-align:center;font-variant-numeric:tabular-nums}
 @media(max-width:560px){.history-pagination{gap:8px;justify-content:space-between}.history-page-button{min-height:42px;padding:0 10px;flex:0 0 auto}#history-page-label{min-width:0;flex:1;font-size:10px}.range-total{max-width:45%;text-align:right;line-height:1.4}}
+
+
+/* Calendar-day food timeline: local midnight through 11:59 PM */
+.day-timeline-card{margin:0 0 26px;padding:20px 22px;border:1px solid #e8ede5;border-radius:16px;background:#fff;box-shadow:0 5px 20px rgba(38,66,43,.035)}
+.day-timeline-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.day-timeline-heading h2{margin:5px 0 4px;color:#2d4937;font:800 18px Manrope,sans-serif}
+.day-timeline-heading p:not(.card-kicker){margin:0;color:#929e91;font-size:10px}
+.day-timeline-total{flex:none;padding:8px 11px;border-radius:10px;background:#f1f6ed;color:#55764b;font-size:10px;font-weight:800;white-space:nowrap}
+.day-timeline-list{display:grid;gap:0}
+.day-timeline-item{display:grid;grid-template-columns:76px 32px minmax(0,1fr) auto;align-items:center;gap:11px;padding:12px 0;border-top:1px solid #eff2ed}
+.day-timeline-time{color:#788878;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+.day-timeline-icon{display:grid;place-items:center;width:31px;height:31px;border-radius:10px;background:#f0f5eb;color:#63815a;font-size:14px}
+.day-timeline-food{display:flex;flex-direction:column;gap:4px;min-width:0}
+.day-timeline-food strong{overflow-wrap:anywhere;color:#344b39;font-size:12px}
+.day-timeline-food span{color:#929d90;font-size:10px}
+.day-timeline-calories{color:#405d45;font-size:11px;white-space:nowrap}
+.day-timeline-calories small{font-size:9px;font-weight:600;color:#899688}
+.day-timeline-empty{margin:0;padding:18px 12px;border:1px dashed #e1e9dc;border-radius:11px;text-align:center;color:#899688;font-size:11px}
+@media(max-width:560px){.day-timeline-card{padding:16px 14px;margin-bottom:20px}.day-timeline-heading h2{font-size:16px}.day-timeline-heading{gap:8px}.day-timeline-total{font-size:9px;padding:7px 8px}.day-timeline-item{grid-template-columns:60px 29px minmax(0,1fr) auto;gap:7px;padding:11px 0}.day-timeline-time{font-size:10px}.day-timeline-icon{width:28px;height:28px}.day-timeline-food strong{font-size:11px}.day-timeline-food span{font-size:9px}.day-timeline-calories{font-size:10px}}
