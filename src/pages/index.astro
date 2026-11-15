@@ -150,6 +150,14 @@ import Layout from "../layouts/Layout.astro";
                   <label class="control-label" for="quick-time">Eaten at
                     <input id="quick-time" type="datetime-local" />
                   </label>
+                  <label class="control-label" for="quick-provider">AI provider
+                    <select id="quick-provider">
+                      <option value="auto">Automatic fallback</option>
+                      <option value="groq">Groq</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="openrouter">OpenRouter</option>
+                    </select>
+                  </label>
                 </div>
                 <div class="quick-buttons">
                   <button class="secondary-button" id="manual-add" type="button">
