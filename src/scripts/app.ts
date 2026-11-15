@@ -821,9 +821,25 @@ function bindEvents(): void {
   const historyDate = document.getElementById("history-date") as HTMLInputElement | null;
   const historySearch = document.getElementById("history-search") as HTMLInputElement | null;
   const historyClear = document.getElementById("history-clear") as HTMLButtonElement | null;
-  historyDate?.addEventListener("change", () => render());
-  historySearch?.addEventListener("input", () => render());
-  historyClear?.addEventListener("click", () => { if (historyDate) historyDate.value = ""; render(); });
+  historyDate?.addEventListener("change", () => { historyPage = 1; void renderHistory(); });
+  let historySearchTimer: number | undefined;
+  historySearch?.addEventListener("input", () => {
+    window.clearTimeout(historySearchTimer);
+    historySearchTimer = window.setTimeout(() => { historyPage = 1; void renderHistory(); }, 250);
+  });
+  historyClear?.addEventListener("click", () => {
+    if (historyDate) historyDate.value = "";
+    if (historySearch) historySearch.value = "";
+    historyPage = 1;
+    void renderHistory();
+  });
+  byId<HTMLButtonElement>("history-previous").addEventListener("click", () => {
+    if (historyPage > 1) { historyPage -= 1; void renderHistory(); }
+  });
+  byId<HTMLButtonElement>("history-next").addEventListener("click", () => {
+    historyPage += 1;
+    void renderHistory();
+  });
   byId<HTMLButtonElement>("empty-add").addEventListener("click", () => openManualEntry());
   byId<HTMLButtonElement>("goal-shortcut").addEventListener("click", openGoalDialog);
   byId<HTMLButtonElement>("edit-goal").addEventListener("click", openGoalDialog);
@@ -863,7 +879,7 @@ function bindEvents(): void {
     if (!id) return;
 
     if (action === "edit") {
-      const entry = entries.find((item) => item.id === id);
+      const entry = historyEntries.find((item) => item.id === id) ?? entries.find((item) => item.id === id);
       if (entry) openManualEntry(entry);
     } else if (action === "delete") {
       void removeFood(id);
@@ -886,8 +902,6 @@ function bindEvents(): void {
 
 async function initialize(): Promise<void> {
   setQuickDefaults();
-  const historyDate = document.getElementById("history-date") as HTMLInputElement | null;
-  if (historyDate) historyDate.value = localDateKey(new Date());
   bindEvents();
 
   try {
