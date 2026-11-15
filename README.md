@@ -5,7 +5,7 @@ A calm, lightweight food and calorie tracker. Describe what you ate, review a Ge
 ## What it does
 
 - Log food in natural language, including portions (for example, "2 idlis, one cup of sambar and a banana").
-- Ask Gemini for an estimated calorie and macronutrient breakdown.
+- Ask Groq, Gemini, or OpenRouter for an estimated calorie and macronutrient breakdown, with automatic fallback.
 - Review and edit every suggested item before saving. Estimates are never saved automatically.
 - Add or edit entries manually whenever you need to correct an amount or calorie value.
 - See a rolling **last 24 hours** food history, calorie total, and macro breakdown.
@@ -17,8 +17,8 @@ Nutrition values are estimates, not medical advice. Actual calories vary with po
 ## Stack
 
 - Astro + TypeScript
-- Astro Vercel server adapter for the private Gemini API endpoint
-- Gemini REST API (server-side only)
+- Astro Vercel server adapter for private AI provider endpoints
+- Groq, Gemini, and OpenRouter REST APIs (server-side only)
 - Supabase Auth + Postgres with Row Level Security (optional cloud persistence)
 - Local browser storage as an immediate fallback
 
@@ -36,19 +36,23 @@ Open http://localhost:4321.
 
 The app works without any environment variables. In local mode, entries and your goal stay in this browser on this device. The AI estimate button will explain how to configure Gemini until a key is supplied; manual logging and editing remain available.
 
-## Configure Gemini
+## Configure AI providers
 
 1. Create an API key in Google AI Studio.
 2. Add the following server-only environment variable to `.env` and your hosting provider:
 
 ```dotenv
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-4-hydrogen
+GEMINI_MODEL=gemini-3.6-flash
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=openai/gpt-oss-20b
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=openrouter/free
 ```
 
 3. Restart the dev server or redeploy.
 
-The key is read only by `src/pages/api/estimate.ts` and is sent to Google from the server. It is never placed in a `PUBLIC_*` variable or browser bundle. The tested default model is `gemini-4-hydrogen`; the endpoint automatically falls back to `gemini-3.6-flash` if the primary model is temporarily unavailable or rate-limited. You can change `GEMINI_MODEL` without changing application code.
+Provider keys are read only by server-side API routes and are never placed in a `PUBLIC_*` variable or browser bundle. The server tries Groq first, then Gemini, then OpenRouter. It uses `openai/gpt-oss-20b` on Groq, the configured Gemini model (default `gemini-3.6-flash`), and OpenRouter's `openrouter/free` router by default. Set `GROQ_MODEL`, `GEMINI_MODEL`, or `OPENROUTER_MODEL` to override these choices. The `/api/provider-status` endpoint checks each provider's API key by calling its model-list endpoint; it never returns secret values.
 
 ## Configure Supabase (optional)
 
