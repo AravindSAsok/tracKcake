@@ -210,12 +210,18 @@ export async function addEntry(entry: FoodEntry): Promise<string | undefined> {
   const entries = [entry, ...readLocalEntries()];
   writeLocal(entries);
 
-  if (!cloudReady || !supabase) return;
-  const { error } = await supabase.from("food_entries").upsert(toRow(entry), { onConflict: "id" });
-  if (error) {
+  if (!cloudConfigured) return;
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) throw new Error("Your cloud session is not ready.");
+    const { error } = await client.from("food_entries").insert(toRow(entry));
+    if (error) throw error;
+  } catch (error) {
     cloudReady = false;
     storageMode = "local";
-    return "Saved on this device, but cloud sync failed. Check your Supabase setup.";
+    const detail = error instanceof Error ? error.message : "Unknown cloud error";
+    console.warn("Food entry was saved locally but cloud sync failed.", error);
+    return "Saved on this device only. Cloud sync failed: " + detail;
   }
 }
 
@@ -223,12 +229,18 @@ export async function updateEntry(entry: FoodEntry): Promise<string | undefined>
   const entries = readLocalEntries().map((current) => current.id === entry.id ? entry : current);
   writeLocal(entries);
 
-  if (!cloudReady || !supabase) return;
-  const { error } = await supabase.from("food_entries").upsert(toRow(entry), { onConflict: "id" });
-  if (error) {
+  if (!cloudConfigured) return;
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) throw new Error("Your cloud session is not ready.");
+    const { error } = await client.from("food_entries").update(toRow(entry)).eq("id", entry.id).eq("user_id", userId);
+    if (error) throw error;
+  } catch (error) {
     cloudReady = false;
     storageMode = "local";
-    return "Your edit is saved on this device, but cloud sync failed.";
+    const detail = error instanceof Error ? error.message : "Unknown cloud error";
+    console.warn("Food edit was saved locally but cloud sync failed.", error);
+    return "Saved on this device only. Cloud sync failed: " + detail;
   }
 }
 
@@ -236,12 +248,18 @@ export async function deleteEntry(id: string): Promise<string | undefined> {
   const entries = readLocalEntries().filter((entry) => entry.id !== id);
   writeLocal(entries);
 
-  if (!cloudReady || !supabase) return;
-  const { error } = await supabase.from("food_entries").delete().eq("id", id).eq("user_id", userId);
-  if (error) {
+  if (!cloudConfigured) return;
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) throw new Error("Your cloud session is not ready.");
+    const { error } = await client.from("food_entries").delete().eq("id", id).eq("user_id", userId);
+    if (error) throw error;
+  } catch (error) {
     cloudReady = false;
     storageMode = "local";
-    return "Deleted on this device, but cloud sync failed.";
+    const detail = error instanceof Error ? error.message : "Unknown cloud error";
+    console.warn("Food deletion was saved locally but cloud sync failed.", error);
+    return "Deleted on this device only. Cloud sync failed: " + detail;
   }
 }
 
@@ -252,17 +270,22 @@ export async function saveGoal(goal: number): Promise<string | undefined> {
 
   writeLocal(readLocalEntries(), goal);
 
-  if (!cloudReady || !supabase || !userId) return;
-  const { error } = await supabase.from("tracker_settings").upsert({
-    user_id: userId,
-    calorie_goal: goal,
-    updated_at: new Date().toISOString()
-  }, { onConflict: "user_id" });
-
-  if (error) {
+  if (!cloudConfigured) return;
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) throw new Error("Your cloud session is not ready.");
+    const { error } = await client.from("tracker_settings").upsert({
+      user_id: userId,
+      calorie_goal: goal,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+    if (error) throw error;
+  } catch (error) {
     cloudReady = false;
     storageMode = "local";
-    return "Your goal is saved on this device, but cloud sync failed.";
+    const detail = error instanceof Error ? error.message : "Unknown cloud error";
+    console.warn("Calorie goal was saved locally but cloud sync failed.", error);
+    return "Saved on this device only. Cloud sync failed: " + detail;
   }
 }
 
