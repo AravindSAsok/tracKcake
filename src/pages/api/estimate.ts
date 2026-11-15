@@ -50,9 +50,27 @@ function parseItems(value: unknown): EstimatedItem[] {
 }
 
 function extractJson(text: string): unknown {
-  const cleaned = text.replace(/^\u0060\u0060\u0060(?:json)?\s*/i, "").replace(/\s*\u0060\u0060\u0060$/, "").trim();
-  const parsed = JSON.parse(cleaned) as { items?: unknown };
-  return parsed.items;
+  let cleaned = text.replace(/^\u0060\u0060\u0060(?:json)?\s*/i, "").replace(/\s*\u0060\u0060\u0060$/, "").trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    const firstObject = cleaned.indexOf("{");
+    const firstArray = cleaned.indexOf("[");
+    const start = firstObject < 0 ? firstArray : firstArray < 0 ? firstObject : Math.min(firstObject, firstArray);
+    const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+    if (start < 0 || end <= start) throw new Error("The AI provider returned non-JSON output.");
+    parsed = JSON.parse(cleaned.slice(start, end + 1));
+  }
+  if (Array.isArray(parsed)) return parsed;
+  if (!parsed || typeof parsed !== "object") throw new Error("The AI provider returned an unexpected JSON shape.");
+  const result = parsed as Record<string, unknown>;
+  for (const key of ["items", "foods", "food_items", "results"]) {
+    if (Array.isArray(result[key])) return result[key];
+  }
+  if (typeof result.output === "string") return extractJson(result.output);
+  if (typeof result.name === "string" && typeof result.amount === "string") return [result];
+  throw new Error("The AI provider returned JSON without a food items array.");
 }
 
 const promptFor = (description: string) => [
@@ -153,7 +171,7 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
     }
   }
   if (openRouterKey) {
-    const model = process.env.OPENROUTER_MODEL?.trim() || "openrouter/free";
+    const model = process.env.OPENROUTER_MODEL?.trim() || "inclusionai/ling-3.2-flash:free";
     attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
   }
 
