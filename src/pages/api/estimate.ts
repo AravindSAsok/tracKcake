@@ -164,7 +164,7 @@ async function estimateWithFallback(description: string, requestedProvider: Prov
     attempts.push({ provider: "groq", model, run: () => callOpenAICompatible("groq", groqKey, model, prompt) });
   }
   if (geminiKey) {
-    const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
+    const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
     attempts.push({ provider: "gemini", model, run: () => callGemini(geminiKey, model, prompt) });
     if (model !== "gemini-3.6-flash") {
       attempts.push({ provider: "gemini", model: "gemini-3.6-flash", run: () => callGemini(geminiKey, "gemini-3.6-flash", prompt) });
