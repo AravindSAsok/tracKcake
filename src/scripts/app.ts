@@ -392,6 +392,95 @@ async function compressFoodPhoto(file: File): Promise<Blob> {
   }
 }
 
+type PhotoStreamEvent = {
+  type?: "progress" | "result" | "error";
+  stage?: string;
+  provider?: string;
+  model?: string;
+  message?: string;
+  attempt?: number;
+  total?: number;
+  items?: DraftItem[];
+  error?: string;
+  detail?: string;
+};
+
+function photoProgressDialog(): HTMLDialogElement {
+  let dialog = document.getElementById("photo-progress-dialog") as HTMLDialogElement | null;
+  if (dialog) return dialog;
+  dialog = document.createElement("dialog");
+  dialog.id = "photo-progress-dialog";
+  dialog.className = "app-dialog photo-progress-dialog";
+  dialog.setAttribute("aria-labelledby", "photo-progress-title");
+  dialog.innerHTML = `
+    <div class="dialog-form photo-progress-content">
+      <div class="photo-progress-orb" aria-hidden="true"><span>✳</span></div>
+      <p class="card-kicker">TRACKCAKE PHOTO ANALYSIS</p>
+      <h2 id="photo-progress-title">Reading your plate</h2>
+      <p class="dialog-subtitle" id="photo-progress-message" aria-live="polite">Preparing your photo…</p>
+      <div class="photo-progress-track"><span id="photo-progress-fill"></span></div>
+      <div class="photo-progress-meta"><span id="photo-progress-step">Preparing image</span><span id="photo-progress-count">0%</span></div>
+      <ol class="photo-progress-steps" id="photo-progress-steps">
+        <li class="is-active" data-progress-step="prepare"><span></span><div><strong>Prepare photo</strong><small>Compressing securely on this device</small></div></li>
+        <li data-progress-step="providers"><span></span><div><strong>Try AI providers</strong><small>Switch automatically if one cannot analyse it</small></div></li>
+        <li data-progress-step="review"><span></span><div><strong>Build food estimates</strong><small>You'll review everything before saving</small></div></li>
+      </ol>
+      <button class="secondary-button photo-progress-cancel" id="photo-progress-cancel" type="button">Cancel</button>
+    </div>`;
+  document.body.append(dialog);
+  const style = document.createElement("style");
+  style.textContent = `
+    .photo-progress-dialog{width:min(440px,calc(100vw - 28px));border:1px solid #e7ede3;border-radius:24px;padding:0;box-shadow:0 24px 90px rgba(24,48,32,.22)}
+    .photo-progress-dialog::backdrop{background:rgba(20,37,27,.48);backdrop-filter:blur(5px)}
+    .photo-progress-content{text-align:center;padding:30px 28px 24px}
+    .photo-progress-orb{width:58px;height:58px;margin:0 auto 18px;border-radius:20px;background:#edf4e8;color:#527c4b;display:grid;place-items:center;font-size:28px;animation:photoPulse 1.8s ease-in-out infinite}
+    @keyframes photoPulse{50%{transform:scale(1.07);box-shadow:0 0 0 9px rgba(133,174,112,.12)}}
+    .photo-progress-content h2{margin:7px 0 5px;font:800 23px Manrope, sans-serif;color:#20382c}
+    .photo-progress-content .dialog-subtitle{margin:0 auto 18px;min-height:22px}
+    .photo-progress-track{height:7px;border-radius:20px;background:#edf1e9;overflow:hidden}
+    .photo-progress-track span{display:block;width:8%;height:100%;border-radius:20px;background:linear-gradient(90deg,#8baa70,#c4d99c);transition:width .35s ease}
+    .photo-progress-meta{display:flex;justify-content:space-between;margin:8px 0 18px;color:#819080;font-size:11px;font-weight:700}
+    .photo-progress-steps{list-style:none;text-align:left;padding:0;margin:0 0 18px;display:grid;gap:12px}
+    .photo-progress-steps li{display:flex;align-items:center;gap:11px;color:#a0a99e}
+    .photo-progress-steps li>span{width:10px;height:10px;border:2px solid #d7dfd2;border-radius:50%;flex:none}
+    .photo-progress-steps li.is-active{color:#34543c}
+    .photo-progress-steps li.is-active>span{border-color:#83a76d;background:#83a76d;box-shadow:0 0 0 4px #edf4e8}
+    .photo-progress-steps li.is-done>span{border-color:#6d9a65;background:#6d9a65}
+    .photo-progress-steps strong,.photo-progress-steps small{display:block}
+    .photo-progress-steps strong{font-size:12px}
+    .photo-progress-steps small{margin-top:2px;font-size:10px;color:#929d91}
+    .photo-progress-cancel{width:100%;justify-content:center}
+    @media(prefers-reduced-motion:reduce){.photo-progress-orb{animation:none}.photo-progress-track span{transition:none}}
+  `;
+  document.head.append(style);
+  return dialog;
+}
+
+function updatePhotoProgress(event: PhotoStreamEvent): void {
+  const dialog = photoProgressDialog();
+  const message = dialog.querySelector<HTMLElement>("#photo-progress-message");
+  const step = dialog.querySelector<HTMLElement>("#photo-progress-step");
+  const count = dialog.querySelector<HTMLElement>("#photo-progress-count");
+  const fill = dialog.querySelector<HTMLElement>("#photo-progress-fill");
+  const steps = dialog.querySelectorAll<HTMLElement>("[data-progress-step]");
+  if (message) message.textContent = event.message || "Analysing your food photo…";
+  const percent = event.stage === "prepared" ? 16
+    : event.stage === "trying" ? Math.min(82, 20 + Math.round(((event.attempt || 1) / Math.max(1, event.total || 1)) * 58))
+      : event.stage === "fallback" ? Math.min(86, 24 + Math.round(((event.attempt || 1) / Math.max(1, event.total || 1)) * 58))
+        : event.stage === "success" ? 92 : 10;
+  if (fill) fill.style.width = percent + "%";
+  if (count) count.textContent = percent + "%";
+  if (step) step.textContent = event.stage === "prepared" ? "Photo prepared"
+    : event.stage === "trying" ? `Trying ${event.provider || "AI"}`
+      : event.stage === "fallback" ? "Switching provider"
+        : event.stage === "success" ? "Analysis complete" : "Working";
+  steps.forEach((item) => {
+    const name = item.dataset.progressStep;
+    item.classList.toggle("is-active", name === (event.stage === "prepared" ? "providers" : event.stage === "success" ? "review" : "providers"));
+    item.classList.toggle("is-done", name === "prepare" || (name === "providers" && event.stage === "success"));
+  });
+}
+
 async function estimatePhoto(): Promise<void> {
   const file = photoInput.files?.[0];
   if (!file) return;
@@ -407,8 +496,15 @@ async function estimatePhoto(): Promise<void> {
   }
 
   const button = byId<HTMLButtonElement>("photo-add");
+  const progressDialog = photoProgressDialog();
+  const cancelButton = progressDialog.querySelector<HTMLButtonElement>("#photo-progress-cancel")!;
+  const controller = new AbortController();
   button.disabled = true;
   button.textContent = "Analysing photo…";
+  cancelButton.onclick = () => controller.abort();
+  updatePhotoProgress({ stage: "prepared", message: "Preparing your photo on this device…" });
+  if (!progressDialog.open) progressDialog.showModal();
+
   try {
     const compressed = await compressFoodPhoto(file);
     const imageData = await new Promise<string>((resolve, reject) => {
@@ -422,36 +518,53 @@ async function estimatePhoto(): Promise<void> {
       reader.onerror = () => reject(new Error("Your browser could not read this photo."));
       reader.readAsDataURL(compressed);
     });
+    updatePhotoProgress({ stage: "prepared", message: "Photo compressed. Checking your available AI providers…" });
     const response = await fetch("/api/food-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         image: imageData,
-        provider: byId<HTMLSelectElement>("quick-provider").value || "auto"
+        provider: byId<HTMLSelectElement>("quick-provider").value || "auto",
+        model: byId<HTMLSelectElement>("quick-model").value || undefined
       }),
-      signal: AbortSignal.timeout(55_000)
+      signal: controller.signal
     });
-    const responseText = await response.text();
-    let payload: {
-      items?: DraftItem[];
-      error?: string;
-      detail?: string;
-      provider?: string;
-      model?: string;
-    };
-    try {
-      payload = JSON.parse(responseText) as typeof payload;
-    } catch {
-      throw new Error(`Photo service returned an unexpected response (HTTP ${response.status}). Please retry; if it continues, contact support.`);
-    }
     if (!response.ok) {
-      const detail = (payload as { detail?: string }).detail;
-      throw new Error(detail ? (payload.error || "Photo analysis failed.") + " " + detail : payload.error || "The photo could not be analysed.");
+      const body = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+      throw new Error(body.detail ? (body.error || "Photo analysis failed.") + " " + body.detail : body.error || `Photo service failed (HTTP ${response.status}).`);
     }
-    if (!Array.isArray(payload.items) || payload.items.length === 0) {
+    if (!response.body) throw new Error("Your browser could not receive the analysis progress.");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let result: PhotoStreamEvent | undefined;
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const lines = buffer.split("\\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line) as PhotoStreamEvent;
+        if (event.type === "progress") updatePhotoProgress(event);
+        else if (event.type === "result" || event.type === "error") result = event;
+      }
+      if (done) break;
+    }
+    if (buffer.trim()) {
+      const event = JSON.parse(buffer) as PhotoStreamEvent;
+      if (event.type === "progress") updatePhotoProgress(event);
+      else if (event.type === "result" || event.type === "error") result = event;
+    }
+    if (!result) throw new Error("The photo analysis ended without a result. Please retry.");
+    if (result.type === "error") {
+      throw new Error(result.detail ? (result.error || "Photo analysis failed.") + " " + result.detail : result.error || "No provider could analyse this photo.");
+    }
+    if (!Array.isArray(result.items) || result.items.length === 0) {
       throw new Error("No food was identified. Try a clearer photo with the food visible.");
     }
-    const drafts = payload.items.map((item) => ({
+    updatePhotoProgress({ stage: "success", message: `Success! ${result.provider || "AI"} analysed your meal. Preparing your review…` });
+    const drafts = result.items.map((item) => ({
       name: String(item.name ?? "").slice(0, 90),
       amount: String(item.amount ?? "").slice(0, 90),
       calories: Math.max(0, Number(item.calories) || 0),
@@ -461,9 +574,11 @@ async function estimatePhoto(): Promise<void> {
     }));
     renderReviewItems(drafts);
     const attribution = document.getElementById("estimate-attribution");
-    if (attribution) attribution.textContent = "Photo estimate · " + (payload.provider || "AI") + " · " + (payload.model || "vision model");
+    if (attribution) attribution.textContent = "Photo estimate · " + (result.provider || "AI") + " · " + (result.model || "vision model");
+    progressDialog.close();
     openDialog(reviewDialog);
   } catch (error) {
+    if (progressDialog.open) progressDialog.close();
     showToast(error instanceof Error ? error.message : "Could not analyse this photo.", "error");
   } finally {
     button.disabled = false;
