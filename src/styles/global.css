@@ -2111,3 +2111,12 @@ a {
 
 /* Keep verification actions hidden until an auth response requires them. */
 #account-resend[hidden] { display: none !important; }
+
+/* Photo-based food entry */
+.quick-buttons { flex-wrap: wrap; }
+.photo-privacy-hint { margin-top: 5px; }
+#photo-add:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 620px) {
+  .quick-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .quick-buttons button { min-width: 0; min-height: 40px; padding: 0 5px; white-space: normal; font-size: 9px; }
+}
