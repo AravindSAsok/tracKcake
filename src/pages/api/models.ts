@@ -54,6 +54,8 @@ async function probeModel(id: string, apiKey: string): Promise<{
   status: number;
   jsonResponse?: boolean;
   sample?: { name: string; amount: string; calories: number };
+  finishReason?: string;
+  responsePreview?: string;
   error?: string;
 }> {
   try {
@@ -86,13 +88,18 @@ async function probeModel(id: string, apiKey: string): Promise<{
       const payload = await response.json() as {
         candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>;
       };
-      const generatedText = payload.candidates?.[0]?.content?.parts
+      const candidate = payload.candidates?.[0];
+      const generatedText = candidate?.content?.parts
         ?.map((part) => part.text ?? "")
         .join("")
         .trim() ?? "";
+      const cleanedText = generatedText
+        .replace(/^\x60\x60\x60(?:json)?\s*/i, "")
+        .replace(/\s*\x60\x60\x60$/, "")
+        .trim();
       let first: Record<string, unknown> | undefined;
       try {
-        const parsed = JSON.parse(generatedText) as { items?: unknown };
+        const parsed = JSON.parse(cleanedText) as { items?: unknown };
         if (Array.isArray(parsed.items) && parsed.items[0] && typeof parsed.items[0] === "object") {
           first = parsed.items[0] as Record<string, unknown>;
         }
@@ -104,7 +111,7 @@ async function probeModel(id: string, apiKey: string): Promise<{
         typeof first.name === "string" &&
         typeof first.amount === "string" &&
         ["calories", "protein_g", "carbs_g", "fat_g"].every((key) =>
-          typeof first?.[key] === "number" && Number.isFinite(first[key] as number)
+          Number.isFinite(Number(first?.[key]))
         )
       );
       return {
@@ -112,13 +119,14 @@ async function probeModel(id: string, apiKey: string): Promise<{
         ok: valid,
         status: response.status,
         jsonResponse: valid,
+        finishReason: candidate?.finishReason,
         ...(valid ? {
           sample: {
             name: String(first!.name),
             amount: String(first!.amount),
             calories: Number(first!.calories)
           }
-        } : {})
+        } : { responsePreview: generatedText.slice(0, 300) })
       };
     }
 
