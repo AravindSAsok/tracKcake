@@ -85,7 +85,7 @@ async function callGemini(key: string, model: string, imageData: string): Promis
       ] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 1400, responseMimeType: "application/json" }
     }),
-    signal: AbortSignal.timeout(12_000)
+    signal: AbortSignal.timeout(11_000)
   });
   if (!response.ok) throw new Error(await readError(response));
   const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
@@ -122,7 +122,7 @@ async function callCompatibleVision(
       temperature: 0.2,
       max_tokens: 1400
     }),
-    signal: AbortSignal.timeout(18_000)
+    signal: AbortSignal.timeout(11_000)
   });
   if (!response.ok) throw new Error(await readError(response));
   const payload = await response.json() as { choices?: Array<{ message?: { content?: string | Array<{ text?: string }> } }> };
@@ -134,7 +134,7 @@ async function callCompatibleVision(
   return output;
 }
 
-async function analyseImage(imageData: string, providerChoice: Provider | "auto", modelChoice?: string): Promise<Result> {
+async function analyseImage(imageData: string, providerChoice: Provider | "auto", modelChoice?: string, onProgress: (event: Record<string, unknown>) => void = () => {}): Promise<Result> {
   const keys = {
     gemini: process.env.GEMINI_API_KEY?.trim(),
     groq: process.env.GROQ_API_KEY?.trim(),
@@ -144,23 +144,25 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
   const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
 
   if (keys.gemini) {
-    const models = modelChoice ? [modelChoice] : [...new Set([
+    const models = [...new Set([
+      providerChoice === "gemini" ? modelChoice : undefined,
       process.env.GEMINI_VISION_MODEL?.trim(),
       process.env.GEMINI_MODEL?.trim(),
-      "gemini-omni-1.2-flash",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash"
     ].filter((value): value is string => Boolean(value)))];
     for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData) });
   }
-  // The current Groq model-list response for this key exposes text-only models.
-  // Enable Groq photo analysis only when an explicit vision-capable model is configured.
-  if (keys.groq && (modelChoice || process.env.GROQ_VISION_MODEL?.trim())) {
-    const model = modelChoice || process.env.GROQ_VISION_MODEL!.trim();
+  // Groq is attempted only when an explicitly configured vision model is available.
+  if (keys.groq && process.env.GROQ_VISION_MODEL?.trim()) {
+    const model = providerChoice === "groq" && modelChoice ? modelChoice : process.env.GROQ_VISION_MODEL.trim();
     attempts.push({ provider: "groq", model, run: () => callCompatibleVision("groq", keys.groq!, model, dataUrl) });
   }
   if (keys.openrouter) {
-    const models = modelChoice ? [modelChoice] : [...new Set([
+    const models = [...new Set([
+      providerChoice === "openrouter" ? modelChoice : undefined,
       process.env.OPENROUTER_VISION_MODEL?.trim(),
-      "google/gemini-omni-1.2-flash",
+      "google/gemini-2.5-flash",
       "qwen/qwen3-vl-8b-instruct"
     ].filter((value): value is string => Boolean(value)))];
     for (const model of models) {
@@ -168,27 +170,46 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
     }
   }
 
-  const selected = providerChoice === "auto" ? attempts : attempts.filter((item) => item.provider === providerChoice);
+  // Honour the user's selected provider first, then automatically fall through
+  // to every other configured vision provider/model until one succeeds.
+  const ordered = providerChoice === "auto" ? attempts : [
+    ...attempts.filter((item) => item.provider === providerChoice),
+    ...attempts.filter((item) => item.provider !== providerChoice)
+  ];
+  const selected = ordered.filter((item, index, all) =>
+    all.findIndex((candidate) => candidate.provider === item.provider && candidate.model === item.model) === index
+  );
   if (!selected.length) {
-    if (providerChoice === "groq") {
-      throw new Error("Your current Groq API key exposes text-only models, not a confirmed vision model. Choose Gemini or OpenRouter for food photos, or configure GROQ_VISION_MODEL in Vercel.");
-    }
-    throw new Error(providerChoice === "auto"
-      ? "No image-capable AI provider is configured. Check your Gemini or OpenRouter vision model access."
-      : `The ${providerChoice} provider is not configured for image analysis.`);
+    throw new Error("No image-capable provider is configured. Add a Gemini or OpenRouter vision model, or configure GROQ_VISION_MODEL for Groq.");
   }
 
   const failures: string[] = [];
-  for (const attempt of selected) {
+  for (let index = 0; index < selected.length; index++) {
+    const attempt = selected[index];
+    onProgress({
+      stage: "trying",
+      provider: attempt.provider,
+      model: attempt.model,
+      attempt: index + 1,
+      total: selected.length,
+      message: `Trying ${attempt.provider} · ${attempt.model}`
+    });
     try {
       const items = parseItems(await attempt.run());
       console.info("[trackcake-photo] vision provider succeeded", { provider: attempt.provider, model: attempt.model });
+      onProgress({ stage: "success", provider: attempt.provider, model: attempt.model, message: "Food analysis complete." });
       return { items, provider: attempt.provider, model: attempt.model };
     } catch (error) {
       const reason = error instanceof Error ? error.message : "Unknown provider error";
       failures.push(`${attempt.provider}/${attempt.model}: ${reason.slice(0, 160)}`);
       console.warn("[trackcake-photo] vision provider failed", {
         provider: attempt.provider, model: attempt.model, error: reason.slice(0, 180)
+      });
+      onProgress({
+        stage: "fallback",
+        provider: attempt.provider,
+        model: attempt.model,
+        message: `${attempt.provider} could not analyse it. Moving to the next provider…`
       });
     }
   }
@@ -227,24 +248,47 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "The selected photo could not be read. Please choose it again." }, 400);
   }
 
-  try {
-    const bytes = Buffer.from(image, "base64");
-    if (bytes.length > 2_800_000) return json({ error: "Please choose a smaller photo." }, 413);
-    const imageData = bytes.toString("base64");
-    const result = await analyseImage(imageData, provider as Provider | "auto", model);
-    return json({
-      items: result.items,
-      total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),
-      provider: result.provider,
-      model: result.model,
-      confidence: "visual_estimate"
-    });
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : "Unknown image analysis error";
-    console.error("[trackcake-photo] analysis failed", detail);
-    return json({
-      error: "Could not analyse this photo with the selected provider. Try another provider or a clearer food photo.",
-      detail: detail.slice(0, 800)
-    }, 502);
-  }
+  const bytes = Buffer.from(image, "base64");
+  if (bytes.length > 2_800_000) return json({ error: "Please choose a smaller photo." }, 413);
+  const imageData = bytes.toString("base64");
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const send = (event: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(JSON.stringify(event) + "\\n"));
+      };
+      void (async () => {
+        try {
+          send({ type: "progress", stage: "prepared", message: "Photo ready. Checking available AI providers…" });
+          const result = await analyseImage(imageData, provider as Provider | "auto", model, (event) => send({ type: "progress", ...event }));
+          send({
+            type: "result",
+            items: result.items,
+            total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),
+            provider: result.provider,
+            model: result.model,
+            confidence: "visual_estimate"
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "Unknown image analysis error";
+          console.error("[trackcake-photo] analysis failed", detail);
+          send({
+            type: "error",
+            error: "Could not analyse this photo with any configured vision provider.",
+            detail: detail.slice(0, 800)
+          });
+        } finally {
+          controller.close();
+        }
+      })();
+    }
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
+      "X-Accel-Buffering": "no"
+    }
+  });
 };
