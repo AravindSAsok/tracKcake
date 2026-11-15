@@ -95,6 +95,8 @@ if (providerSelect && modelSelect) {
   void loadModels();
 }
 
+const PRODUCTION_AUTH_REDIRECT = "https://trackcake.vercel.app/";
+
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY?.trim();
 const accountTrigger = document.getElementById("account-trigger") as HTMLButtonElement | null;
@@ -190,7 +192,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         if (mode === "signup") {
           const { data: sessionData } = await supabase.auth.getSession();
           const isGuest = Boolean(sessionData.session?.user.is_anonymous);
-          const redirectTo = window.location.origin + "/";
+          const redirectTo = PRODUCTION_AUTH_REDIRECT;
 
           if (isGuest) {
             // Upgrade the current guest instead of creating a second user.
@@ -286,7 +288,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         const { error } = await supabase.auth.resend({
           type: "signup",
           email,
-          options: { emailRedirectTo: window.location.origin + "/" }
+          options: { emailRedirectTo: PRODUCTION_AUTH_REDIRECT }
         });
         if (error) throw error;
         accountStatus.textContent = "A fresh verification link has been sent to " + email + ". Check your inbox and spam folder.";
