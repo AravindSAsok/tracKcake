@@ -76,7 +76,21 @@ if (providerSelect && modelSelect) {
         // Leave malformed requests unchanged; the API route returns its normal validation error.
       }
     }
-    return nativeFetch(input, init);
+    const response = await nativeFetch(input, init);
+    if (url.endsWith(estimateUrl)) {
+      try {
+        const result = await response.clone().json() as { provider?: string; model?: string };
+        const attribution = document.getElementById("estimate-attribution");
+        if (attribution) {
+          attribution.textContent = response.ok && result.provider && result.model
+            ? "Estimated with " + result.provider + " · " + result.model
+            : "";
+        }
+      } catch {
+        // Ignore non-JSON responses; the existing estimate flow handles the error.
+      }
+    }
+    return response;
   }) as typeof window.fetch;
   void loadModels();
 }

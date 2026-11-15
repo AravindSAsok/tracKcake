@@ -140,7 +140,7 @@ async function callGemini(apiKey: string, model: string, prompt: string): Promis
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.2, maxOutputTokens: 1400, responseMimeType: "application/json" }
       }),
-      signal: AbortSignal.timeout(9_000)
+      signal: AbortSignal.timeout(30_000)
     }
   );
   if (!response.ok) throw new Error(await readError(response));
