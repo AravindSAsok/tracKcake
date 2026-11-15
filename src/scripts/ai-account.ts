@@ -209,11 +209,26 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
           const guestEntries = JSON.parse(localStorage.getItem("trackcake.guest-backup.entries.v1") || "[]") as Array<Record<string, unknown>>;
           const guestGoal = Number(localStorage.getItem("trackcake.guest-backup.goal.v1") || "2000");
           if (data.user && guestEntries.length) {
-            const rows = guestEntries.filter((row) => row && typeof row.id === "string").map((row) => ({ ...row, user_id: data.user!.id }));
+            // Browser-cached IDs can belong to a different Supabase user.
+            // Generate new IDs and INSERT so RLS can never be asked to update another user's row.
+            const rows = guestEntries
+              .filter((row) => row && typeof row.name === "string" && typeof row.eaten_at === "string")
+              .map((row) => ({
+                ...row,
+                id: crypto.randomUUID(),
+                user_id: data.user!.id
+              }));
             if (rows.length) {
-              const { error: importError } = await supabase.from("food_entries").upsert(rows, { onConflict: "id" });
-              if (importError) console.warn("Guest diary import will remain available in this browser.", importError);
+              const { error: importError } = await supabase.from("food_entries").insert(rows);
+              if (importError) throw new Error("You are signed in, but your guest diary could not be copied to your account: " + importError.message);
             }
+            const { error: goalError } = await supabase.from("tracker_settings").upsert({
+              user_id: data.user.id,
+              calorie_goal: Number.isInteger(guestGoal) && guestGoal >= 500 && guestGoal <= 10000 ? guestGoal : 2000
+            }, { onConflict: "user_id", ignoreDuplicates: true });
+            if (goalError) console.warn("Your existing cloud calorie goal was kept.", goalError);
+            localStorage.removeItem("trackcake.guest-backup.entries.v1");
+            localStorage.removeItem("trackcake.guest-backup.goal.v1");
           }
           window.location.reload();
           return;
