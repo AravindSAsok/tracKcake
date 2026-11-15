@@ -385,7 +385,7 @@ async function compressFoodPhoto(file: File): Promise<Blob> {
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
     if (!blob) throw new Error("Your browser could not compress this photo.");
-    if (blob.size > 5 * 1024 * 1024) throw new Error("This photo is still too large after compression. Please choose a smaller image.");
+    if (blob.size > 3.5 * 1024 * 1024) throw new Error("This photo is still too large after compression. Please choose a smaller image.");
     return blob;
   } finally {
     bitmap.close();
