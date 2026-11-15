@@ -19,6 +19,8 @@ type DraftItem = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  nutrition_source?: string;
+  nutrition_basis?: string;
 };
 
 type EstimateResponse = { items?: DraftItem[]; error?: string };
@@ -447,6 +449,7 @@ function renderReviewItems(items: DraftItem[]): void {
       <div class="review-item-heading">
         <span class="review-item-number">0${index + 1}</span>
         <strong>Food item</strong>
+        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}</span>` : `<span class="review-source review-source-estimate">AI visual estimate · verify packaged-food labels</span>`}
         <button class="remove-review-item" type="button" data-remove-review="${index}" aria-label="Remove food item">×</button>
       </div>
       <div class="review-grid">
@@ -681,7 +684,9 @@ async function estimatePhoto(): Promise<void> {
       calories: Math.max(0, Number(item.calories) || 0),
       protein_g: Math.max(0, Number(item.protein_g) || 0),
       carbs_g: Math.max(0, Number(item.carbs_g) || 0),
-      fat_g: Math.max(0, Number(item.fat_g) || 0)
+      fat_g: Math.max(0, Number(item.fat_g) || 0),
+      nutrition_source: item.nutrition_source,
+      nutrition_basis: item.nutrition_basis
     }));
     renderReviewItems(drafts);
     const attribution = document.getElementById("estimate-attribution");
