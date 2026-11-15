@@ -62,7 +62,7 @@ async function probe(
 
     const modelOptions = records.map((model) => {
       const rawId = model.id ?? model.name ?? "";
-      const id = rawId.replace(/^models\\//, "");
+      const id = rawId.replace(/^models\//, "");
       return id ? { id, name: model.displayName || id } : null;
     }).filter((model): model is { id: string; name: string } => Boolean(model));
 
