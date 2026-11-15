@@ -206,6 +206,70 @@ export async function loadTrackerData(): Promise<TrackerData> {
   }
 }
 
+export interface HistoryPage {
+  entries: FoodEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function fetchHistoryPage(options: {
+  page: number;
+  pageSize?: number;
+  date?: string;
+  search?: string;
+}): Promise<HistoryPage> {
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+  const page = Math.max(1, Math.floor(options.page));
+  const search = (options.search ?? "").trim().replace(/[%,()]/g, " ").replace(/\\s+/g, " ").trim();
+
+  const client = await ensureCloud();
+  if (!client || !userId) {
+    let local = readLocalEntries();
+    if (options.date) local = local.filter((entry) => {
+      const date = new Date(entry.eaten_at);
+      const offset = date.getTimezoneOffset() * 60_000;
+      return new Date(date.getTime() - offset).toISOString().slice(0, 10) === options.date;
+    });
+    if (search) {
+      const term = search.toLocaleLowerCase();
+      local = local.filter((entry) => [entry.name, entry.amount, entry.meal_type].some((value) => value.toLocaleLowerCase().includes(term)));
+    }
+    local.sort((a, b) => b.eaten_at.localeCompare(a.eaten_at) || b.id.localeCompare(a.id));
+    const start = (page - 1) * pageSize;
+    return { entries: local.slice(start, start + pageSize), total: local.length, page, pageSize };
+  }
+
+  let query = client
+    .from("food_entries")
+    .select("id,name,amount,calories,protein_g,carbs_g,fat_g,meal_type,eaten_at,source", { count: "exact" });
+
+  if (options.date) {
+    const start = new Date(options.date + "T00:00:00");
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    query = query.gte("eaten_at", start.toISOString()).lt("eaten_at", end.toISOString());
+  }
+  if (search) {
+    const pattern = "%" + search + "%";
+    query = query.or("name.ilike." + pattern + ",amount.ilike." + pattern + ",meal_type.ilike." + pattern);
+  }
+
+  const from = (page - 1) * pageSize;
+  const { data, count, error } = await query
+    .order("eaten_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(from, from + pageSize - 1);
+
+  if (error) throw error;
+  return {
+    entries: (data ?? []).map((row) => normalizeRow(row as Record<string, unknown>)),
+    total: count ?? 0,
+    page,
+    pageSize
+  };
+}
+
 export async function addEntry(entry: FoodEntry): Promise<string | undefined> {
   const entries = [entry, ...readLocalEntries()];
   writeLocal(entries);
