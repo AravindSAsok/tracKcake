@@ -142,7 +142,7 @@ async function estimateWithFallback(description: string): Promise<ProviderResult
   const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
 
   if (groqKey) {
-    const model = process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile";
+    const model = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
     attempts.push({ provider: "groq", model, run: () => callOpenAICompatible("groq", groqKey, model, prompt) });
   }
   if (geminiKey) {
