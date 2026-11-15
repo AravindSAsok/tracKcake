@@ -48,7 +48,7 @@ function newestFirst<T extends { id: string }>(models: T[]): T[] {
   });
 }
 
-async function probeModel(id: string, apiKey: string): Promise<{ model: string; ok: boolean; status: number; error?: string }> {
+async function probeModel(id: string, apiKey: string): Promise<{ model: string; ok: boolean; status: number; jsonResponse?: boolean; error?: string }> {
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(id)}:generateContent`,
@@ -59,13 +59,37 @@ async function probeModel(id: string, apiKey: string): Promise<{ model: string; 
           "x-goog-api-key": apiKey
         },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: "Reply with the single word OK." }] }],
-          generationConfig: { temperature: 0, maxOutputTokens: 8 }
+          contents: [{
+            role: "user",
+            parts: [{ text: "Return exactly this JSON object and nothing else: {\\"ok\\":true}" }]
+          }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 20,
+            responseMimeType: "application/json"
+          }
         }),
         signal: AbortSignal.timeout(25_000)
       }
     );
-    if (response.ok) return { model: id, ok: true, status: response.status };
+
+    if (response.ok) {
+      const payload = await response.json() as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const generatedText = payload.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text ?? "")
+        .join("")
+        .trim() ?? "";
+      let jsonResponse = false;
+      try {
+        jsonResponse = JSON.parse(generatedText)?.ok === true;
+      } catch {
+        jsonResponse = false;
+      }
+      return { model: id, ok: jsonResponse, status: response.status, jsonResponse };
+    }
+
     const text = await response.text();
     let message = "";
     try {
