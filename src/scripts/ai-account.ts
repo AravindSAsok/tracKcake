@@ -110,11 +110,15 @@ const accountSignout = document.getElementById("account-signout") as HTMLButtonE
 const accountSessionActions = document.getElementById("account-session-actions");
 const accountEmail = document.getElementById("account-email") as HTMLInputElement | null;
 const accountPassword = document.getElementById("account-password") as HTMLInputElement | null;
+const accountPasswordConfirm = document.getElementById("account-password-confirm") as HTMLInputElement | null;
+const accountChangePassword = document.getElementById("account-change-password") as HTMLButtonElement | null;
 const accountResend = document.getElementById("account-resend") as HTMLButtonElement | null;
 const accountForgot = document.getElementById("account-forgot") as HTMLButtonElement | null;
 const accountPasswordLabel = accountPassword?.closest("label") as HTMLLabelElement | null;
+const accountEmailLabel = accountEmail?.closest("label") as HTMLLabelElement | null;
+const accountPasswordConfirmLabel = accountPasswordConfirm?.closest("label") as HTMLLabelElement | null;
 
-if (accountTrigger && accountDialog && accountForm && accountFields && accountStatus && accountModeToggle && accountSubmit && accountSignout && accountSessionActions && accountEmail && accountPassword) {
+if (accountTrigger && accountDialog && accountForm && accountFields && accountStatus && accountModeToggle && accountSubmit && accountSignout && accountSessionActions && accountEmail && accountPassword && accountPasswordConfirm && accountChangePassword) {
   if (!supabaseUrl || !supabaseAnonKey) {
     accountTrigger.disabled = true;
     accountTrigger.textContent = "Cloud account unavailable";
@@ -137,7 +141,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const profileEmail = document.getElementById("account-profile-email");
     const statusObserver = new MutationObserver(() => {
       const message = accountStatus.textContent.toLowerCase();
-      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable|rate limit|temporarily limited/.test(message);
+      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable|rate limit|temporarily limited|expired|requires additional verification|reauthentication|passwords don.t match/.test(message);
       const isSuccess = /sent to|sent a verification|fresh verification|safely synced|all set/.test(message);
       accountStatus.classList.toggle("is-error", isError);
       accountStatus.classList.toggle("is-success", !isError && isSuccess);
@@ -183,7 +187,14 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       accountModeToggle.hidden = settingPassword;
       accountModeToggle.textContent = recovery ? "Back to sign in" : mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
       if (accountForgot) accountForgot.hidden = mode !== "signin";
+      if (accountEmailLabel) accountEmailLabel.hidden = settingPassword;
+      accountEmail.required = !settingPassword;
       if (accountPasswordLabel) accountPasswordLabel.hidden = recovery;
+      if (accountPasswordConfirmLabel) {
+        accountPasswordConfirmLabel.hidden = !settingPassword;
+        accountPasswordConfirm.required = settingPassword;
+      }
+      if (!settingPassword) accountPasswordConfirm.value = "";
       if (accountPassword) {
         accountPassword.hidden = recovery;
         accountPassword.required = !recovery;
@@ -210,6 +221,27 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     });
     accountModeToggle.addEventListener("click", () => setMode(mode === "recovery" ? "signin" : mode === "signup" ? "signin" : "signup"));
     accountForgot?.addEventListener("click", () => setMode("recovery"));
+    accountChangePassword.addEventListener("click", async () => {
+      accountChangePassword.disabled = true;
+      try {
+        // Ask Auth to validate the persisted session before exposing the password form.
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (!data.user || data.user.is_anonymous) {
+          throw new Error("Your session has expired. Sign in again before setting a new password.");
+        }
+        activeUser = data.user as typeof activeUser;
+        accountFields.hidden = false;
+        accountSessionActions.hidden = true;
+        setMode("set-password");
+        accountStatus.textContent = "Forgot your password? No problem. Choose a new one below. Your signed-in account will stay connected.";
+        accountPassword.focus();
+      } catch (error) {
+        accountStatus.textContent = error instanceof Error ? error.message : "Could not verify your account session. Please sign in again.";
+      } finally {
+        accountChangePassword.disabled = false;
+      }
+    });
     supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         accountFields.hidden = false;
@@ -225,6 +257,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       event.preventDefault();
       const email = accountEmail.value.trim();
       const password = accountPassword.value;
+      const passwordConfirmation = accountPasswordConfirm.value;
       if (!email && mode !== "set-password") {
         accountStatus.textContent = "Enter your email address first.";
         accountEmail.focus();
@@ -235,6 +268,11 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         accountPassword.focus();
         return;
       }
+      if (mode === "set-password" && password !== passwordConfirmation) {
+        accountStatus.textContent = "Those passwords don't match yet. Please check both fields.";
+        accountPasswordConfirm.focus();
+        return;
+      }
       accountSubmit.disabled = true;
       accountSubmit.textContent = mode === "recovery" ? "Sending…" : mode === "signup" ? "Creating…" : "Signing in…";
       try {
@@ -243,10 +281,18 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
           if (error) throw error;
           accountStatus.textContent = "Password reset email sent to " + email + ". Open the link in your inbox to choose a new password. Check spam too.";
         } else if (mode === "set-password") {
+          // getUser() validates the current session with Supabase Auth; no forgotten password is requested.
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          if (!userData.user || userData.user.is_anonymous) {
+            throw new Error("Your signed-in session has expired. Sign in again before setting a new password.");
+          }
           const { error } = await supabase.auth.updateUser({ password });
           if (error) throw error;
-          setMode("signin");
-          accountStatus.textContent = "Your password has been updated successfully. You can keep using TrackCake.";
+          accountPassword.value = "";
+          accountPasswordConfirm.value = "";
+          await refreshAccount();
+          accountStatus.textContent = "Your password has been updated. You're still signed in on this device.";
           accountStatus.classList.add("is-success");
         } else if (mode === "signup") {
           const { data: sessionData } = await supabase.auth.getSession();
@@ -331,6 +377,8 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
           /email rate limit exceeded|rate limit.*email|too many.*email/i.test(message)
         ) {
           accountStatus.textContent = "Supabase has temporarily paused password-reset emails because too many were requested. Please wait before trying again. If this keeps happening, configure a custom SMTP provider in Supabase and review the Auth email rate limits. You can go back to sign in in the meantime.";
+        } else if (/reauthentication|reauthenticate|nonce|recently logged in|current password/i.test(message)) {
+          accountStatus.textContent = "Supabase Auth requires additional verification for this password change. The app can't bypass that security setting. Use the secure email recovery option or review the password-change requirements in Supabase Auth settings.";
         } else {
           accountStatus.textContent = message;
         }
