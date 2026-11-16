@@ -30,7 +30,67 @@ interface FoodEntryRow extends FoodEntry {
 
 const ENTRIES_KEY = "trackcake.entries.v1";
 const GOAL_KEY = "trackcake.goal.v1";
+const PENDING_ENTRIES_KEY = "trackcake.pending-entries.v1";
 const DEFAULT_GOAL = 2000;
+
+function readPendingEntries(forUserId: string): FoodEntry[] {
+  try {
+    const raw = localStorage.getItem(PENDING_ENTRIES_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+    const rows = (parsed as Record<string, unknown>)[forUserId];
+    if (!Array.isArray(rows)) return [];
+    return rows.filter((entry): entry is FoodEntry => {
+      if (!entry || typeof entry !== "object") return false;
+      const row = entry as Record<string, unknown>;
+      return typeof row.id === "string" && typeof row.name === "string" &&
+        typeof row.eaten_at === "string" && Number.isFinite(Number(row.calories));
+    });
+  } catch {
+    return [];
+  }
+}
+
+function writePendingEntries(forUserId: string, entries: FoodEntry[]): void {
+  const parsed: Record<string, unknown> = (() => {
+    try {
+      const value: unknown = JSON.parse(localStorage.getItem(PENDING_ENTRIES_KEY) || "{}");
+      return value && typeof value === "object" && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : {};
+    } catch {
+      return {};
+    }
+  })();
+  if (entries.length) parsed[forUserId] = entries;
+  else delete parsed[forUserId];
+  localStorage.setItem(PENDING_ENTRIES_KEY, JSON.stringify(parsed));
+}
+
+function rememberPendingEntry(forUserId: string, entry: FoodEntry): void {
+  const pending = readPendingEntries(forUserId);
+  if (!pending.some((item) => item.id === entry.id)) writePendingEntries(forUserId, [...pending, entry]);
+}
+
+function forgetPendingEntry(forUserId: string, entryId: string): void {
+  writePendingEntries(forUserId, readPendingEntries(forUserId).filter((entry) => entry.id !== entryId));
+}
+
+async function insertPendingEntry(client: SupabaseClient, forUserId: string, entry: FoodEntry): Promise<boolean> {
+  const { error } = await client.from("food_entries").insert({ ...entry, user_id: forUserId });
+  if (!error) return true;
+
+  // A request may have reached Postgres even if the browser lost its response.
+  // Treat a duplicate ID as synced only after confirming that exact row belongs to this user.
+  if ((error as { code?: string }).code === "23505") {
+    const { data, error: lookupError } = await client.from("food_entries")
+      .select("id").eq("id", entry.id).eq("user_id", forUserId).maybeSingle();
+    if (!lookupError && data) return true;
+  }
+  console.warn("Pending food entry is still waiting for cloud sync.", error);
+  return false;
+}
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY?.trim();
@@ -166,19 +226,38 @@ export async function loadTrackerData(): Promise<TrackerData> {
       normalizeRow(row as Record<string, unknown>)
     );
 
-    // First-time cloud setup: import this browser's diary using fresh IDs.
-    // Local IDs may belong to another account, so never upsert them into this user's rows.
+    // First-time cloud setup: import this browser's existing diary using fresh IDs.
+    // Pending entries already belong to this account and must retain their original IDs.
+    const pendingEntries = readPendingEntries(userId);
+    const pendingIds = new Set(pendingEntries.map((entry) => entry.id));
     if (remoteEntries.length === 0 && localEntries.length > 0) {
-      const importedEntries = localEntries.map((entry) => ({
-        ...entry,
-        id: crypto.randomUUID()
-      }));
-      const { error } = await client.from("food_entries").insert(
-        importedEntries.map(toRow)
-      );
-      if (error) throw error;
-      remoteEntries = importedEntries;
+      const importCandidates = localEntries.filter((entry) => !pendingIds.has(entry.id));
+      if (importCandidates.length) {
+        const importedEntries = importCandidates.map((entry) => ({
+          ...entry,
+          id: crypto.randomUUID()
+        }));
+        const { error } = await client.from("food_entries").insert(
+          importedEntries.map(toRow)
+        );
+        if (error) throw error;
+        remoteEntries = importedEntries;
+      }
     }
+
+    // Retry local-first saves that previously failed to reach Supabase.
+    // Never replace a remote row: every new food is inserted with its own ID.
+    const stillPending: FoodEntry[] = [];
+    for (const pendingEntry of pendingEntries) {
+      const synced = await insertPendingEntry(client, userId, pendingEntry);
+      if (synced) forgetPendingEntry(userId, pendingEntry.id);
+      else stillPending.push(pendingEntry);
+    }
+    const remoteIds = new Set(remoteEntries.map((entry) => entry.id));
+    remoteEntries = [
+      ...stillPending.filter((entry) => !remoteIds.has(entry.id)),
+      ...remoteEntries
+    ];
 
     let goal = Number(settingsResult.data?.calorie_goal);
     if (!Number.isInteger(goal) || goal < 500 || goal > 10000) {
@@ -191,8 +270,15 @@ export async function loadTrackerData(): Promise<TrackerData> {
     }
 
     writeLocal(remoteEntries, goal);
-    storageMode = "cloud";
-    return { entries: remoteEntries, goal, mode: "cloud" };
+    storageMode = stillPending.length ? "local" : "cloud";
+    return {
+      entries: remoteEntries,
+      goal,
+      mode: stillPending.length ? "local" : "cloud",
+      message: stillPending.length
+        ? "Your food is safe on this device. TrackCake will retry cloud sync when your connection is available."
+        : undefined
+    };
   } catch (error) {
     cloudReady = false;
     storageMode = "local";
@@ -271,21 +357,28 @@ export async function fetchHistoryPage(options: {
 }
 
 export async function addEntry(entry: FoodEntry): Promise<string | undefined> {
-  const entries = [entry, ...readLocalEntries()];
-  writeLocal(entries);
+  const existingEntries = readLocalEntries();
+  if (existingEntries.some((current) => current.id === entry.id)) {
+    throw new Error("This food entry already exists. TrackCake did not overwrite it.");
+  }
+  // Save locally first. Each food has its own ID and is always appended, never upserted.
+  writeLocal([entry, ...existingEntries]);
 
   if (!cloudConfigured) return;
   try {
     const client = await ensureCloud();
     if (!client || !userId) throw new Error("Your cloud session is not ready.");
-    const { error } = await client.from("food_entries").insert(toRow(entry));
-    if (error) throw error;
+    rememberPendingEntry(userId, entry);
+    const synced = await insertPendingEntry(client, userId, entry);
+    if (!synced) throw new Error("The cloud save could not be confirmed.");
+    forgetPendingEntry(userId, entry.id);
   } catch (error) {
+    if (userId) rememberPendingEntry(userId, entry);
     cloudReady = false;
     storageMode = "local";
     const detail = error instanceof Error ? error.message : "Unknown cloud error";
-    console.warn("Food entry was saved locally but cloud sync failed.", error);
-    return "Saved on this device only. Cloud sync failed: " + detail;
+    console.warn("Food entry was saved locally but cloud sync failed; it is queued for retry.", error);
+    return "Saved safely on this device. Cloud sync will retry when your connection is available. " + detail;
   }
 }
 
