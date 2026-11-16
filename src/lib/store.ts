@@ -329,33 +329,55 @@ export async function fetchHistoryPage(options: {
     return { entries: local.slice(start, start + pageSize), total: local.length, page, pageSize };
   }
 
-  let query = client
-    .from("food_entries")
-    .select("id,name,amount,calories,protein_g,carbs_g,fat_g,meal_type,eaten_at,source", { count: "exact" });
+  // Some Supabase projects configure a low API max_rows value (for example 10).
+  // Fetch the requested window in small, explicit ranges so one API response cap
+  // cannot silently truncate a page or cause entries to be skipped between pages.
+  const buildHistoryQuery = () => {
+    let query = client
+      .from("food_entries")
+      .select("id,name,amount,calories,protein_g,carbs_g,fat_g,meal_type,eaten_at,source", { count: "exact" });
 
-  if (options.date) {
-    const start = new Date(options.date + "T00:00:00");
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    query = query.gte("eaten_at", start.toISOString()).lt("eaten_at", end.toISOString());
-  }
-  if (search) {
-    const pattern = "%" + search + "%";
-    query = query.or("name.ilike." + pattern + ",amount.ilike." + pattern + ",meal_type.ilike." + pattern);
-  }
+    if (options.date) {
+      const start = new Date(options.date + "T00:00:00");
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      query = query.gte("eaten_at", start.toISOString()).lt("eaten_at", end.toISOString());
+    }
+    if (search) {
+      const pattern = "%" + search + "%";
+      query = query.or("name.ilike." + pattern + ",amount.ilike." + pattern + ",meal_type.ilike." + pattern);
+    }
+    return query;
+  };
 
   const pendingEntries = userId ? readPendingEntries(userId) : [];
   const from = pendingEntries.length ? 0 : (page - 1) * pageSize;
   const to = pendingEntries.length ? page * pageSize + pendingEntries.length - 1 : from + pageSize - 1;
-  const { data, count, error } = await query
-    .order("eaten_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(from, to);
+  const remoteRows: FoodEntry[] = [];
+  let totalCount = 0;
+  const chunkSize = 10;
 
-  if (error) throw error;
-  const remoteEntries = (data ?? []).map((row) => normalizeRow(row as Record<string, unknown>));
+  let chunkFrom = from;
+  while (chunkFrom <= to) {
+    const chunkTo = Math.min(to, chunkFrom + chunkSize - 1);
+    const { data, count, error } = await buildHistoryQuery()
+      .order("eaten_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(chunkFrom, chunkTo);
+
+    if (error) throw error;
+    if (chunkFrom === from) totalCount = count ?? 0;
+    const chunkEntries = (data ?? []).map((row) => normalizeRow(row as Record<string, unknown>));
+    if (chunkEntries.length === 0) break;
+    remoteRows.push(...chunkEntries);
+    // Advance by the number actually returned, not the requested range size.
+    // This also handles projects whose max_rows setting is lower than 10.
+    chunkFrom += chunkEntries.length;
+  }
+
+  const remoteEntries = remoteRows;
   if (!pendingEntries.length) {
-    return { entries: remoteEntries, total: count ?? 0, page, pageSize };
+    return { entries: remoteEntries, total: totalCount, page, pageSize };
   }
 
   const remoteIds = new Set(remoteEntries.map((entry) => entry.id));
@@ -377,7 +399,7 @@ export async function fetchHistoryPage(options: {
   const start = (page - 1) * pageSize;
   return {
     entries: merged.slice(start, start + pageSize),
-    total: (count ?? 0) + pendingMatches.length,
+    total: (totalCount) + pendingMatches.length,
     page,
     pageSize
   };
