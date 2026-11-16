@@ -2449,3 +2449,69 @@ body.calkie-open::before {
 /* Keep Calkie's supplied artwork fully visible in both avatar sizes. */
 .calkie-avatar img,.calkie-launcher-face img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;}
 .calkie-avatar,.calkie-launcher-face{overflow:hidden;}
+
+
+/* Focused text contrast: food logging, food history and meal portions only. */
+.quick-add-card .quick-heading h2,
+.quick-add-card .quick-heading p:last-child,
+.quick-add-card .control-label,
+.quick-add-card .model-status,
+.quick-add-card .form-hint,
+.quick-add-card .quick-form textarea,
+.quick-add-card .quick-form select,
+.quick-add-card .quick-form input {
+  color: #000;
+}
+.quick-add-card .quick-form textarea::placeholder {
+  color: #666;
+}
+.quick-add-card .quick-form select option {
+  color: #000;
+}
+.diary-section .diary-heading h2,
+.diary-section .history-filters,
+.diary-section .history-filter,
+.diary-section .history-filter input,
+.diary-section .history-clear,
+.diary-section .history-state,
+.diary-section .history-pagination,
+.diary-section .history-page-button,
+.diary-section .history-note,
+.diary-section .empty-state h3,
+.diary-section .empty-state p {
+  color: #000;
+}
+.diary-section .history-filter input,
+.diary-section .history-page-button {
+  color: #000;
+}
+.diary-section .food-title-line h3,
+.diary-section .food-details p,
+.diary-section .food-nutrition strong,
+.diary-section .food-nutrition strong small,
+.diary-section .food-nutrition span {
+  color: #000;
+}
+.day-timeline-card .day-timeline-heading h2,
+.day-timeline-card .day-timeline-heading p:not(.card-kicker),
+.day-timeline-card .day-timeline-total,
+.day-timeline-card .day-timeline-time,
+.day-timeline-card .day-timeline-food strong,
+.day-timeline-card .day-timeline-food span,
+.day-timeline-card .day-timeline-calories,
+.day-timeline-card .day-timeline-calories small,
+.day-timeline-card .day-timeline-empty {
+  color: #000;
+}
+#entry-dialog .dialog-heading h2,
+#entry-dialog .dialog-subtitle,
+#entry-dialog .field,
+#entry-dialog .field input,
+#entry-dialog .field select,
+#entry-dialog .field textarea {
+  color: #000;
+}
+#entry-dialog .field input::placeholder,
+#entry-dialog .field textarea::placeholder {
+  color: #666;
+}
