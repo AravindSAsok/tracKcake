@@ -137,7 +137,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const profileEmail = document.getElementById("account-profile-email");
     const statusObserver = new MutationObserver(() => {
       const message = accountStatus.textContent.toLowerCase();
-      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable/.test(message);
+      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable|rate limit|temporarily limited/.test(message);
       const isSuccess = /sent to|sent a verification|fresh verification|safely synced|all set/.test(message);
       accountStatus.classList.toggle("is-error", isError);
       accountStatus.classList.toggle("is-success", !isError && isSuccess);
@@ -322,15 +322,27 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         }
       } catch (error) {
         const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
+        const message = error instanceof Error ? error.message : "Account action failed. Please try again.";
         if (code === "email_not_confirmed") {
           if (accountResend) accountResend.hidden = false;
           accountStatus.textContent = "Please verify your email first. You can resend the confirmation link below.";
+        } else if (
+          code === "over_email_send_rate_limit" ||
+          /email rate limit exceeded|rate limit.*email|too many.*email/i.test(message)
+        ) {
+          accountStatus.textContent = "Supabase has temporarily paused password-reset emails because too many were requested. Please wait before trying again. If this keeps happening, configure a custom SMTP provider in Supabase and review the Auth email rate limits. You can go back to sign in in the meantime.";
         } else {
-          accountStatus.textContent = error instanceof Error ? error.message : "Account action failed. Please try again.";
+          accountStatus.textContent = message;
         }
       } finally {
         accountSubmit.disabled = false;
-        if (mode !== "recovery") setMode(mode);
+        accountSubmit.textContent = mode === "recovery"
+          ? "Send reset link"
+          : mode === "set-password"
+            ? "Save new password"
+            : mode === "signup"
+              ? "Create free account"
+              : "Sign in";
       }
     });
 
