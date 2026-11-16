@@ -2625,11 +2625,15 @@ body.calkie-open::before {
 }
 
 
-/* Edit and delete controls for today's food timeline. */
-.day-timeline-actions{display:flex;align-items:center;gap:7px;margin-top:3px}
-.day-timeline-action{border:1px solid #dce7d8;border-radius:7px;background:#f7faf5;color:#355b3d;padding:4px 9px;font:700 10px Manrope,sans-serif;cursor:pointer}
-.day-timeline-action:hover{background:#eaf2e5}
-.day-timeline-action:focus-visible{outline:2px solid #527b4e;outline-offset:2px}
-.day-timeline-delete{border-color:#f0dada;background:#fff8f7;color:#a44740}
-.day-timeline-delete:hover{background:#fcebea}
-@media(max-width:560px){.day-timeline-actions{gap:5px}.day-timeline-action{padding:4px 7px;font-size:9px}}
+
+
+/* Food rows open a compact action menu instead of showing permanent controls. */
+.food-row{grid-template-columns:40px minmax(0,1fr) auto;cursor:pointer;}
+.food-row:focus-visible,.day-timeline-item:focus-visible{outline:2px solid #6b9665;outline-offset:-2px;border-radius:9px;}
+.day-timeline-item{cursor:pointer;border-radius:9px;}
+.food-action-dialog{max-width:360px;}
+.food-action-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
+.food-action-options button{min-height:44px;}
+.food-action-delete{border-color:#f0dada!important;background:#fff8f7!important;color:#a44740!important;}
+.food-action-delete:hover{background:#fcebea!important;}
+@media(max-width:560px){.food-action-options{grid-template-columns:1fr;}}
