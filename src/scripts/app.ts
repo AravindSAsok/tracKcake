@@ -54,6 +54,7 @@ let toastTimer: number | undefined;
 let historyEntries: FoodEntry[] = [];
 let historyPage = 1;
 let historyRequest = 0;
+let quickTimeManuallySet = false;
 const HISTORY_PAGE_SIZE = 20;
 
 const mealLabels: Record<MealType, string> = {
@@ -83,12 +84,27 @@ function dateTimeLocalValue(date = new Date()): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
-function currentMeal(): MealType {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 11) return "breakfast";
-  if (hour >= 11 && hour < 16) return "lunch";
+function mealForTime(value: string | Date): MealType {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "snack";
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return "breakfast";
+  if (hour >= 12 && hour < 17) return "lunch";
   if (hour >= 17 && hour < 22) return "dinner";
   return "snack";
+}
+
+function currentMeal(): MealType {
+  return mealForTime(new Date());
+}
+
+function resolveMeal(selection: string, eatenAt: string): MealType {
+  return selection === "auto" ? mealForTime(eatenAt) : selection as MealType;
+}
+
+function prepareReviewOptions(): void {
+  byId<HTMLSelectElement>("review-meal").value = quickMeal.value;
+  byId<HTMLInputElement>("review-time").value = quickTime.value || dateTimeLocalValue();
 }
 
 function escapeHtml(value: string): string {
@@ -360,11 +376,13 @@ async function renderHistory(): Promise<void> {
 }
 
 function setQuickDefaults(): void {
-  quickMeal.value = currentMeal();
+  quickMeal.value = "auto";
   quickTime.value = dateTimeLocalValue();
+  quickTimeManuallySet = false;
 }
 
 function openManualEntry(entry?: FoodEntry): void {
+  if (!entry && !quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
   editingId = entry?.id ?? null;
   byId<HTMLElement>("entry-heading").textContent = entry ? "Edit food" : "Add a food";
   byId<HTMLInputElement>("entry-name").value = entry?.name ?? "";
@@ -373,7 +391,7 @@ function openManualEntry(entry?: FoodEntry): void {
   byId<HTMLInputElement>("entry-protein").value = entry ? String(entry.protein_g) : "0";
   byId<HTMLInputElement>("entry-carbs").value = entry ? String(entry.carbs_g) : "0";
   byId<HTMLInputElement>("entry-fat").value = entry ? String(entry.fat_g) : "0";
-  byId<HTMLSelectElement>("entry-meal").value = entry?.meal_type ?? quickMeal.value as MealType;
+  byId<HTMLSelectElement>("entry-meal").value = entry?.meal_type ?? quickMeal.value;
   byId<HTMLInputElement>("entry-time").value = entry
     ? dateTimeLocalValue(new Date(entry.eaten_at))
     : quickTime.value || dateTimeLocalValue();
@@ -409,9 +427,10 @@ async function saveManualEntry(event: SubmitEvent): Promise<void> {
     return;
   }
 
+  const entryTimeValue = byId<HTMLInputElement>("entry-time").value;
   let eatenAt: string;
   try {
-    eatenAt = toISOStringFromInput(byId<HTMLInputElement>("entry-time").value);
+    eatenAt = toISOStringFromInput(entryTimeValue);
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Choose a valid time.", "error");
     return;
@@ -426,7 +445,7 @@ async function saveManualEntry(event: SubmitEvent): Promise<void> {
     protein_g: formNumber("entry-protein"),
     carbs_g: formNumber("entry-carbs"),
     fat_g: formNumber("entry-fat"),
-    meal_type: byId<HTMLSelectElement>("entry-meal").value as MealType,
+    meal_type: resolveMeal(byId<HTMLSelectElement>("entry-meal").value, entryTimeValue),
     eaten_at: eatenAt,
     source: existing?.source ?? "manual"
   };
@@ -437,6 +456,10 @@ async function saveManualEntry(event: SubmitEvent): Promise<void> {
     else entries.unshift(entry);
     render();
     closeDialog("entry-dialog");
+    if (!existing) {
+      quickTime.value = dateTimeLocalValue();
+      quickTimeManuallySet = false;
+    }
     showToast(warning ?? (existing ? "Food entry updated." : "Food added to your diary."), warning ? "error" : "success");
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not save this food.", "error");
@@ -599,6 +622,7 @@ function updatePhotoProgress(event: PhotoStreamEvent): void {
 }
 
 async function estimatePhoto(): Promise<void> {
+  if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
   const file = photoInput.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
@@ -694,6 +718,7 @@ async function estimatePhoto(): Promise<void> {
       nutrition_source_url: item.nutrition_source_url
     }));
     renderReviewItems(drafts);
+    prepareReviewOptions();
     const attribution = document.getElementById("estimate-attribution");
     if (attribution) attribution.textContent = "Photo estimate · " + (result.provider || "AI") + " · " + (result.model || "vision model");
     progressDialog.close();
@@ -710,6 +735,7 @@ async function estimatePhoto(): Promise<void> {
 
 async function estimateFood(event: SubmitEvent): Promise<void> {
   event.preventDefault();
+  if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
   const description = quickDescription.value.trim();
   if (!description) {
     showToast("Describe what you ate first.", "error");
@@ -746,6 +772,7 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       nutrition_source_url: item.nutrition_source_url
     }));
     renderReviewItems(drafts);
+    prepareReviewOptions();
     openDialog(reviewDialog);
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not estimate this meal.", "error");
@@ -764,14 +791,15 @@ async function saveReview(event: SubmitEvent): Promise<void> {
     return;
   }
 
+  const reviewTimeValue = byId<HTMLInputElement>("review-time").value;
   let eatenAt: string;
   try {
-    eatenAt = toISOStringFromInput(quickTime.value);
+    eatenAt = toISOStringFromInput(reviewTimeValue);
   } catch {
     eatenAt = new Date().toISOString();
   }
 
-  const meal = quickMeal.value as MealType;
+  const meal = resolveMeal(byId<HTMLSelectElement>("review-meal").value, reviewTimeValue);
   const saveButton = reviewForm.querySelector<HTMLButtonElement>('button[type="submit"]');
   if (saveButton) {
     saveButton.disabled = true;
@@ -797,6 +825,9 @@ async function saveReview(event: SubmitEvent): Promise<void> {
     render();
     closeDialog("review-dialog");
     quickDescription.value = "";
+    quickTime.value = dateTimeLocalValue();
+    quickTimeManuallySet = false;
+    quickMeal.value = byId<HTMLSelectElement>("review-meal").value;
     showToast(warnings[0] ?? `${created.length} ${created.length === 1 ? "food" : "foods"} added to your diary.`, warnings.length ? "error" : "success");
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not save the estimate.", "error");
@@ -849,6 +880,7 @@ async function saveGoal(event: SubmitEvent): Promise<void> {
 }
 
 function bindEvents(): void {
+  quickTime.addEventListener("input", () => { quickTimeManuallySet = true; });
   quickForm.addEventListener("submit", (event) => void estimateFood(event));
   entryForm.addEventListener("submit", (event) => void saveManualEntry(event));
   reviewForm.addEventListener("submit", (event) => void saveReview(event));
