@@ -123,7 +123,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
-    let mode: "signup" | "signin" | "recovery" = "signup";
+    let mode: "signup" | "signin" | "recovery" | "set-password" = "signup";
     let activeUser: {
       id: string;
       email?: string;
@@ -175,24 +175,32 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       if (!signedIn) setMode("signup");
     };
 
-    const setMode = (nextMode: "signup" | "signin" | "recovery"): void => {
+    const setMode = (nextMode: "signup" | "signin" | "recovery" | "set-password"): void => {
       mode = nextMode;
       const recovery = mode === "recovery";
-      accountSubmit.textContent = recovery ? "Send reset link" : mode === "signup" ? "Create free account" : "Sign in";
-      accountModeToggle.hidden = false;
+      const settingPassword = mode === "set-password";
+      accountSubmit.textContent = recovery ? "Send reset link" : settingPassword ? "Save new password" : mode === "signup" ? "Create free account" : "Sign in";
+      accountModeToggle.hidden = settingPassword;
       accountModeToggle.textContent = recovery ? "Back to sign in" : mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
       if (accountForgot) accountForgot.hidden = mode !== "signin";
       if (accountPasswordLabel) accountPasswordLabel.hidden = recovery;
       if (accountPassword) {
         accountPassword.hidden = recovery;
         accountPassword.required = !recovery;
-        accountPassword.autocomplete = mode === "signup" ? "new-password" : "current-password";
+        accountPassword.autocomplete = mode === "signup" || settingPassword ? "new-password" : "current-password";
+        accountPassword.placeholder = settingPassword ? "Choose at least 8 characters" : "At least 8 characters";
+      }
+      if (accountPasswordLabel) {
+        const labelText = accountPasswordLabel.firstChild;
+        if (labelText && labelText.nodeType === Node.TEXT_NODE) labelText.textContent = settingPassword ? "New password" : "Password";
       }
       accountStatus.textContent = recovery
         ? "No stress. Enter your email and we’ll send a secure password reset link."
-        : mode === "signup"
-          ? "Create your free TrackCake account to keep your food diary in sync across devices."
-          : "Welcome back. Sign in to see your meals, calorie goals and food history.";
+        : settingPassword
+          ? "Choose a new password for your TrackCake account. Use at least 8 characters."
+          : mode === "signup"
+            ? "Create your free TrackCake account to keep your food diary in sync across devices."
+            : "Welcome back. Sign in to see your meals, calorie goals and food history.";
     };
 
     accountTrigger.addEventListener("click", () => {
@@ -202,6 +210,13 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     });
     accountModeToggle.addEventListener("click", () => setMode(mode === "recovery" ? "signin" : mode === "signup" ? "signin" : "signup"));
     accountForgot?.addEventListener("click", () => setMode("recovery"));
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("set-password");
+        accountStatus.textContent = "Reset link verified. Choose a new password to finish recovering your account.";
+        if (!accountDialog.open) accountDialog.showModal();
+      }
+    });
 
     accountForm.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -224,6 +239,12 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
           const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: PRODUCTION_AUTH_REDIRECT });
           if (error) throw error;
           accountStatus.textContent = "Password reset email sent to " + email + ". Open the link in your inbox to choose a new password. Check spam too.";
+        } else if (mode === "set-password") {
+          const { error } = await supabase.auth.updateUser({ password });
+          if (error) throw error;
+          setMode("signin");
+          accountStatus.textContent = "Your password has been updated successfully. You can keep using TrackCake.";
+          accountStatus.classList.add("is-success");
         } else if (mode === "signup") {
           const { data: sessionData } = await supabase.auth.getSession();
           const isGuest = Boolean(sessionData.session?.user.is_anonymous);
