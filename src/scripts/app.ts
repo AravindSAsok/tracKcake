@@ -827,7 +827,7 @@ async function saveReview(event: SubmitEvent): Promise<void> {
     quickDescription.value = "";
     quickTime.value = dateTimeLocalValue();
     quickTimeManuallySet = false;
-    quickMeal.value = byId<HTMLSelectElement>("review-meal").value;
+    quickMeal.value = "auto";
     showToast(warnings[0] ?? `${created.length} ${created.length === 1 ? "food" : "foods"} added to your diary.`, warnings.length ? "error" : "success");
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not save the estimate.", "error");
