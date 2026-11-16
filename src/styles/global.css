@@ -2515,3 +2515,9 @@ body.calkie-open::before {
 #entry-dialog .field textarea::placeholder {
   color: #666;
 }
+
+.diary-section .food-details p span,
+.diary-section .meal-chip,
+.diary-section .ai-chip {
+  color: #000;
+}
