@@ -33,26 +33,27 @@ const GOAL_KEY = "trackcake.goal.v1";
 const PENDING_ENTRIES_KEY = "trackcake.pending-entries.v1";
 const DEFAULT_GOAL = 2000;
 
-function readPendingEntries(forUserId: string): FoodEntry[] {
+function readPendingEntryIds(forUserId: string): string[] {
   try {
     const raw = localStorage.getItem(PENDING_ENTRIES_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
     const rows = (parsed as Record<string, unknown>)[forUserId];
-    if (!Array.isArray(rows)) return [];
-    return rows.filter((entry): entry is FoodEntry => {
-      if (!entry || typeof entry !== "object") return false;
-      const row = entry as Record<string, unknown>;
-      return typeof row.id === "string" && typeof row.name === "string" &&
-        typeof row.eaten_at === "string" && Number.isFinite(Number(row.calories));
-    });
+    return Array.isArray(rows) ? rows.filter((id): id is string => typeof id === "string") : [];
   } catch {
     return [];
   }
 }
 
-function writePendingEntries(forUserId: string, entries: FoodEntry[]): void {
+function readPendingEntries(forUserId: string): FoodEntry[] {
+  const localById = new Map(readLocalEntries().map((entry) => [entry.id, entry]));
+  return readPendingEntryIds(forUserId)
+    .map((id) => localById.get(id))
+    .filter((entry): entry is FoodEntry => Boolean(entry));
+}
+
+function writePendingEntryIds(forUserId: string, ids: string[]): void {
   const parsed: Record<string, unknown> = (() => {
     try {
       const value: unknown = JSON.parse(localStorage.getItem(PENDING_ENTRIES_KEY) || "{}");
@@ -63,18 +64,18 @@ function writePendingEntries(forUserId: string, entries: FoodEntry[]): void {
       return {};
     }
   })();
-  if (entries.length) parsed[forUserId] = entries;
+  if (ids.length) parsed[forUserId] = ids;
   else delete parsed[forUserId];
   localStorage.setItem(PENDING_ENTRIES_KEY, JSON.stringify(parsed));
 }
 
 function rememberPendingEntry(forUserId: string, entry: FoodEntry): void {
-  const pending = readPendingEntries(forUserId);
-  if (!pending.some((item) => item.id === entry.id)) writePendingEntries(forUserId, [...pending, entry]);
+  const pendingIds = readPendingEntryIds(forUserId);
+  if (!pendingIds.includes(entry.id)) writePendingEntryIds(forUserId, [...pendingIds, entry.id]);
 }
 
 function forgetPendingEntry(forUserId: string, entryId: string): void {
-  writePendingEntries(forUserId, readPendingEntries(forUserId).filter((entry) => entry.id !== entryId));
+  writePendingEntryIds(forUserId, readPendingEntryIds(forUserId).filter((id) => id !== entryId));
 }
 
 async function insertPendingEntry(client: SupabaseClient, forUserId: string, entry: FoodEntry): Promise<boolean> {
@@ -341,16 +342,40 @@ export async function fetchHistoryPage(options: {
     query = query.or("name.ilike." + pattern + ",amount.ilike." + pattern + ",meal_type.ilike." + pattern);
   }
 
-  const from = (page - 1) * pageSize;
+  const pendingEntries = userId ? readPendingEntries(userId) : [];
+  const from = pendingEntries.length ? 0 : (page - 1) * pageSize;
+  const to = pendingEntries.length ? page * pageSize + pendingEntries.length - 1 : from + pageSize - 1;
   const { data, count, error } = await query
     .order("eaten_at", { ascending: false })
     .order("id", { ascending: false })
-    .range(from, from + pageSize - 1);
+    .range(from, to);
 
   if (error) throw error;
+  const remoteEntries = (data ?? []).map((row) => normalizeRow(row as Record<string, unknown>));
+  if (!pendingEntries.length) {
+    return { entries: remoteEntries, total: count ?? 0, page, pageSize };
+  }
+
+  const remoteIds = new Set(remoteEntries.map((entry) => entry.id));
+  const pendingMatches = pendingEntries.filter((entry) => {
+    if (remoteIds.has(entry.id)) return false;
+    if (options.date) {
+      const date = new Date(entry.eaten_at);
+      const offset = date.getTimezoneOffset() * 60_000;
+      if (new Date(date.getTime() - offset).toISOString().slice(0, 10) !== options.date) return false;
+    }
+    if (search) {
+      const term = search.toLocaleLowerCase();
+      if (![entry.name, entry.amount, entry.meal_type].some((value) => value.toLocaleLowerCase().includes(term))) return false;
+    }
+    return true;
+  });
+  const merged = [...pendingMatches, ...remoteEntries]
+    .sort((a, b) => b.eaten_at.localeCompare(a.eaten_at) || b.id.localeCompare(a.id));
+  const start = (page - 1) * pageSize;
   return {
-    entries: (data ?? []).map((row) => normalizeRow(row as Record<string, unknown>)),
-    total: count ?? 0,
+    entries: merged.slice(start, start + pageSize),
+    total: (count ?? 0) + pendingMatches.length,
     page,
     pageSize
   };
