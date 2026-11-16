@@ -2559,3 +2559,18 @@ body.calkie-open::before {
 }
 .account-forgot-link:hover { color: #2e5739; text-decoration: underline; }
 .account-forgot-link[hidden] { display: none !important; }
+
+.account-dialog .account-status.is-success {
+  border-color: #cfe7d2;
+  border-left-color: #3d9560;
+  background: #eff9f0;
+  color: #28633d;
+}
+.account-dialog .account-status.is-success::before { content: "✓"; color: #328653; }
+.account-dialog .account-status.is-error {
+  border-color: #f0d5c9;
+  border-left-color: #c36b4d;
+  background: #fff5f0;
+  color: #8b4c36;
+}
+.account-dialog .account-status.is-error::before { content: "!"; color: #b95f42; }
