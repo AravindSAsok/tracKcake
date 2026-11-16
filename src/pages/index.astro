@@ -327,6 +327,19 @@ import Layout from "../layouts/Layout.astro";
     </form>
   </dialog>
 
+  <dialog class="app-dialog food-action-dialog" id="food-action-dialog" aria-labelledby="food-action-heading">
+    <div class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">FOOD ENTRY</p><h2 id="food-action-heading">Food options</h2><p class="dialog-subtitle" id="food-action-name"></p></div>
+        <button class="dialog-close" type="button" data-close="food-action-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <div class="food-action-options">
+        <button class="secondary-button" type="button" data-food-action="edit">Edit food</button>
+        <button class="secondary-button food-action-delete" type="button" data-food-action="delete">Delete food</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog class="app-dialog" id="entry-dialog" aria-labelledby="entry-heading">
     <form id="entry-form" class="dialog-form">
       <div class="dialog-heading">
