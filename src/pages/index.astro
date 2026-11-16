@@ -311,14 +311,16 @@ import Layout from "../layouts/Layout.astro";
       <button class="secondary-button" id="account-resend" type="button" hidden>Resend verification email</button>
       <div id="account-fields">
         <label class="field full-field">Email address<input id="account-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com" /></label>
-        <label class="field full-field">Password<input id="account-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="At least 8 characters" /></label>
+        <label class="field full-field" id="account-password-label">Password<input id="account-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="At least 8 characters" /></label>
+        <label class="field full-field" id="account-password-confirm-label" hidden>Confirm new password<input id="account-password-confirm" type="password" autocomplete="new-password" minlength="8" maxlength="72" placeholder="Enter the new password again" /></label>
         <button class="account-forgot-link" id="account-forgot" type="button" hidden>Forgot password?</button>
         <div class="dialog-actions">
           <button class="secondary-button" id="account-mode-toggle" type="button">Already have an account? Sign in</button>
           <button class="primary-button" id="account-submit" type="submit">Create account</button>
         </div>
       </div>
-      <div class="dialog-actions" id="account-session-actions" hidden>
+      <div class="dialog-actions account-session-actions" id="account-session-actions" hidden>
+        <button class="secondary-button" id="account-change-password" type="button">Forgot your password? Set a new one</button>
         <button class="secondary-button" id="account-signout" type="button">Sign out</button>
       </div>
     </form>
