@@ -254,9 +254,11 @@ export async function loadTrackerData(): Promise<TrackerData> {
       if (synced) forgetPendingEntry(userId, pendingEntry.id);
       else stillPending.push(pendingEntry);
     }
+    // The initial remote read happened before these inserts, so keep every queued row
+    // in this in-memory result even when its cloud retry just succeeded.
     const remoteIds = new Set(remoteEntries.map((entry) => entry.id));
     remoteEntries = [
-      ...stillPending.filter((entry) => !remoteIds.has(entry.id)),
+      ...pendingEntries.filter((entry) => !remoteIds.has(entry.id)),
       ...remoteEntries
     ];
 
