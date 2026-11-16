@@ -357,7 +357,8 @@ export async function fetchHistoryPage(options: {
   let totalCount = 0;
   const chunkSize = 10;
 
-  for (let chunkFrom = from; chunkFrom <= to; chunkFrom += chunkSize) {
+  let chunkFrom = from;
+  while (chunkFrom <= to) {
     const chunkTo = Math.min(to, chunkFrom + chunkSize - 1);
     const { data, count, error } = await buildHistoryQuery()
       .order("eaten_at", { ascending: false })
@@ -367,8 +368,11 @@ export async function fetchHistoryPage(options: {
     if (error) throw error;
     if (chunkFrom === from) totalCount = count ?? 0;
     const chunkEntries = (data ?? []).map((row) => normalizeRow(row as Record<string, unknown>));
+    if (chunkEntries.length === 0) break;
     remoteRows.push(...chunkEntries);
-    if (chunkEntries.length < chunkTo - chunkFrom + 1) break;
+    // Advance by the number actually returned, not the requested range size.
+    // This also handles projects whose max_rows setting is lower than 10.
+    chunkFrom += chunkEntries.length;
   }
 
   const remoteEntries = remoteRows;
