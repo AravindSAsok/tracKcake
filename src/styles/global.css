@@ -2574,3 +2574,16 @@ body.calkie-open::before {
   color: #8b4c36;
 }
 .account-dialog .account-status.is-error::before { content: "!"; color: #b95f42; }
+
+
+/* Password recovery from an authenticated TrackCake session */
+.account-session-actions {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+#account-change-password {
+  flex: 1 1 220px;
+}
+#account-password-confirm-label[hidden] {
+  display: none !important;
+}
