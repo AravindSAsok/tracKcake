@@ -308,7 +308,7 @@ export async function fetchHistoryPage(options: {
   date?: string;
   search?: string;
 }): Promise<HistoryPage> {
-  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10));
   const page = Math.max(1, Math.floor(options.page));
   const search = (options.search ?? "").trim().replace(/[%,()]/g, " ").replace(/\\s+/g, " ").trim();
 
