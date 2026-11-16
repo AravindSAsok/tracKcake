@@ -2521,3 +2521,41 @@ body.calkie-open::before {
 .diary-section .ai-chip {
   color: #000;
 }
+
+
+/* Theme-matched account feedback and password recovery */
+.account-dialog .account-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border: 1px solid #dfe9d9;
+  border-left: 4px solid #6b9665;
+  border-radius: 12px;
+  background: #f3f8ef;
+  color: #36563d;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+.account-dialog .account-status::before {
+  content: "✳";
+  flex: none;
+  color: #64875b;
+  font-size: 15px;
+}
+.account-forgot-link {
+  display: inline-flex;
+  width: fit-content;
+  margin: -7px 0 12px auto;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #547b52;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.account-forgot-link:hover { color: #2e5739; text-decoration: underline; }
+.account-forgot-link[hidden] { display: none !important; }
