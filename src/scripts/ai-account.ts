@@ -112,6 +112,7 @@ const accountEmail = document.getElementById("account-email") as HTMLInputElemen
 const accountPassword = document.getElementById("account-password") as HTMLInputElement | null;
 const accountResend = document.getElementById("account-resend") as HTMLButtonElement | null;
 const accountForgot = document.getElementById("account-forgot") as HTMLButtonElement | null;
+const accountPasswordLabel = accountPassword?.closest("label") as HTMLLabelElement | null;
 
 if (accountTrigger && accountDialog && accountForm && accountFields && accountStatus && accountModeToggle && accountSubmit && accountSignout && accountSessionActions && accountEmail && accountPassword) {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -134,6 +135,15 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const profileSummary = document.getElementById("account-profile-summary");
     const profileName = document.getElementById("account-profile-name");
     const profileEmail = document.getElementById("account-profile-email");
+    const statusObserver = new MutationObserver(() => {
+      const message = accountStatus.textContent.toLowerCase();
+      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable/.test(message);
+      const isSuccess = /sent to|sent a verification|fresh verification|safely synced|all set/.test(message);
+      accountStatus.classList.toggle("is-error", isError);
+      accountStatus.classList.toggle("is-success", !isError && isSuccess);
+      accountStatus.classList.toggle("is-info", !isError && !isSuccess);
+    });
+    statusObserver.observe(accountStatus, { childList: true, characterData: true, subtree: true });
 
     const readableEmailName = (email?: string): string => {
       const localPart = email?.split("@")[0]?.split("+")[0] || "";
@@ -170,8 +180,10 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       const recovery = mode === "recovery";
       accountSubmit.textContent = recovery ? "Send reset link" : mode === "signup" ? "Create free account" : "Sign in";
       accountModeToggle.textContent = mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
-      accountModeToggle.hidden = recovery;
+      accountModeToggle.hidden = false;
+      accountModeToggle.textContent = recovery ? "Back to sign in" : mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
       if (accountForgot) accountForgot.hidden = mode !== "signin";
+      if (accountPasswordLabel) accountPasswordLabel.hidden = recovery;
       if (accountPassword) {
         accountPassword.hidden = recovery;
         accountPassword.required = !recovery;
@@ -189,7 +201,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         if (!accountDialog.open) accountDialog.showModal();
       });
     });
-    accountModeToggle.addEventListener("click", () => setMode(mode === "signup" ? "signin" : "signup"));
+    accountModeToggle.addEventListener("click", () => setMode(mode === "recovery" ? "signin" : mode === "signup" ? "signin" : "signup"));
     accountForgot?.addEventListener("click", () => setMode("recovery"));
 
     accountForm.addEventListener("submit", async (event) => {
@@ -295,7 +307,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         }
       } finally {
         accountSubmit.disabled = false;
-        if (mode !== "recovery" || !accountStatus.textContent.startsWith("Password reset email sent")) setMode(mode);
+        if (mode !== "recovery") setMode(mode);
       }
     });
 
