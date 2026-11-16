@@ -175,11 +175,10 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       if (!signedIn) setMode("signup");
     };
 
-    const setMode = (nextMode: "signup" | "signin"): void => {
+    const setMode = (nextMode: "signup" | "signin" | "recovery"): void => {
       mode = nextMode;
       const recovery = mode === "recovery";
       accountSubmit.textContent = recovery ? "Send reset link" : mode === "signup" ? "Create free account" : "Sign in";
-      accountModeToggle.textContent = mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
       accountModeToggle.hidden = false;
       accountModeToggle.textContent = recovery ? "Back to sign in" : mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
       if (accountForgot) accountForgot.hidden = mode !== "signin";
