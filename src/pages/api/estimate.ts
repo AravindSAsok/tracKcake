@@ -1,16 +1,10 @@
 import type { APIRoute } from "astro";
+import { researchNutrition, type NutritionItem } from "../../lib/nutrition-research";
 
 export const prerender = false;
 export const maxDuration = 60;
 
-type EstimatedItem = {
-  name: string;
-  amount: string;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-};
+type EstimatedItem = NutritionItem;
 
 type Provider = "groq" | "gemini" | "openrouter";
 type ProviderResult = { items: EstimatedItem[]; model: string; provider: Provider };
@@ -42,7 +36,9 @@ function parseItems(value: unknown): EstimatedItem[] {
       name, amount, calories,
       protein_g: asNumber(item.protein_g),
       carbs_g: asNumber(item.carbs_g),
-      fat_g: asNumber(item.fat_g)
+      fat_g: asNumber(item.fat_g),
+      brand: typeof item.brand === "string" ? item.brand.trim().slice(0, 80) : undefined,
+      product_name: typeof item.product_name === "string" ? item.product_name.trim().slice(0, 100) : undefined
     };
   });
   if (!items.length) throw new Error("No foods were found in that description.");
@@ -75,10 +71,11 @@ function extractJson(text: string): unknown {
 
 const promptFor = (description: string) => [
   "You are a careful nutrition estimation assistant.",
-  "Estimate nutrition for the foods and portion sizes described by the user.",
-  "Split a meal into separate food items when useful. Use realistic edible portion estimates.",
-  "If an amount is vague, choose a sensible common serving and state it in amount.",
-  'Return only JSON: {"items":[{"name":"food name","amount":"portion and unit","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}]}',
+  "Identify the foods, brands, preparation state and portions described by the user.",
+  "Preserve every explicit user quantity and unit exactly; never replace a stated amount with a guessed serving.",
+  "Split a meal into separate food items when useful. Use realistic edible portion estimates only when the user gives no amount.",
+  "Provide a conservative fallback nutrition estimate, but verified nutrition lookup will replace it when a reliable match is found.",
+  'Return only JSON: {"items":[{"name":"food name","amount":"portion and unit","brand":"brand or empty","product_name":"exact product or empty","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}]}',
   "Calories are kcal. Macros are grams. Use non-negative numbers. No advice, markdown, or extra keys.",
   "Food description:", description
 ].join("\n");
@@ -233,9 +230,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const result = await estimateWithFallback(description, providerChoice, modelChoice);
+    const items = await researchNutrition(result.items, description);
     return json({
-      items: result.items,
-      total_calories: result.items.reduce((sum, item) => sum + item.calories, 0),
+      items,
+      total_calories: items.reduce((sum, item) => sum + item.calories, 0),
       provider: result.provider,
       model: result.model,
       confidence: "estimate"
@@ -248,3 +246,5 @@ export const POST: APIRoute = async ({ request }) => {
     }, 502);
   }
 };
+
+[executed on device: LAPTOP-21NJS4M5 (ab32aff0-555f-471e-aaac-729e3290ac47)]

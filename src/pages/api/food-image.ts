@@ -1,14 +1,11 @@
 import type { APIRoute } from "astro";
+import { researchNutrition, type NutritionItem } from "../../lib/nutrition-research";
 
 export const prerender = false;
 export const maxDuration = 60;
 
 type Provider = "groq" | "gemini" | "openrouter";
-type FoodItem = {
-  name: string; amount: string; calories: number; protein_g: number; carbs_g: number; fat_g: number;
-  brand?: string; product_name?: string; barcode?: string;
-  nutrition_source?: string; nutrition_basis?: string;
-};
+type FoodItem = NutritionItem & { barcode?: string };
 type Result = { items: FoodItem[]; provider: Provider; model: string };
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), {
@@ -50,61 +47,24 @@ function parseItems(raw: string): FoodItem[] {
       protein_g: number(row.protein_g), carbs_g: number(row.carbs_g), fat_g: number(row.fat_g),
       brand: typeof row.brand === "string" ? row.brand.trim().slice(0, 80) : undefined,
       product_name: typeof row.product_name === "string" ? row.product_name.trim().slice(0, 100) : undefined,
-      barcode: typeof row.barcode === "string" && /^\\d{8,14}$/.test(row.barcode) ? row.barcode : undefined
+      barcode: typeof row.barcode === "string" && /^\d{8,14}$/.test(row.barcode) ? row.barcode : undefined
     };
   });
 }
 
 
-async function verifyPackagedProduct(item: FoodItem): Promise<FoodItem> {
-  const query = [item.brand, item.product_name || item.name].filter(Boolean).join(" ").trim();
-  if (!query || (!item.brand && !item.product_name && !item.barcode)) return item;
-  try {
-    const url = item.barcode
-      ? `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(item.barcode)}.json?fields=code,product_name,brands,quantity,nutriments`
-      : `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6&fields=code,product_name,brands,quantity,nutriments`;
-    const response = await fetch(url, { headers: { "User-Agent": "TrackCake/1.0 (food nutrition verification)" }, signal: AbortSignal.timeout(4500) });
-    if (!response.ok) return item;
-    const payload = await response.json() as { status?: number; product?: any; products?: any[] };
-    const candidates = payload.product ? [payload.product] : payload.products || [];
-    const norm = (value: unknown) => String(value || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
-    const brand = norm(item.brand);
-    const product = norm(item.product_name || item.name);
-    const match = candidates.find((candidate) => {
-      const candidateBrand = norm(candidate.brands);
-      const candidateName = norm(candidate.product_name);
-      const brandMatch = !brand || candidateBrand.includes(brand) || brand.includes(candidateBrand);
-      const nameMatch = product.split(" ").filter((part) => part.length > 2).filter((part) => candidateName.includes(part)).length >= Math.min(2, product.split(" ").filter((part) => part.length > 2).length);
-      return brandMatch && nameMatch;
-    });
-    if (!match) return item;
-    const n = match.nutriments || {};
-    const kcal100 = Number(n["energy-kcal_100g"] ?? n["energy-kcal_value"]);
-    if (!Number.isFinite(kcal100) || kcal100 <= 0 || kcal100 > 900) return item;
-    const amountMatch = item.amount.match(/(\\d+(?:\\.\\d+)?)\\s*(g|gram|grams)\\b/i);
-    const grams = amountMatch ? Number(amountMatch[1]) : 0;
-    if (!grams) return { ...item, name: [match.brands, match.product_name].filter(Boolean).join(" ").slice(0,90) || item.name, nutrition_source: "Open Food Facts · verified product match", nutrition_basis: `${Math.round(kcal100)} kcal per 100 g; portion weight needs confirmation` };
-    const scale = grams / 100;
-    const macro = (key: string) => { const value = Number(n[key + "_100g"]); return Number.isFinite(value) && value >= 0 ? Math.round(value * scale * 10) / 10 : 0; };
-    return { ...item, name: [match.brands, match.product_name].filter(Boolean).join(" ").slice(0,90) || item.name,
-      calories: Math.round(kcal100 * scale), protein_g: macro("proteins"), carbs_g: macro("carbohydrates"), fat_g: macro("fat"),
-      nutrition_source: "Open Food Facts · brand and product matched", nutrition_basis: `${Math.round(kcal100)} kcal per 100 g · calculated for ${grams} g` };
-  } catch (error) {
-    console.warn("[trackcake-photo] product nutrition lookup unavailable", error instanceof Error ? error.message : "unknown error");
-    return item;
-  }
-}
-
-const visionPrompt = [
-  "You are a careful food and nutrition estimation assistant.",
-  "Inspect the provided meal photo. Identify each visible food item separately when possible.",
-  "Estimate realistic edible portion sizes from visual cues. Do not claim exact weights or ingredients that cannot be seen.",
-  "For packaged products, carefully read visible brand, exact product name, flavour, net weight and barcode if legible. Do NOT invent a barcode. Return brand and product_name separately when identifiable.",
-  "For packaged products, do not guess nutrition facts from brand recognition. Give a conservative visual estimate only as fallback; exact product nutrition will be checked against a product database.",
-  "For mixed dishes, identify the dish by its visible appearance and use a cautious typical nutrition estimate.",
+const visionPrompt = (context: string) => [
+  "You are a careful food identification assistant. Nutrition values will be checked against food databases after identification.",
+  "Inspect the meal photo and identify each visible food item separately when possible.",
+  "Use the user's description as authoritative for food names, brands, preparation and exact quantities. Preserve explicit quantities and units; do not replace them with visual guesses.",
+  "When no amount is provided, estimate a realistic edible portion from visual cues and state the unit. Do not claim exact weights that cannot be seen.",
+  "For packaged products, read the visible brand, exact product name, flavour, net weight and barcode if legible. Do NOT invent a barcode.",
+  "For mixed dishes, identify the visible dish and list ingredients only when they are reasonably identifiable.",
+  "Provide conservative fallback nutrition values, not claims of verified data.",
   "If the image is not food or the food cannot be identified, return an empty items array.",
-  "Return only JSON in this exact shape: {\"items\":[{\"name\":\"food name\",\"amount\":\"estimated portion\",\"brand\":\"brand or empty\",\"product_name\":\"exact product or empty\",\"barcode\":\"digits only or empty\",\"calories\":number,\"protein_g\":number,\"carbs_g\":number,\"fat_g\":number}]}",
-  "Calories are kcal; macros are grams. Use non-negative numeric values. No markdown or extra commentary."
+  "Return only JSON in this exact shape: {\"items\":[{\"name\":\"food name\",\"amount\":\"portion and unit\",\"brand\":\"brand or empty\",\"product_name\":\"exact product or empty\",\"barcode\":\"digits only or empty\",\"calories\":number,\"protein_g\":number,\"carbs_g\":number,\"fat_g\":number}]}",
+  "Calories are kcal; macros are grams. Use non-negative numeric values. No markdown or extra commentary.",
+  context ? "User-provided food details and exact quantity: " + context : "The user did not provide additional food details."
 ].join("\n");
 
 async function readError(response: Response): Promise<string> {
@@ -114,13 +74,13 @@ async function readError(response: Response): Promise<string> {
   } catch { return `HTTP ${response.status}`; }
 }
 
-async function callGemini(key: string, model: string, imageData: string): Promise<string> {
+async function callGemini(key: string, model: string, imageData: string, prompt: string): Promise<string> {
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [
-        { text: visionPrompt },
+        { text: prompt },
         { inline_data: { mime_type: "image/jpeg", data: imageData } }
       ] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 1400, responseMimeType: "application/json" }
@@ -138,7 +98,8 @@ async function callCompatibleVision(
   provider: "groq" | "openrouter",
   key: string,
   model: string,
-  dataUrl: string
+  dataUrl: string,
+  prompt: string
 ): Promise<string> {
   const endpoint = provider === "groq"
     ? "https://api.groq.com/openai/v1/chat/completions"
@@ -156,7 +117,7 @@ async function callCompatibleVision(
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: [
-        { type: "text", text: visionPrompt },
+        { type: "text", text: prompt },
         { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
       ] }],
       temperature: 0.2,
@@ -174,7 +135,8 @@ async function callCompatibleVision(
   return output;
 }
 
-async function analyseImage(imageData: string, providerChoice: Provider | "auto", modelChoice?: string, onProgress: (event: Record<string, unknown>) => void = () => {}): Promise<Result> {
+async function analyseImage(imageData: string, context: string, providerChoice: Provider | "auto", modelChoice?: string, onProgress: (event: Record<string, unknown>) => void = () => {}): Promise<Result> {
+  const prompt = visionPrompt(context);
   const keys = {
     gemini: process.env.GEMINI_API_KEY?.trim(),
     groq: process.env.GROQ_API_KEY?.trim(),
@@ -191,12 +153,12 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
       "gemini-2.5-flash",
       "gemini-2.0-flash"
     ].filter((value): value is string => Boolean(value)))];
-    for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData) });
+    for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData, prompt) });
   }
   // Groq is attempted only when an explicitly configured vision model is available.
   if (keys.groq && (process.env.GROQ_VISION_MODEL?.trim() || (providerChoice === "groq" && modelChoice))) {
     const model = providerChoice === "groq" && modelChoice ? modelChoice : process.env.GROQ_VISION_MODEL!.trim();
-    attempts.push({ provider: "groq", model, run: () => callCompatibleVision("groq", keys.groq!, model, dataUrl) });
+    attempts.push({ provider: "groq", model, run: () => callCompatibleVision("groq", keys.groq!, model, dataUrl, prompt) });
   }
   if (keys.openrouter) {
     const models = [...new Set([
@@ -206,7 +168,7 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
       "qwen/qwen3-vl-8b-instruct"
     ].filter((value): value is string => Boolean(value)))];
     for (const model of models) {
-      attempts.push({ provider: "openrouter", model, run: () => callCompatibleVision("openrouter", keys.openrouter!, model, dataUrl) });
+      attempts.push({ provider: "openrouter", model, run: () => callCompatibleVision("openrouter", keys.openrouter!, model, dataUrl, prompt) });
     }
   }
 
@@ -236,7 +198,7 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
     });
     try {
       const parsedItems = parseItems(await attempt.run());
-      const items = await Promise.all(parsedItems.map(verifyPackagedProduct));
+      const items = await researchNutrition(parsedItems, context, (message) => onProgress({ stage: "researching", message }));
       console.info("[trackcake-photo] vision provider succeeded", { provider: attempt.provider, model: attempt.model });
       onProgress({ stage: "success", provider: attempt.provider, model: attempt.model, message: "Food analysis complete." });
       return { items, provider: attempt.provider, model: attempt.model };
@@ -260,18 +222,20 @@ async function analyseImage(imageData: string, providerChoice: Provider | "auto"
 export const POST: APIRoute = async ({ request }) => {
   // JSON requests are intentionally used here: Astro's CSRF origin guard rejects
   // cross-site form-encoded POSTs. Keep the guard enabled and avoid multipart uploads.
-  let payload: { image?: unknown; provider?: unknown; model?: unknown };
+  let payload: { image?: unknown; description?: unknown; provider?: unknown; model?: unknown };
   try {
     const contentType = request.headers.get("content-type") || "";
     if (!contentType.toLowerCase().includes("application/json")) {
       return json({ error: "Please refresh TrackCake and select the photo again." }, 415);
     }
-    payload = await request.json() as { image?: unknown; provider?: unknown; model?: unknown };
+    payload = await request.json() as { image?: unknown; description?: unknown; provider?: unknown; model?: unknown };
   } catch {
     return json({ error: "Choose a food photo and try again." }, 400);
   }
 
   const image = payload.image;
+  const context = typeof payload.description === "string" ? payload.description.trim() : "";
+  if (context.length > 700) return json({ error: "Please keep the photo description under 700 characters." }, 400);
   const providerRaw = payload.provider;
   const modelRaw = payload.model;
   const provider = typeof providerRaw === "string" ? providerRaw : "auto";
@@ -301,7 +265,7 @@ export const POST: APIRoute = async ({ request }) => {
       void (async () => {
         try {
           send({ type: "progress", stage: "prepared", message: "Photo ready. Checking available AI providers…" });
-          const result = await analyseImage(imageData, provider as Provider | "auto", model, (event) => send({ type: "progress", ...event }));
+          const result = await analyseImage(imageData, context, provider as Provider | "auto", model, (event) => send({ type: "progress", ...event }));
           send({
             type: "result",
             items: result.items,
@@ -333,3 +297,5 @@ export const POST: APIRoute = async ({ request }) => {
     }
   });
 };
+
+[executed on device: LAPTOP-21NJS4M5 (ab32aff0-555f-471e-aaac-729e3290ac47)]

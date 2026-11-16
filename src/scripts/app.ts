@@ -21,6 +21,7 @@ type DraftItem = {
   fat_g: number;
   nutrition_source?: string;
   nutrition_basis?: string;
+  nutrition_source_url?: string;
 };
 
 type EstimateResponse = { items?: DraftItem[]; error?: string };
@@ -449,7 +450,7 @@ function renderReviewItems(items: DraftItem[]): void {
       <div class="review-item-heading">
         <span class="review-item-number">0${index + 1}</span>
         <strong>Food item</strong>
-        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}</span>` : `<span class="review-source review-source-estimate">AI visual estimate · verify packaged-food labels</span>`}
+        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}${item.nutrition_source_url ? ` · <a href="${escapeHtml(item.nutrition_source_url)}" target="_blank" rel="noopener noreferrer">source</a>` : ""}</span>` : `<span class="review-source review-source-estimate">AI estimate · no verified nutrition match</span>`}
         <button class="remove-review-item" type="button" data-remove-review="${index}" aria-label="Remove food item">×</button>
       </div>
       <div class="review-grid">
@@ -581,17 +582,19 @@ function updatePhotoProgress(event: PhotoStreamEvent): void {
   const percent = event.stage === "prepared" ? 16
     : event.stage === "trying" ? Math.min(82, 20 + Math.round(((event.attempt || 1) / Math.max(1, event.total || 1)) * 58))
       : event.stage === "fallback" ? Math.min(86, 24 + Math.round(((event.attempt || 1) / Math.max(1, event.total || 1)) * 58))
-        : event.stage === "success" ? 92 : 10;
+        : event.stage === "researching" ? 88
+          : event.stage === "success" ? 94 : 10;
   if (fill) fill.style.width = percent + "%";
   if (count) count.textContent = percent + "%";
   if (step) step.textContent = event.stage === "prepared" ? "Photo prepared"
     : event.stage === "trying" ? `Trying ${event.provider || "AI"}`
       : event.stage === "fallback" ? "Switching provider"
-        : event.stage === "success" ? "Analysis complete" : "Working";
+        : event.stage === "researching" ? "Checking nutrition sources"
+      : event.stage === "success" ? "Analysis complete" : "Working";
   steps.forEach((item) => {
     const name = item.dataset.progressStep;
-    item.classList.toggle("is-active", name === (event.stage === "prepared" ? "providers" : event.stage === "success" ? "review" : "providers"));
-    item.classList.toggle("is-done", name === "prepare" || (name === "providers" && event.stage === "success"));
+    item.classList.toggle("is-active", name === (event.stage === "prepared" ? "providers" : event.stage === "researching" || event.stage === "success" ? "review" : "providers"));
+    item.classList.toggle("is-done", name === "prepare" || (name === "providers" && (event.stage === "researching" || event.stage === "success")));
   });
 }
 
@@ -638,6 +641,7 @@ async function estimatePhoto(): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         image: imageData,
+        description: quickDescription.value.trim(),
         provider: byId<HTMLSelectElement>("quick-provider").value || "auto",
         model: byId<HTMLSelectElement>("quick-model").value || undefined
       }),
@@ -686,7 +690,8 @@ async function estimatePhoto(): Promise<void> {
       carbs_g: Math.max(0, Number(item.carbs_g) || 0),
       fat_g: Math.max(0, Number(item.fat_g) || 0),
       nutrition_source: item.nutrition_source,
-      nutrition_basis: item.nutrition_basis
+      nutrition_basis: item.nutrition_basis,
+      nutrition_source_url: item.nutrition_source_url
     }));
     renderReviewItems(drafts);
     const attribution = document.getElementById("estimate-attribution");
@@ -735,7 +740,10 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       calories: Math.max(0, Number(item.calories) || 0),
       protein_g: Math.max(0, Number(item.protein_g) || 0),
       carbs_g: Math.max(0, Number(item.carbs_g) || 0),
-      fat_g: Math.max(0, Number(item.fat_g) || 0)
+      fat_g: Math.max(0, Number(item.fat_g) || 0),
+      nutrition_source: item.nutrition_source,
+      nutrition_basis: item.nutrition_basis,
+      nutrition_source_url: item.nutrition_source_url
     }));
     renderReviewItems(drafts);
     openDialog(reviewDialog);
@@ -948,3 +956,5 @@ async function initialize(): Promise<void> {
 }
 
 void initialize();
+
+[executed on device: LAPTOP-21NJS4M5 (ab32aff0-555f-471e-aaac-729e3290ac47)]
