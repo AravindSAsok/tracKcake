@@ -2587,3 +2587,39 @@ body.calkie-open::before {
 #account-password-confirm-label[hidden] {
   display: none !important;
 }
+
+
+.review-save-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 8px;
+  padding: 14px;
+  border: 1px solid #e5eadf;
+  border-radius: 14px;
+  background: #f8faf5;
+}
+.review-save-options .field {
+  display: grid;
+  gap: 7px;
+  color: #627260;
+  font-size: 10px;
+  font-weight: 700;
+}
+.review-save-options .field input,
+.review-save-options .field select {
+  min-width: 0;
+  width: 100%;
+}
+.review-save-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #7b8878;
+  font-size: 10px;
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .review-save-options {
+    grid-template-columns: 1fr;
+  }
+}
