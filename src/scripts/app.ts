@@ -55,7 +55,7 @@ let historyEntries: FoodEntry[] = [];
 let historyPage = 1;
 let historyRequest = 0;
 let quickTimeManuallySet = false;
-const HISTORY_PAGE_SIZE = 20;
+const HISTORY_PAGE_SIZE = 10;
 
 const mealLabels: Record<MealType, string> = {
   breakfast: "Breakfast",
