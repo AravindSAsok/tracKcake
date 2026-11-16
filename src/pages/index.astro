@@ -302,7 +302,7 @@ import Layout from "../layouts/Layout.astro";
         <div><p class="card-kicker">YOUR TRACKCAKE ACCOUNT</p><h2 id="account-heading">Keep your diary with you</h2></div>
         <button class="dialog-close" type="button" data-close="account-dialog" aria-label="Close dialog">×</button>
       </div>
-      <p class="dialog-subtitle" id="account-status">Create an account to access your food diary on other devices.</p>
+      <p class="dialog-subtitle account-status is-info" id="account-status" role="status" aria-live="polite">Your food diary, wherever you go. Create a free account to sync your meals across devices.</p>
       <div class="account-profile-summary" id="account-profile-summary" hidden>
         <span class="account-profile-label">SIGNED-IN PROFILE</span>
         <strong id="account-profile-name"></strong>
@@ -312,6 +312,7 @@ import Layout from "../layouts/Layout.astro";
       <div id="account-fields">
         <label class="field full-field">Email address<input id="account-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com" /></label>
         <label class="field full-field">Password<input id="account-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="At least 8 characters" /></label>
+        <button class="account-forgot-link" id="account-forgot" type="button" hidden>Forgot password?</button>
         <div class="dialog-actions">
           <button class="secondary-button" id="account-mode-toggle" type="button">Already have an account? Sign in</button>
           <button class="primary-button" id="account-submit" type="submit">Create account</button>

@@ -111,6 +111,8 @@ const accountSessionActions = document.getElementById("account-session-actions")
 const accountEmail = document.getElementById("account-email") as HTMLInputElement | null;
 const accountPassword = document.getElementById("account-password") as HTMLInputElement | null;
 const accountResend = document.getElementById("account-resend") as HTMLButtonElement | null;
+const accountForgot = document.getElementById("account-forgot") as HTMLButtonElement | null;
+const accountPasswordLabel = accountPassword?.closest("label") as HTMLLabelElement | null;
 
 if (accountTrigger && accountDialog && accountForm && accountFields && accountStatus && accountModeToggle && accountSubmit && accountSignout && accountSessionActions && accountEmail && accountPassword) {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -121,7 +123,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
-    let mode: "signup" | "signin" = "signup";
+    let mode: "signup" | "signin" | "recovery" = "signup";
     let activeUser: {
       id: string;
       email?: string;
@@ -133,6 +135,15 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const profileSummary = document.getElementById("account-profile-summary");
     const profileName = document.getElementById("account-profile-name");
     const profileEmail = document.getElementById("account-profile-email");
+    const statusObserver = new MutationObserver(() => {
+      const message = accountStatus.textContent.toLowerCase();
+      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable/.test(message);
+      const isSuccess = /sent to|sent a verification|fresh verification|safely synced|all set/.test(message);
+      accountStatus.classList.toggle("is-error", isError);
+      accountStatus.classList.toggle("is-success", !isError && isSuccess);
+      accountStatus.classList.toggle("is-info", !isError && !isSuccess);
+    });
+    statusObserver.observe(accountStatus, { childList: true, characterData: true, subtree: true });
 
     const readableEmailName = (email?: string): string => {
       const localPart = email?.split("@")[0]?.split("+")[0] || "";
@@ -164,11 +175,24 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       if (!signedIn) setMode("signup");
     };
 
-    const setMode = (nextMode: "signup" | "signin"): void => {
+    const setMode = (nextMode: "signup" | "signin" | "recovery"): void => {
       mode = nextMode;
-      accountSubmit.textContent = mode === "signup" ? "Create account" : "Sign in";
-      accountModeToggle.textContent = mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
-      if (accountPassword) accountPassword.autocomplete = mode === "signup" ? "new-password" : "current-password";
+      const recovery = mode === "recovery";
+      accountSubmit.textContent = recovery ? "Send reset link" : mode === "signup" ? "Create free account" : "Sign in";
+      accountModeToggle.hidden = false;
+      accountModeToggle.textContent = recovery ? "Back to sign in" : mode === "signup" ? "Already have an account? Sign in" : "New to Trackcake? Create account";
+      if (accountForgot) accountForgot.hidden = mode !== "signin";
+      if (accountPasswordLabel) accountPasswordLabel.hidden = recovery;
+      if (accountPassword) {
+        accountPassword.hidden = recovery;
+        accountPassword.required = !recovery;
+        accountPassword.autocomplete = mode === "signup" ? "new-password" : "current-password";
+      }
+      accountStatus.textContent = recovery
+        ? "No stress. Enter your email and we’ll send a secure password reset link."
+        : mode === "signup"
+          ? "Create your free TrackCake account to keep your food diary in sync across devices."
+          : "Welcome back. Sign in to see your meals, calorie goals and food history.";
     };
 
     accountTrigger.addEventListener("click", () => {
@@ -176,20 +200,31 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         if (!accountDialog.open) accountDialog.showModal();
       });
     });
-    accountModeToggle.addEventListener("click", () => setMode(mode === "signup" ? "signin" : "signup"));
+    accountModeToggle.addEventListener("click", () => setMode(mode === "recovery" ? "signin" : mode === "signup" ? "signin" : "signup"));
+    accountForgot?.addEventListener("click", () => setMode("recovery"));
 
     accountForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const email = accountEmail.value.trim();
       const password = accountPassword.value;
-      if (!email || password.length < 8) {
-        accountStatus.textContent = "Enter a valid email and a password with at least 8 characters.";
+      if (!email) {
+        accountStatus.textContent = "Enter your email address first.";
+        accountEmail.focus();
+        return;
+      }
+      if (mode !== "recovery" && password.length < 8) {
+        accountStatus.textContent = "Your password must be at least 8 characters long.";
+        accountPassword.focus();
         return;
       }
       accountSubmit.disabled = true;
-      accountSubmit.textContent = mode === "signup" ? "Creating…" : "Signing in…";
+      accountSubmit.textContent = mode === "recovery" ? "Sending…" : mode === "signup" ? "Creating…" : "Signing in…";
       try {
-        if (mode === "signup") {
+        if (mode === "recovery") {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: PRODUCTION_AUTH_REDIRECT });
+          if (error) throw error;
+          accountStatus.textContent = "Password reset email sent to " + email + ". Open the link in your inbox to choose a new password. Check spam too.";
+        } else if (mode === "signup") {
           const { data: sessionData } = await supabase.auth.getSession();
           const isGuest = Boolean(sessionData.session?.user.is_anonymous);
           const redirectTo = PRODUCTION_AUTH_REDIRECT;
@@ -271,7 +306,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
         }
       } finally {
         accountSubmit.disabled = false;
-        setMode(mode);
+        if (mode !== "recovery") setMode(mode);
       }
     });
 
