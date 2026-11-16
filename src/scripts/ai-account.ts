@@ -212,6 +212,9 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     accountForgot?.addEventListener("click", () => setMode("recovery"));
     supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
+        accountFields.hidden = false;
+        accountSessionActions.hidden = true;
+        if (profileSummary) profileSummary.hidden = true;
         setMode("set-password");
         accountStatus.textContent = "Reset link verified. Choose a new password to finish recovering your account.";
         if (!accountDialog.open) accountDialog.showModal();
@@ -222,7 +225,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
       event.preventDefault();
       const email = accountEmail.value.trim();
       const password = accountPassword.value;
-      if (!email) {
+      if (!email && mode !== "set-password") {
         accountStatus.textContent = "Enter your email address first.";
         accountEmail.focus();
         return;
