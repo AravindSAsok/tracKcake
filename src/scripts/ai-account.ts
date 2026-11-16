@@ -141,7 +141,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
     const profileEmail = document.getElementById("account-profile-email");
     const statusObserver = new MutationObserver(() => {
       const message = accountStatus.textContent.toLowerCase();
-      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable|rate limit|temporarily limited/.test(message);
+      const isError = /could not|couldn.t|failed|hasn.t been verified|must be at least|enter your|error|unavailable|rate limit|temporarily limited|expired|requires additional verification|reauthentication|passwords don.t match/.test(message);
       const isSuccess = /sent to|sent a verification|fresh verification|safely synced|all set/.test(message);
       accountStatus.classList.toggle("is-error", isError);
       accountStatus.classList.toggle("is-success", !isError && isSuccess);
