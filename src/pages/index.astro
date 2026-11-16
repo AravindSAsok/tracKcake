@@ -179,6 +179,7 @@ import Layout from "../layouts/Layout.astro";
                 <div class="quick-controls">
                   <label class="control-label" for="quick-meal">Meal
                     <select id="quick-meal">
+                      <option value="auto">Auto · based on time</option>
                       <option value="breakfast">Breakfast</option>
                       <option value="lunch">Lunch</option>
                       <option value="dinner">Dinner</option>
@@ -338,6 +339,7 @@ import Layout from "../layouts/Layout.astro";
         <label class="field">Calories (kcal)<input id="entry-calories" type="number" min="0" max="10000" step="1" required /></label>
         <label class="field">Meal
           <select id="entry-meal">
+            <option value="auto">Auto · based on time</option>
             <option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option>
           </select>
         </label>
@@ -361,6 +363,21 @@ import Layout from "../layouts/Layout.astro";
         <button class="dialog-close" type="button" data-close="review-dialog" aria-label="Close dialog">×</button>
       </div>
       <div id="review-items" class="review-items"></div>
+      <div class="review-save-options">
+        <label class="field">Meal
+          <select id="review-meal">
+            <option value="auto">Auto · based on time</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snack">Snack</option>
+          </select>
+        </label>
+        <label class="field">Eaten at
+          <input id="review-time" type="datetime-local" required />
+        </label>
+        <p class="review-save-note">Each food is saved as its own diary entry. Auto chooses a meal from this time; you can change the tag whenever you like.</p>
+      </div>
       <button class="review-add" id="review-add-item" type="button">＋ Add another item</button>
       <div class="review-total"><span>Total estimate</span><strong id="review-total">0 kcal</strong></div>
       <div class="dialog-actions">
