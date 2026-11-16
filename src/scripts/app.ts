@@ -234,6 +234,10 @@ function render(): void {
             <div class="day-timeline-food">
               <strong>${escapeHtml(entry.name)}</strong>
               <span>${escapeHtml(entry.amount)} · ${meal}</span>
+              <div class="day-timeline-actions">
+                <button class="day-timeline-action" type="button" data-day-action="edit" data-id="${escapeHtml(entry.id)}" aria-label="Edit ${escapeHtml(entry.name)}">Edit</button>
+                <button class="day-timeline-action day-timeline-delete" type="button" data-day-action="delete" data-id="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}">Delete</button>
+              </div>
             </div>
             <strong class="day-timeline-calories">${numberFormat(entry.calories)} <small>kcal</small></strong>
           </article>
@@ -927,6 +931,22 @@ function bindEvents(): void {
     }];
     renderReviewItems(next);
     byId<HTMLDivElement>("review-items").querySelector<HTMLInputElement>(".review-item:last-child [data-review-field='name']")?.focus();
+  });
+
+  byId<HTMLDivElement>("day-timeline-list").addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const actionButton = target.closest<HTMLButtonElement>("[data-day-action]");
+    if (!actionButton) return;
+    const id = actionButton.dataset.id;
+    if (!id) return;
+    const action = actionButton.dataset.dayAction;
+    if (action === "edit") {
+      const entry = entries.find((item) => item.id === id);
+      if (entry) openManualEntry(entry);
+    } else if (action === "delete") {
+      void removeFood(id);
+    }
   });
 
   byId<HTMLDivElement>("review-items").addEventListener("click", (event) => {

@@ -2623,3 +2623,13 @@ body.calkie-open::before {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Edit and delete controls for today's food timeline. */
+.day-timeline-actions{display:flex;align-items:center;gap:7px;margin-top:3px}
+.day-timeline-action{border:1px solid #dce7d8;border-radius:7px;background:#f7faf5;color:#355b3d;padding:4px 9px;font:700 10px Manrope,sans-serif;cursor:pointer}
+.day-timeline-action:hover{background:#eaf2e5}
+.day-timeline-action:focus-visible{outline:2px solid #527b4e;outline-offset:2px}
+.day-timeline-delete{border-color:#f0dada;background:#fff8f7;color:#a44740}
+.day-timeline-delete:hover{background:#fcebea}
+@media(max-width:560px){.day-timeline-actions{gap:5px}.day-timeline-action{padding:4px 7px;font-size:9px}}
