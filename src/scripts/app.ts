@@ -46,6 +46,8 @@ const reviewDialog = byId<HTMLDialogElement>("review-dialog");
 const reviewForm = byId<HTMLFormElement>("review-form");
 const goalDialog = byId<HTMLDialogElement>("goal-dialog");
 const goalForm = byId<HTMLFormElement>("goal-form");
+const foodActionDialog = byId<HTMLDialogElement>("food-action-dialog");
+let selectedFoodActionId: string | null = null;
 
 let entries: FoodEntry[] = [];
 let calorieGoal = DEFAULT_CALORIE_GOAL;
@@ -228,16 +230,12 @@ function render(): void {
         const meal = mealLabels[entry.meal_type] ?? "Snack";
         const icon = mealIcons[entry.meal_type] ?? "✳";
         return `
-          <article class="day-timeline-item">
+          <article class="day-timeline-item" data-entry-id="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-label="Food options for ${escapeHtml(entry.name)}">
             <time class="day-timeline-time" datetime="${escapeHtml(entry.eaten_at)}">${time}</time>
             <span class="day-timeline-icon" aria-hidden="true">${icon}</span>
             <div class="day-timeline-food">
               <strong>${escapeHtml(entry.name)}</strong>
               <span>${escapeHtml(entry.amount)} · ${meal}</span>
-              <div class="day-timeline-actions">
-                <button class="day-timeline-action" type="button" data-day-action="edit" data-id="${escapeHtml(entry.id)}" aria-label="Edit ${escapeHtml(entry.name)}">Edit</button>
-                <button class="day-timeline-action day-timeline-delete" type="button" data-day-action="delete" data-id="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}">Delete</button>
-              </div>
             </div>
             <strong class="day-timeline-calories">${numberFormat(entry.calories)} <small>kcal</small></strong>
           </article>
@@ -333,7 +331,7 @@ async function renderHistory(): Promise<void> {
         }).format(new Date(entry.eaten_at));
 
         return `
-          <article class="food-row">
+          <article class="food-row" data-entry-id="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-label="Food options for ${escapeHtml(entry.name)}">
             <div class="food-icon food-${entry.meal_type}" aria-hidden="true">${icon}</div>
             <div class="food-details">
               <div class="food-title-line">
@@ -346,14 +344,6 @@ async function renderHistory(): Promise<void> {
             <div class="food-nutrition">
               <strong>${numberFormat(entry.calories)} <small>kcal</small></strong>
               <span>P ${decimalFormat(entry.protein_g)} · C ${decimalFormat(entry.carbs_g)} · F ${decimalFormat(entry.fat_g)}</span>
-            </div>
-            <div class="food-actions">
-              <button class="row-action" type="button" data-action="edit" data-id="${escapeHtml(entry.id)}" aria-label="Edit ${escapeHtml(entry.name)}" title="Edit food">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.4-.9L20 7.5 16.5 4 4.9 15.6 4 20Z"/></svg>
-              </button>
-              <button class="row-action delete-action" type="button" data-action="delete" data-id="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}" title="Delete food">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5"/></svg>
-              </button>
             </div>
           </article>
         `;
@@ -933,20 +923,49 @@ function bindEvents(): void {
     byId<HTMLDivElement>("review-items").querySelector<HTMLInputElement>(".review-item:last-child [data-review-field='name']")?.focus();
   });
 
-  byId<HTMLDivElement>("day-timeline-list").addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const actionButton = target.closest<HTMLButtonElement>("[data-day-action]");
-    if (!actionButton) return;
-    const id = actionButton.dataset.id;
-    if (!id) return;
-    const action = actionButton.dataset.dayAction;
-    if (action === "edit") {
-      const entry = entries.find((item) => item.id === id);
-      if (entry) openManualEntry(entry);
-    } else if (action === "delete") {
-      void removeFood(id);
-    }
+  const openFoodActionMenu = (id: string) => {
+    const entry = historyEntries.find((item) => item.id === id) ?? entries.find((item) => item.id === id);
+    if (!entry) return;
+    selectedFoodActionId = id;
+    byId<HTMLElement>("food-action-name").textContent = entry.name;
+    openDialog(foodActionDialog);
+  };
+
+  const bindFoodRowActions = (container: HTMLElement) => {
+    container.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const row = target.closest<HTMLElement>("[data-entry-id]");
+      if (row?.dataset.entryId) openFoodActionMenu(row.dataset.entryId);
+    });
+    container.addEventListener("keydown", (event) => {
+      if (!(event instanceof KeyboardEvent) || (event.key !== "Enter" && event.key !== " ")) return;
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const row = target.closest<HTMLElement>("[data-entry-id]");
+      if (!row?.dataset.entryId) return;
+      event.preventDefault();
+      openFoodActionMenu(row.dataset.entryId);
+    });
+  };
+
+  bindFoodRowActions(byId<HTMLDivElement>("day-timeline-list"));
+  bindFoodRowActions(entriesList);
+
+  foodActionDialog.querySelectorAll<HTMLButtonElement>("[data-food-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = selectedFoodActionId;
+      const action = button.dataset.foodAction;
+      if (!id) return;
+      closeDialog("food-action-dialog");
+      if (action === "edit") {
+        const entry = historyEntries.find((item) => item.id === id) ?? entries.find((item) => item.id === id);
+        if (entry) openManualEntry(entry);
+      } else if (action === "delete") {
+        void removeFood(id);
+      }
+      selectedFoodActionId = null;
+    });
   });
 
   byId<HTMLDivElement>("review-items").addEventListener("click", (event) => {
@@ -960,22 +979,6 @@ function bindEvents(): void {
 
   byId<HTMLDivElement>("review-items").addEventListener("input", updateReviewTotal);
 
-  entriesList.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const actionButton = target.closest<HTMLButtonElement>("[data-action]");
-    if (!actionButton) return;
-    const id = actionButton.dataset.id;
-    const action = actionButton.dataset.action;
-    if (!id) return;
-
-    if (action === "edit") {
-      const entry = historyEntries.find((item) => item.id === id) ?? entries.find((item) => item.id === id);
-      if (entry) openManualEntry(entry);
-    } else if (action === "delete") {
-      void removeFood(id);
-    }
-  });
 
   document.querySelectorAll<HTMLButtonElement>("[data-close]").forEach((button) => {
     button.addEventListener("click", () => {
