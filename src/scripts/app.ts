@@ -304,6 +304,17 @@ function showYesterdayRecap(): void {
     : recapEntries.length
       ? "You didn't quite reach your calorie goal yesterday, and that's okay. Progress is built one day at a time. You'll do better today."
       : "No foods were logged yesterday. That's okay. Start fresh today, one mindful meal at a time.";
+  const motivationQuotes = [
+    "Small steps every day add up to meaningful change.",
+    "You don't have to be perfect. Just keep showing up.",
+    "Every sunrise is another chance to care for yourself.",
+    "Progress isn't always loud. Sometimes it's simply trying again.",
+    "Be patient with yourself. Good habits grow one choice at a time.",
+    "One day doesn't define you. Your next choice is a fresh start."
+  ];
+  const quote = byId<HTMLElement>("daily-recap-quote");
+  quote.hidden = goalMet;
+  quote.textContent = goalMet ? "" : `“${motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)]}”`;
   byId<HTMLElement>("daily-recap-date").textContent = dateLabel;
   byId<HTMLElement>("daily-recap-calories").textContent = numberFormat(totals.calories);
   byId<HTMLElement>("daily-recap-goal").textContent = `of ${numberFormat(calorieGoal)} kcal goal`;
