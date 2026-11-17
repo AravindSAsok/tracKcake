@@ -290,7 +290,7 @@ function showYesterdayRecap(): void {
     carbs: sum.carbs + entry.carbs_g,
     fat: sum.fat + entry.fat_g
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  const goalMet = totals.calories >= calorieGoal;
+  const goalMet = totals.calories <= calorieGoal;
   const dialog = byId<HTMLDialogElement>("daily-recap-dialog");
   const dateLabel = new Intl.DateTimeFormat("en-IN", {
     weekday: "long", day: "numeric", month: "long"
@@ -300,9 +300,9 @@ function showYesterdayRecap(): void {
   byId<HTMLElement>("daily-recap-kicker").textContent = goalMet ? "A LITTLE WIN WORTH CELEBRATING" : "A FRESH DAY, A FRESH START";
   byId<HTMLElement>("daily-recap-title").textContent = goalMet ? "You showed up for yourself." : "Today is another chance.";
   byId<HTMLElement>("daily-recap-message").textContent = goalMet
-    ? "You reached your calorie goal yesterday. Celebrate the consistency, and keep listening to your body."
+    ? "You stayed within your calorie goal yesterday. That counts as a win. Celebrate the consistency, and keep listening to your body."
     : recapEntries.length
-      ? "You didn't quite reach your calorie goal yesterday, and that's okay. Progress is built one day at a time. You'll do better today."
+      ? "You went over your calorie goal yesterday, and that's okay. One day doesn't define your progress. You can make a fresh start today."
       : "No foods were logged yesterday. That's okay. Start fresh today, one mindful meal at a time.";
   const motivationQuotes = [
     "Small steps every day add up to meaningful change.",
