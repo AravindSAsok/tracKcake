@@ -2743,3 +2743,6 @@ body.calkie-open::before {
   .daily-recap-sparkles span, .daily-recap-content { animation: none; }
   .recap-segment { transition: none; }
 }
+
+.daily-recap-quote { max-width: 390px; margin: -5px auto 16px; padding: 10px 15px; border-left: 0; color: #9a5b80; font-family: "Manrope", sans-serif; font-size: 13px; font-style: italic; line-height: 1.55; }
+.daily-recap-dialog[data-tone="gentle"] .daily-recap-quote { color: #796575; }
