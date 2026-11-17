@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "feature/**"
+      - "fix/**"
     paths:
       - "android/**"
       - ".github/workflows/android-apk.yml"
