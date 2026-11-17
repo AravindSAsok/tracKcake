@@ -269,6 +269,70 @@ function renderStorageStatus(): void {
     : "Your diary is saved in this browser. Add Supabase credentials for cloud sync.";
 }
 
+const DAILY_RECAP_DISMISSED_KEY = "trackcake.daily-recap.dismissed.v1";
+
+function showYesterdayRecap(): void {
+  const todayKey = localDateKey(new Date());
+  try {
+    if (localStorage.getItem(DAILY_RECAP_DISMISSED_KEY) === todayKey) return;
+  } catch {
+    // The recap can still be shown when browser storage is unavailable.
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(12, 0, 0, 0);
+  const yesterdayKey = localDateKey(yesterday);
+  const recapEntries = entries.filter((entry) => localDateKey(entry.eaten_at) === yesterdayKey);
+  const totals = recapEntries.reduce((sum, entry) => ({
+    calories: sum.calories + entry.calories,
+    protein: sum.protein + entry.protein_g,
+    carbs: sum.carbs + entry.carbs_g,
+    fat: sum.fat + entry.fat_g
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const goalMet = totals.calories >= calorieGoal;
+  const dialog = byId<HTMLDialogElement>("daily-recap-dialog");
+  const dateLabel = new Intl.DateTimeFormat("en-IN", {
+    weekday: "long", day: "numeric", month: "long"
+  }).format(yesterday);
+
+  dialog.dataset.tone = goalMet ? "success" : "gentle";
+  byId<HTMLElement>("daily-recap-kicker").textContent = goalMet ? "A LITTLE WIN WORTH CELEBRATING" : "A FRESH DAY, A FRESH START";
+  byId<HTMLElement>("daily-recap-title").textContent = goalMet ? "You showed up for yourself." : "Today is another chance.";
+  byId<HTMLElement>("daily-recap-message").textContent = goalMet
+    ? "You reached your calorie goal yesterday. Celebrate the consistency, and keep listening to your body."
+    : recapEntries.length
+      ? "You didn't quite reach your calorie goal yesterday, and that's okay. Progress is built one day at a time. You'll do better today."
+      : "No foods were logged yesterday. That's okay. Start fresh today, one mindful meal at a time.";
+  byId<HTMLElement>("daily-recap-date").textContent = dateLabel;
+  byId<HTMLElement>("daily-recap-calories").textContent = numberFormat(totals.calories);
+  byId<HTMLElement>("daily-recap-goal").textContent = `of ${numberFormat(calorieGoal)} kcal goal`;
+  byId<HTMLElement>("daily-recap-protein").textContent = `${decimalFormat(totals.protein)} g`;
+  byId<HTMLElement>("daily-recap-carbs").textContent = `${decimalFormat(totals.carbs)} g`;
+  byId<HTMLElement>("daily-recap-fat").textContent = `${decimalFormat(totals.fat)} g`;
+  byId<HTMLElement>("daily-recap-food-count").textContent = `${recapEntries.length} ${recapEntries.length === 1 ? "food logged" : "foods logged"}`;
+
+  const macroEnergy = {
+    protein: totals.protein * 4,
+    carbs: totals.carbs * 4,
+    fat: totals.fat * 9
+  };
+  const macroEnergyTotal = macroEnergy.protein + macroEnergy.carbs + macroEnergy.fat;
+  const chart = byId<HTMLElement>("daily-recap-chart");
+  const chartEmpty = byId<HTMLElement>("daily-recap-chart-empty");
+  chart.hidden = macroEnergyTotal <= 0;
+  chartEmpty.hidden = macroEnergyTotal > 0;
+  for (const [key, value] of Object.entries(macroEnergy)) {
+    const segment = byId<HTMLElement>(`daily-recap-${key}-segment`);
+    segment.style.width = macroEnergyTotal > 0 ? `${value / macroEnergyTotal * 100}%` : "0%";
+  }
+  byId<HTMLElement>("daily-recap-chart-caption").textContent = macroEnergyTotal > 0
+    ? `Estimated energy split · ${numberFormat(macroEnergyTotal)} kcal from macros`
+    : "Macro chart appears once nutrition details are available.";
+
+  if (!dialog.open) dialog.showModal();
+}
+
 function localDateKey(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
   const offset = date.getTimezoneOffset() * 60_000;
@@ -909,6 +973,10 @@ function bindEvents(): void {
   byId<HTMLButtonElement>("goal-shortcut").addEventListener("click", openGoalDialog);
   byId<HTMLButtonElement>("edit-goal").addEventListener("click", openGoalDialog);
   byId<HTMLButtonElement>("goal-edit-small").addEventListener("click", openGoalDialog);
+  byId<HTMLButtonElement>("daily-recap-close").addEventListener("click", () => {
+    try { localStorage.setItem(DAILY_RECAP_DISMISSED_KEY, localDateKey(new Date())); } catch { /* no-op */ }
+    closeDialog("daily-recap-dialog");
+  });
 
   byId<HTMLButtonElement>("review-add-item").addEventListener("click", () => {
     const next = [...readReviewDrafts(), {
@@ -1003,6 +1071,7 @@ async function initialize(): Promise<void> {
     entries = data.entries;
     calorieGoal = data.goal;
     render();
+    window.setTimeout(showYesterdayRecap, 250);
     if (data.message) showToast(data.message, "error");
   } catch (error) {
     render();
