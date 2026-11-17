@@ -328,8 +328,50 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
             accountStatus.textContent = "We sent a verification link to " + email + ". Open that email, confirm your address, then return here to sign in.";
           }
         } else {
-          localStorage.setItem("trackcake.guest-backup.entries.v1", localStorage.getItem("trackcake.entries.v1") || "[]");
-          localStorage.setItem("trackcake.guest-backup.goal.v1", localStorage.getItem("trackcake.goal.v1") || "2000");
+          // Snapshot the active anonymous cloud diary BEFORE sign-in replaces its session.
+          // Reinstalling the app clears browser storage, but the anonymous Supabase diary
+          // can still exist in the cloud. Keep a local recovery copy until account import succeeds.
+          const { data: previousSession, error: previousSessionError } = await supabase.auth.getSession();
+          if (previousSessionError) throw previousSessionError;
+          const previousGuest = previousSession.session?.user;
+          let cloudGuestEntries: Array<Record<string, unknown>> = [];
+          if (previousGuest?.is_anonymous) {
+            const { data: guestRows, error: guestRowsError } = await supabase
+              .from("food_entries")
+              .select("id,name,amount,calories,protein_g,carbs_g,fat_g,meal_type,eaten_at,source")
+              .eq("user_id", previousGuest.id)
+              .order("eaten_at", { ascending: true })
+              .limit(500);
+            if (guestRowsError) throw new Error("Your guest diary could not be backed up before sign-in: " + guestRowsError.message);
+            cloudGuestEntries = (guestRows ?? []) as Array<Record<string, unknown>>;
+            const { data: guestSettings, error: guestSettingsError } = await supabase
+              .from("tracker_settings")
+              .select("calorie_goal")
+              .eq("user_id", previousGuest.id)
+              .maybeSingle();
+            if (guestSettingsError) throw new Error("Your guest calorie goal could not be backed up: " + guestSettingsError.message);
+            if (Number.isInteger(guestSettings?.calorie_goal)) {
+              localStorage.setItem("trackcake.guest-backup.goal.v1", String(guestSettings.calorie_goal));
+            }
+          }
+
+          const localGuestEntries = JSON.parse(
+            localStorage.getItem("trackcake.entries.v1") || "[]"
+          ) as Array<Record<string, unknown>>;
+          const mergedGuestEntries = [...cloudGuestEntries, ...localGuestEntries];
+          const guestEntryKey = (row: Record<string, unknown>) => JSON.stringify([
+            row.name, row.amount, row.calories, row.eaten_at, row.meal_type
+          ]);
+          const uniqueGuestEntries = Array.from(
+            new Map(mergedGuestEntries
+              .filter((row) => row && typeof row.name === "string" && typeof row.eaten_at === "string")
+              .map((row) => [guestEntryKey(row), row])).values()
+          );
+          localStorage.setItem("trackcake.guest-backup.entries.v1", JSON.stringify(uniqueGuestEntries));
+          if (!localStorage.getItem("trackcake.guest-backup.goal.v1")) {
+            localStorage.setItem("trackcake.guest-backup.goal.v1", localStorage.getItem("trackcake.goal.v1") || "2000");
+          }
+
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) {
             if ((error as { code?: string }).code === "email_not_confirmed") {
@@ -342,10 +384,21 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
           const guestEntries = JSON.parse(localStorage.getItem("trackcake.guest-backup.entries.v1") || "[]") as Array<Record<string, unknown>>;
           const guestGoal = Number(localStorage.getItem("trackcake.guest-backup.goal.v1") || "2000");
           if (data.user && guestEntries.length) {
-            // Browser-cached IDs can belong to a different Supabase user.
-            // Generate new IDs and INSERT so RLS can never be asked to update another user's row.
+            // Never overwrite account rows. Compare the diary's stable food/time fields,
+            // then INSERT only missing entries with fresh IDs under the signed-in user.
+            const { data: accountRows, error: accountRowsError } = await supabase
+              .from("food_entries")
+              .select("name,amount,calories,eaten_at,meal_type")
+              .eq("user_id", data.user.id)
+              .limit(500);
+            if (accountRowsError) throw new Error("Your account diary could not be checked before importing guest food: " + accountRowsError.message);
+            const entryKey = (row: Record<string, unknown>) => JSON.stringify([
+              row.name, row.amount, row.calories, row.eaten_at, row.meal_type
+            ]);
+            const existingKeys = new Set((accountRows ?? []).map((row) => entryKey(row as Record<string, unknown>)));
             const rows = guestEntries
               .filter((row) => row && typeof row.name === "string" && typeof row.eaten_at === "string")
+              .filter((row) => !existingKeys.has(entryKey(row)))
               .map((row) => ({
                 ...row,
                 id: crypto.randomUUID(),
@@ -353,7 +406,7 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
               }));
             if (rows.length) {
               const { error: importError } = await supabase.from("food_entries").insert(rows);
-              if (importError) throw new Error("You are signed in, but your guest diary could not be copied to your account: " + importError.message);
+              if (importError) throw new Error("You are signed in, but your guest diary could not be copied to your account. Your recovery backup is still on this device: " + importError.message);
             }
             const { error: goalError } = await supabase.from("tracker_settings").upsert({
               user_id: data.user.id,
