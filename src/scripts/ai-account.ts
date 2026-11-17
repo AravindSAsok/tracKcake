@@ -362,11 +362,15 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
           const guestEntryKey = (row: Record<string, unknown>) => JSON.stringify([
             row.name, row.amount, row.calories, row.eaten_at, row.meal_type
           ]);
-          const uniqueGuestEntries = Array.from(
-            new Map(mergedGuestEntries
-              .filter((row) => row && typeof row.name === "string" && typeof row.eaten_at === "string")
-              .map((row) => [guestEntryKey(row), row])).values()
-          );
+          const uniqueGuestEntries: Array<Record<string, unknown>> = [];
+          const seenGuestEntryKeys = new Set<string>();
+          for (const row of mergedGuestEntries) {
+            if (!row || typeof row.name !== "string" || typeof row.eaten_at !== "string") continue;
+            const key = guestEntryKey(row);
+            if (seenGuestEntryKeys.has(key)) continue;
+            seenGuestEntryKeys.add(key);
+            uniqueGuestEntries.push(row);
+          }
           localStorage.setItem("trackcake.guest-backup.entries.v1", JSON.stringify(uniqueGuestEntries));
           if (!localStorage.getItem("trackcake.guest-backup.goal.v1")) {
             localStorage.setItem("trackcake.guest-backup.goal.v1", localStorage.getItem("trackcake.goal.v1") || "2000");
