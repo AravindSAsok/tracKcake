@@ -290,6 +290,43 @@ import Layout from "../layouts/Layout.astro";
         </aside>
       </section>
 
+      <dialog class="daily-recap-dialog" id="daily-recap-dialog" aria-labelledby="daily-recap-title">
+        <div class="daily-recap-shell">
+          <div class="daily-recap-glow" aria-hidden="true"></div>
+          <div class="daily-recap-sparkles" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>·</span><span>✧</span></div>
+          <div class="daily-recap-content">
+            <p class="daily-recap-kicker" id="daily-recap-kicker">YESTERDAY, IN FOCUS</p>
+            <p class="daily-recap-date" id="daily-recap-date"></p>
+            <div class="daily-recap-hero-mark" aria-hidden="true">✿</div>
+            <h2 id="daily-recap-title">A little progress adds up.</h2>
+            <p class="daily-recap-message" id="daily-recap-message"></p>
+            <div class="daily-recap-calorie">
+              <span>CALORIES CONSUMED</span>
+              <strong><span id="daily-recap-calories">0</span> <small>kcal</small></strong>
+              <small id="daily-recap-goal">of your daily goal</small>
+            </div>
+            <div class="daily-recap-macros" aria-label="Yesterday's nutrition totals">
+              <div><span class="recap-macro-dot protein"></span><small>PROTEIN</small><strong id="daily-recap-protein">0 g</strong></div>
+              <div><span class="recap-macro-dot carbs"></span><small>CARBS</small><strong id="daily-recap-carbs">0 g</strong></div>
+              <div><span class="recap-macro-dot fat"></span><small>FAT</small><strong id="daily-recap-fat">0 g</strong></div>
+            </div>
+            <section class="daily-recap-chart-wrap" aria-label="Macro energy breakdown">
+              <div class="daily-recap-chart-heading"><strong>Nutrition balance</strong><span id="daily-recap-food-count">0 foods logged</span></div>
+              <div class="daily-recap-chart" id="daily-recap-chart" hidden>
+                <span id="daily-recap-protein-segment" class="recap-segment protein"></span>
+                <span id="daily-recap-carbs-segment" class="recap-segment carbs"></span>
+                <span id="daily-recap-fat-segment" class="recap-segment fat"></span>
+              </div>
+              <p class="daily-recap-chart-empty" id="daily-recap-chart-empty" hidden>Macro details weren't available for yesterday's entries.</p>
+              <p class="daily-recap-chart-caption" id="daily-recap-chart-caption"></p>
+              <div class="daily-recap-legend"><span><i class="protein"></i> Protein</span><span><i class="carbs"></i> Carbs</span><span><i class="fat"></i> Fat</span></div>
+            </section>
+            <button class="daily-recap-close" id="daily-recap-close" type="button">Let's make today count <span aria-hidden="true">→</span></button>
+            <p class="daily-recap-footnote">A gentle check-in, not a judgement. Nutrition values are estimates.</p>
+          </div>
+        </div>
+      </dialog>
+
       <footer class="page-footer">
         <span>Made for a little more mindful eating <span aria-hidden="true">♡</span></span>
         <span>trackcake <span class="footer-version">· nutrition estimates are not medical advice</span></span>
