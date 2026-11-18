@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:52:07.401Z
+- Updated: 2026-11-18T14:52:09.033Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 28/393 entries; 8 successful; 20 failed/unavailable
+- Progress: 29/393 entries; 8 successful; 21 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -46,6 +46,7 @@
 | openrouter | openai/gpt-6.2-astra | error | 411 | — | — | openrouter/openai/gpt-6.2-astra: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | openai/gpt-6.2-sol-pro | error | 337 | — | — | openrouter/openai/gpt-6.2-sol-pro: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | openai/gpt-6.2-sol | error | 315 | — | — | openrouter/openai/gpt-6.2-sol: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | tencent/hy4-flash | error | 405 | — | — | openrouter/tencent/hy4-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
