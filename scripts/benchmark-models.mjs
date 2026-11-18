@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 
 const base = (process.env.TRACKCAKE_URL || "https://trackcake.vercel.app").replace(/\/$/, "");
 const query = "milk coffee";
 const providers = ["groq", "gemini", "openrouter"];
 const rows = [];
 const startedAt = new Date().toISOString();
+const runId = process.env.GITHUB_RUN_ID || `local-${startedAt.replace(/[:.]/g, "-")}`;
 let catalogueCheckedAt = "unknown";
 let expectedCount = 0;
 
@@ -20,7 +22,13 @@ const summarize = (items) => {
   ].join("; ")).join(" | ");
 };
 
-async function save(status = "RUNNING") {
+function git(args) {
+  execFileSync("git", args, { stdio: "inherit" });
+}
+
+// Persist locally, then commit and push before the runner is allowed to test another model.
+// A failed/ambiguous push is reconciled by fetching and rebasing; force-push is never used.
+async function saveAndPublish(status = "RUNNING") {
   const successful = rows.filter((row) => row.status === "success").length;
   const failed = rows.length - successful;
   const table = rows.map((row) => [
@@ -31,16 +39,18 @@ async function save(status = "RUNNING") {
   const md = [
     "# TrackCake AI Model Benchmark",
     "",
+    `- Run ID: \`${runId}\``,
     `- Query: \`${query}\``,
     `- Target: ${base}`,
     `- Started: ${startedAt}`,
     `- Updated: ${new Date().toISOString()}`,
     `- Status: ${status}`,
     `- Catalogue checked: ${catalogueCheckedAt}`,
-    `- Progress: ${rows.length}/${expectedCount} model entries; ${successful} successful; ${failed} failed/unavailable`,
+    `- Progress: ${rows.length}/${expectedCount} entries; ${successful} successful; ${failed} failed/unavailable`,
     "- Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.",
+    "- Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.",
     "- Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.",
-    "- Result fields preserve returned food names, portions, calories and macros. Accuracy still requires comparison with a consistent nutrition reference.",
+    "- Result fields preserve returned food names, portions, calories and macros. Accuracy requires comparison with a consistent nutrition reference.",
     "- This single query is a smoke/quality comparison, not a universal model ranking.",
     "",
     "## Results",
@@ -54,7 +64,38 @@ async function save(status = "RUNNING") {
     "Review whether the model correctly interprets 'milk coffee', chooses a plausible serving size, and returns plausible calories/macros. Compare like-for-like portions before ranking. A fast but nutritionally implausible response should not win.",
     ""
   ].join("\n");
+
   await writeFile("benchmark.md", md, "utf8");
+  if (process.env.GITHUB_ACTIONS !== "true") return;
+
+  git(["add", "benchmark.md"]);
+  try {
+    execFileSync("git", ["diff", "--cached", "--quiet"], { stdio: "ignore" });
+    return;
+  } catch {
+    // Staged report changed; create a durable commit.
+  }
+  git(["commit", "-m", `Benchmark progress ${rows.length}/${expectedCount} (${runId})`]);
+
+  let lastError;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      git(["push", "origin", "HEAD:main"]);
+      console.log(`Persisted ${rows.length}/${expectedCount} entries to origin/main.`);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(`Push attempt ${attempt}/5 did not confirm. Fetching main and reconciling without force-push...`);
+      try {
+        git(["fetch", "origin", "main"]);
+        git(["rebase", "origin/main"]);
+      } catch (rebaseError) {
+        try { git(["rebase", "--abort"]); } catch {}
+        throw new Error(`Could not safely reconcile main; stopping before the next model. Local report remains in benchmark.md. ${String(rebaseError)}`);
+      }
+    }
+  }
+  throw new Error(`Could not publish benchmark progress after 5 attempts; stopping before the next model. Local report remains in benchmark.md. ${String(lastError)}`);
 }
 
 const statusResponse = await fetch(`${base}/api/provider-status`, {
@@ -85,7 +126,7 @@ for (const provider of providers) {
   }
 }
 expectedCount = models.length + rows.length;
-await save();
+await saveAndPublish();
 console.log(`Discovered ${models.length} distinct models across configured providers. Query: "${query}".`);
 
 for (let index = 0; index < models.length; index += 1) {
@@ -124,10 +165,10 @@ for (let index = 0; index < models.length; index += 1) {
     };
   }
   rows.push(row);
-  await save();
+  await saveAndPublish();
   console.log(`[${index + 1}/${models.length}] ${provider}/${model} ${row.status} ${row.ms}ms`);
 }
 
-await save("COMPLETE");
+await saveAndPublish("COMPLETE");
 const successCount = rows.filter((row) => row.status === "success").length;
 console.log(`Benchmark complete: ${rows.length} entries, ${successCount} successful, ${rows.length - successCount} failed/unavailable.`);
