@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:59:42.417Z
+- Updated: 2026-11-18T14:59:44.028Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 250/393 entries; 11 successful; 239 failed/unavailable
+- Progress: 251/393 entries; 11 successful; 240 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -268,6 +268,7 @@
 | openrouter | qwen/qwen3-coder-next | error | 320 | — | — | openrouter/qwen/qwen3-coder-next: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | moonshotai/kimi-k2.5 | error | 312 | — | — | openrouter/moonshotai/kimi-k2.5: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | writer/palmyra-x5 | error | 287 | — | — | openrouter/writer/palmyra-x5: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | z-ai/glm-4.7-flash | error | 282 | — | — | openrouter/z-ai/glm-4.7-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
