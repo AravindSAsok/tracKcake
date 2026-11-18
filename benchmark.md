@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:55:24.262Z
+- Updated: 2026-11-18T14:55:25.797Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 120/393 entries; 11 successful; 109 failed/unavailable
+- Progress: 121/393 entries; 11 successful; 110 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -138,6 +138,7 @@
 | openrouter | qwen/qwen3.8-max-0902 | error | 295 | — | — | openrouter/qwen/qwen3.8-max-0902: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | meta/muse-spark-1.3 | error | 301 | — | — | openrouter/meta/muse-spark-1.3: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | google/gemini-3.8-flash | error | 349 | — | — | openrouter/google/gemini-3.8-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | anthropic/claude-fable-5.1 | error | 313 | — | — | openrouter/anthropic/claude-fable-5.1: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
