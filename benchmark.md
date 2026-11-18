@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:56:23.700Z
+- Updated: 2026-11-18T14:56:25.235Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 144/393 entries; 11 successful; 133 failed/unavailable
+- Progress: 145/393 entries; 11 successful; 134 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -162,6 +162,7 @@
 | openrouter | upstage/solar-pro4 | error | 650 | — | — | openrouter/upstage/solar-pro4: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | meta/muse-glimmer-30b | error | 613 | — | — | openrouter/meta/muse-glimmer-30b: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | inclusionai/ling-3.0-tiny | error | 289 | — | — | openrouter/inclusionai/ling-3.0-tiny: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | meta/muse-spark-1.2 | error | 302 | — | — | openrouter/meta/muse-spark-1.2: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
