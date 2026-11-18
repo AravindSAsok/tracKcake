@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:02:24.435Z
+- Updated: 2026-11-18T15:02:26.026Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 350/393 entries; 11 successful; 339 failed/unavailable
+- Progress: 351/393 entries; 11 successful; 340 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -368,6 +368,7 @@
 | openrouter | perplexity/sonar | error | 271 | — | — | openrouter/perplexity/sonar: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | microsoft/phi-4 | error | 310 | — | — | openrouter/microsoft/phi-4: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | deepseek/deepseek-chat | error | 288 | — | — | openrouter/deepseek/deepseek-chat: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | cohere/command-r7b-12-2024 | error | 280 | — | — | openrouter/cohere/command-r7b-12-2024: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
