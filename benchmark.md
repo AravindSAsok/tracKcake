@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:52:40.283Z
+- Updated: 2026-11-18T14:52:41.662Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 40/393 entries; 9 successful; 31 failed/unavailable
+- Progress: 41/393 entries; 9 successful; 32 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -58,6 +58,7 @@
 | openrouter | thinkingmachines/inkling-2-small:free | error | 322 | — | — | openrouter/thinkingmachines/inkling-2-small:free: thinkingmachines/inkling-2-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps |
 | openrouter | anthropic/claude-fable-5.2 | error | 311 | — | — | openrouter/anthropic/claude-fable-5.2: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | meta/muse-ember | error | 295 | — | — | openrouter/meta/muse-ember: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | liquid/lfm-3-1.7b | error | 277 | — | — | openrouter/liquid/lfm-3-1.7b: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
