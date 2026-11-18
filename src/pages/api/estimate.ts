@@ -210,7 +210,12 @@ export const POST: APIRoute = async ({ request }) => {
     description = typeof body.description === "string" ? body.description.trim() : "";
     const requested = body.provider ?? "auto";
     if (body.model !== undefined && body.model !== null && body.model !== "") {
-      if (typeof body.model !== "string" || body.model.length > 200 || !/^[a-zA-Z0-9._:/-]+$/.test(body.model)) {
+      const validModel = typeof body.model === "string" && body.model.length <= 200 && (
+        requested === "openrouter"
+          ? /^~?[a-zA-Z0-9._:/-]+$/.test(body.model)
+          : /^[a-zA-Z0-9._:/-]+$/.test(body.model)
+      );
+      if (!validModel) {
         return json({ error: "Choose a valid model from the model list." }, 400);
       }
       modelChoice = body.model;
