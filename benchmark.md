@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:53:00.148Z
+- Updated: 2026-11-18T14:53:01.699Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 47/393 entries; 9 successful; 38 failed/unavailable
+- Progress: 48/393 entries; 9 successful; 39 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -65,6 +65,7 @@
 | openrouter | google/gemini-omni-1.1-flash | error | 293 | — | — | openrouter/google/gemini-omni-1.1-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | ricursiveai/ripple-65b-preview | error | 317 | — | — | openrouter/ricursiveai/ripple-65b-preview: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | tencent/hy4 | error | 345 | — | — | openrouter/tencent/hy4: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | motif-technologies/motif-3 | error | 338 | — | — | openrouter/motif-technologies/motif-3: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
