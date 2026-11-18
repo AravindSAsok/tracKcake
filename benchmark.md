@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:52:21.621Z
+- Updated: 2026-11-18T14:52:23.184Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 31/393 entries; 8 successful; 23 failed/unavailable
+- Progress: 32/393 entries; 8 successful; 24 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -49,6 +49,7 @@
 | openrouter | tencent/hy4-flash | error | 405 | — | — | openrouter/tencent/hy4-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | qwen/qwen4-max | error | 660 | — | — | openrouter/qwen/qwen4-max: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | inclusionai/ling-3.2-flash:free | error | 9266 | — | — | openrouter/inclusionai/ling-3.2-flash:free: The operation was aborted due to timeout |
+| openrouter | google/gemini-4-hydrogen | error | 307 | — | — | openrouter/google/gemini-4-hydrogen: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
