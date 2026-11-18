@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:54:49.754Z
+- Updated: 2026-11-18T14:54:51.158Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 98/393 entries; 11 successful; 87 failed/unavailable
+- Progress: 99/393 entries; 11 successful; 88 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -116,6 +116,7 @@
 | openrouter | xiaomi/mimo-v2.6-flash | error | 357 | — | — | openrouter/xiaomi/mimo-v2.6-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | xiaomi/mimo-v2.6-pro | error | 295 | — | — | openrouter/xiaomi/mimo-v2.6-pro: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | x-ai/grok-4.7 | error | 301 | — | — | openrouter/x-ai/grok-4.7: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | qwen/qwen3.8-omni-flash | error | 273 | — | — | openrouter/qwen/qwen3.8-omni-flash: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
