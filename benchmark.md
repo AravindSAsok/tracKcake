@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:02:39.561Z
+- Updated: 2026-11-18T15:02:41.020Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 360/393 entries; 11 successful; 349 failed/unavailable
+- Progress: 361/393 entries; 11 successful; 350 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -378,6 +378,7 @@
 | openrouter | qwen/qwen-2.5-coder-32b-instruct | error | 307 | — | — | openrouter/qwen/qwen-2.5-coder-32b-instruct: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | thedrummer/unslopnemo-12b | error | 271 | — | — | openrouter/thedrummer/unslopnemo-12b: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | anthracite-org/magnum-v4-72b | error | 271 | — | — | openrouter/anthracite-org/magnum-v4-72b: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | meta-llama/llama-3.2-1b-instruct | error | 329 | — | — | openrouter/meta-llama/llama-3.2-1b-instruct: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
