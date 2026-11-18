@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:51:59.172Z
+- Updated: 2026-11-18T14:52:01.724Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 24/393 entries; 8 successful; 16 failed/unavailable
+- Progress: 25/393 entries; 8 successful; 17 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -42,6 +42,7 @@
 | gemini | gemini-4-argon | error | 600 | — | — | gemini/gemini-4-argon: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor y |
 | gemini | gemini-4-carbon | error | 524 | — | — | gemini/gemini-4-carbon: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor y |
 | gemini | gemini-4-hydrogen | error | 30289 | — | — | gemini/gemini-4-hydrogen: The operation was aborted due to timeout |
+| openrouter | openai/gpt-6.2-astra-pro | error | 697 | — | — | openrouter/openai/gpt-6.2-astra-pro: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
