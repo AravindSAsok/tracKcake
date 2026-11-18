@@ -350,8 +350,9 @@ if (accountTrigger && accountDialog && accountForm && accountFields && accountSt
               .eq("user_id", previousGuest.id)
               .maybeSingle();
             if (guestSettingsError) throw new Error("Your guest calorie goal could not be backed up: " + guestSettingsError.message);
-            if (Number.isInteger(guestSettings?.calorie_goal)) {
-              localStorage.setItem("trackcake.guest-backup.goal.v1", String(guestSettings.calorie_goal));
+            const guestCalorieGoal = guestSettings?.calorie_goal;
+            if (Number.isInteger(guestCalorieGoal)) {
+              localStorage.setItem("trackcake.guest-backup.goal.v1", String(guestCalorieGoal));
             }
           }
 
