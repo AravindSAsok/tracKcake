@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:02:12.980Z
+- Updated: 2026-11-18T15:02:14.490Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 343/393 entries; 11 successful; 332 failed/unavailable
+- Progress: 344/393 entries; 11 successful; 333 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -361,6 +361,7 @@
 | openrouter | perplexity/sonar-pro | error | 319 | — | — | openrouter/perplexity/sonar-pro: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | perplexity/sonar-deep-research | error | 313 | — | — | openrouter/perplexity/sonar-deep-research: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | mistralai/mistral-saba | error | 273 | — | — | openrouter/mistralai/mistral-saba: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | aion-labs/aion-rp-llama-3.1-8b | error | 283 | — | — | openrouter/aion-labs/aion-rp-llama-3.1-8b: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
