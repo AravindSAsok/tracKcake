@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:01:12.662Z
+- Updated: 2026-11-18T15:01:14.539Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 305/393 entries; 11 successful; 294 failed/unavailable
+- Progress: 306/393 entries; 11 successful; 295 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -323,6 +323,7 @@
 | openrouter | qwen/qwen3-30b-a3b-instruct-2507 | error | 529 | — | — | openrouter/qwen/qwen3-30b-a3b-instruct-2507: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | z-ai/glm-4.5 | error | 289 | — | — | openrouter/z-ai/glm-4.5: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | z-ai/glm-4.5-air | error | 290 | — | — | openrouter/z-ai/glm-4.5-air: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | qwen/qwen3-235b-a22b-thinking-2507 | error | 282 | — | — | openrouter/qwen/qwen3-235b-a22b-thinking-2507: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
