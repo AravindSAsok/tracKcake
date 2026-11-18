@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:00:05.443Z
+- Updated: 2026-11-18T15:00:07.001Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 265/393 entries; 11 successful; 254 failed/unavailable
+- Progress: 266/393 entries; 11 successful; 255 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -283,6 +283,7 @@
 | openrouter | mistralai/ministral-14b-2512 | error | 274 | — | — | openrouter/mistralai/ministral-14b-2512: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | mistralai/ministral-8b-2512 | error | 320 | — | — | openrouter/mistralai/ministral-8b-2512: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | mistralai/ministral-3b-2512 | error | 441 | — | — | openrouter/mistralai/ministral-3b-2512: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | mistralai/mistral-large-2512 | error | 277 | — | — | openrouter/mistralai/mistral-large-2512: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
