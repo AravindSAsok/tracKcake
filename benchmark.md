@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:01:51.156Z
+- Updated: 2026-11-18T15:01:52.566Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 330/393 entries; 11 successful; 319 failed/unavailable
+- Progress: 331/393 entries; 11 successful; 320 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -348,6 +348,7 @@
 | openrouter | openai/gpt-4.1-mini | error | 303 | — | — | openrouter/openai/gpt-4.1-mini: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | openai/gpt-4.1-nano | error | 304 | — | — | openrouter/openai/gpt-4.1-nano: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | meta-llama/llama-4-maverick | error | 337 | — | — | openrouter/meta-llama/llama-4-maverick: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | meta-llama/llama-4-scout | error | 272 | — | — | openrouter/meta-llama/llama-4-scout: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
