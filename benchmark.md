@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:50:18.214Z
+- Updated: 2026-11-18T14:50:21.415Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 6/393 entries; 3 successful; 3 failed/unavailable
+- Progress: 7/393 entries; 3 successful; 4 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -24,6 +24,7 @@
 | groq | allam-2-7b | error | 527 | — | — | groq/allam-2-7b: The AI provider returned an incomplete nutrition estimate. |
 | gemini | gemma-4-26b-a4b-it | error | 1346 | — | — | gemini/gemma-4-26b-a4b-it: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. |
 | gemini | gemma-4-31b-it | error | 30261 | — | — | gemini/gemma-4-31b-it: The operation was aborted due to timeout |
+| gemini | gemini-flash-latest | error | 1925 | — | — | gemini/gemini-flash-latest: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. |
 
 ## Review notes
 
