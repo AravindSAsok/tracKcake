@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:58:11.179Z
+- Updated: 2026-11-18T14:58:12.609Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 193/393 entries; 11 successful; 182 failed/unavailable
+- Progress: 194/393 entries; 11 successful; 183 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -211,6 +211,7 @@
 | openrouter | nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free | error | 9257 | — | — | openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free: The operation was aborted due to timeout |
 | openrouter | ~anthropic/claude-haiku-latest | error | 301 | — | — | openrouter/~anthropic/claude-haiku-latest: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | ~openai/gpt-mini-latest | error | 616 | — | — | openrouter/~openai/gpt-mini-latest: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | ~google/gemini-pro-latest | error | 291 | — | — | openrouter/~google/gemini-pro-latest: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
