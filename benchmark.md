@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:03:09.299Z
+- Updated: 2026-11-18T15:03:10.752Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 379/393 entries; 11 successful; 368 failed/unavailable
+- Progress: 380/393 entries; 11 successful; 369 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -397,6 +397,7 @@
 | openrouter | mistralai/mixtral-8x22b-instruct | error | 332 | — | — | openrouter/mistralai/mixtral-8x22b-instruct: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | mistralai/mistral-large | error | 284 | — | — | openrouter/mistralai/mistral-large: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | openai/gpt-3.5-turbo-0613 | error | 316 | — | — | openrouter/openai/gpt-3.5-turbo-0613: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | openai/gpt-3.5-turbo-16k | error | 293 | — | — | openrouter/openai/gpt-3.5-turbo-16k: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
