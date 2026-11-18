@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:57:14.753Z
+- Updated: 2026-11-18T14:57:16.465Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 171/393 entries; 11 successful; 160 failed/unavailable
+- Progress: 172/393 entries; 11 successful; 161 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -189,6 +189,7 @@
 | openrouter | anthropic/claude-sonnet-5 | error | 299 | — | — | openrouter/anthropic/claude-sonnet-5: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | sakana/fugu-ultra | error | 333 | — | — | openrouter/sakana/fugu-ultra: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | cohere/north-mini-code:free | error | 9256 | — | — | openrouter/cohere/north-mini-code:free: The operation was aborted due to timeout |
+| openrouter | z-ai/glm-5.2 | error | 288 | — | — | openrouter/z-ai/glm-5.2: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
