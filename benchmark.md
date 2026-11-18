@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:00:38.682Z
+- Updated: 2026-11-18T15:00:40.211Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 285/393 entries; 11 successful; 274 failed/unavailable
+- Progress: 286/393 entries; 11 successful; 275 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -303,6 +303,7 @@
 | openrouter | deepseek/deepseek-v3.2-exp | error | 465 | — | — | openrouter/deepseek/deepseek-v3.2-exp: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | thedrummer/cydonia-24b-v4.1 | error | 474 | — | — | openrouter/thedrummer/cydonia-24b-v4.1: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | relace/relace-apply-3 | error | 277 | — | — | openrouter/relace/relace-apply-3: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | qwen/qwen3-vl-235b-a22b-instruct | error | 283 | — | — | openrouter/qwen/qwen3-vl-235b-a22b-instruct: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
