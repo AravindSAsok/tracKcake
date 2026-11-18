@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:58:51.466Z
+- Updated: 2026-11-18T14:58:52.967Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 218/393 entries; 11 successful; 207 failed/unavailable
+- Progress: 219/393 entries; 11 successful; 208 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -236,6 +236,7 @@
 | openrouter | google/gemma-4-31b-it:free | error | 397 | — | — | openrouter/google/gemma-4-31b-it:free: Provider returned error |
 | openrouter | qwen/qwen3.6-plus | error | 284 | — | — | openrouter/qwen/qwen3.6-plus: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | z-ai/glm-5v-turbo | error | 367 | — | — | openrouter/z-ai/glm-5v-turbo: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | x-ai/grok-4.20-multi-agent | error | 328 | — | — | openrouter/x-ai/grok-4.20-multi-agent: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
