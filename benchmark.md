@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:55:08.354Z
+- Updated: 2026-11-18T14:55:10.081Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 110/393 entries; 11 successful; 99 failed/unavailable
+- Progress: 111/393 entries; 11 successful; 100 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -128,6 +128,7 @@
 | openrouter | ~openai/gpt-terra-latest | error | 311 | — | — | openrouter/~openai/gpt-terra-latest: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | ~openai/gpt-luna-latest | error | 303 | — | — | openrouter/~openai/gpt-luna-latest: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | sakana/fugu-ultra-v2 | error | 286 | — | — | openrouter/sakana/fugu-ultra-v2: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | sakana/fugu-max | error | 372 | — | — | openrouter/sakana/fugu-max: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
