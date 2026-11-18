@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:57:25.697Z
+- Updated: 2026-11-18T14:57:36.983Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 177/393 entries; 11 successful; 166 failed/unavailable
+- Progress: 178/393 entries; 11 successful; 167 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -195,6 +195,7 @@
 | openrouter | anthropic/claude-fable-5 | error | 322 | — | — | openrouter/anthropic/claude-fable-5: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | nvidia/nemotron-3.5-content-safety | error | 283 | — | — | openrouter/nvidia/nemotron-3.5-content-safety: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | nvidia/nemotron-3-ultra-550b-a55b | error | 298 | — | — | openrouter/nvidia/nemotron-3-ultra-550b-a55b: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | nvidia/nemotron-3-ultra-550b-a55b:free | error | 9584 | — | — | openrouter/nvidia/nemotron-3-ultra-550b-a55b:free: The operation was aborted due to timeout |
 
 ## Review notes
 
