@@ -1,0 +1,48 @@
+name: TrackCake model benchmark
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/benchmark-models.mjs"
+      - ".github/workflows/benchmark-models.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trackcake-model-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Run one-request-per-model benchmark against production
+        env:
+          TRACKCAKE_URL: https://trackcake.vercel.app
+        run: node scripts/benchmark-models.mjs
+
+      - name: Commit benchmark results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add benchmark.md
+          if git diff --cached --quiet; then
+            echo "No benchmark report changes to commit."
+            exit 0
+          fi
+          git commit -m "Record TrackCake AI model benchmark results"
+          git push origin HEAD:main
