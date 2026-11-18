@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T15:02:08.415Z
+- Updated: 2026-11-18T15:02:09.982Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 340/393 entries; 11 successful; 329 failed/unavailable
+- Progress: 341/393 entries; 11 successful; 330 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -358,6 +358,7 @@
 | openrouter | google/gemma-3-27b-it | error | 287 | — | — | openrouter/google/gemma-3-27b-it: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | thedrummer/skyfall-36b-v2 | error | 299 | — | — | openrouter/thedrummer/skyfall-36b-v2: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 | openrouter | perplexity/sonar-reasoning-pro | error | 325 | — | — | openrouter/perplexity/sonar-reasoning-pro: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
+| openrouter | perplexity/sonar-pro | error | 319 | — | — | openrouter/perplexity/sonar-pro: Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits |
 
 ## Review notes
 
