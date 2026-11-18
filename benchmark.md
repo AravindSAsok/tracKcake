@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:50:25.046Z
+- Updated: 2026-11-18T14:50:26.871Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 8/393 entries; 4 successful; 4 failed/unavailable
+- Progress: 9/393 entries; 4 successful; 5 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -26,6 +26,7 @@
 | gemini | gemma-4-31b-it | error | 30261 | — | — | gemini/gemma-4-31b-it: The operation was aborted due to timeout |
 | gemini | gemini-flash-latest | error | 1925 | — | — | gemini/gemini-flash-latest: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. |
 | gemini | gemini-flash-lite-latest | success | 2470 | 60 | milk coffee; 1 cup; 60 kcal; P 3g / C 6g / F 3g |  |
+| gemini | gemini-pro-latest | error | 684 | — | — | gemini/gemini-pro-latest: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor y |
 
 ## Review notes
 
