@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-18T14:49:32.162Z
-- Updated: 2026-11-18T14:51:25.595Z
+- Updated: 2026-11-18T14:51:27.503Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-18T14:49:33.663Z
-- Progress: 22/393 entries; 8 successful; 14 failed/unavailable
+- Progress: 23/393 entries; 8 successful; 15 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -40,6 +40,7 @@
 | gemini | gemini-3.6-flash | error | 1213 | — | — | gemini/gemini-3.6-flash: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. |
 | gemini | gemini-3.7-flash | error | 14485 | — | — | gemini/gemini-3.7-flash: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later. |
 | gemini | gemini-4-argon | error | 600 | — | — | gemini/gemini-4-argon: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor y |
+| gemini | gemini-4-carbon | error | 524 | — | — | gemini/gemini-4-carbon: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor y |
 
 ## Review notes
 
