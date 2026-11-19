@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 
 const base = (process.env.TRACKCAKE_URL || "https://trackcake.vercel.app").replace(/\/$/, "");
-const query = "milk coffee";
+const query = "milk coffee"; // Fresh one-shot validation on 2026-11-19; keep identical to the previous run for comparison.
 const providers = ["groq", "gemini", "openrouter"];
 const rows = [];
 const startedAt = new Date().toISOString();
