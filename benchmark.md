@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-19T15:58:15.437Z
-- Updated: 2026-11-19T16:00:28.708Z
+- Updated: 2026-11-19T16:00:37.480Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-19T15:58:16.614Z
-- Progress: 10/11 entries; 10 successful; 0 failed/unavailable
+- Progress: 11/11 entries; 11 successful; 0 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -28,6 +28,7 @@
 | gemini | gemini-3.5-flash-lite | success | 20619 | — | No food items returned |  |
 | openrouter | baidu/ernie-5.5-flash-preview:free | success | 7366 | — | No food items returned |  |
 | openrouter | particle-ai/particle-1:free | success | 7831 | — | No food items returned |  |
+| openrouter | nvidia/nemotron-3.5-super-vl:free | success | 7424 | — | No food items returned |  |
 
 ## Review notes
 
