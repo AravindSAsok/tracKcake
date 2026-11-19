@@ -169,7 +169,7 @@ async function fetchModelIds(provider: Provider, apiKey: string): Promise<string
   const response = await fetch(endpoint, { headers, signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error(`${provider} model catalogue returned HTTP ${response.status}`);
   const payload = await response.json() as {
-    data?: Array<{ id?: string }>;
+    data?: Array<{ id?: string; name?: string; supportedGenerationMethods?: string[] }>;
     models?: Array<{ name?: string; id?: string; supportedGenerationMethods?: string[] }>;
   };
   const records = payload.data ?? payload.models ?? [];
