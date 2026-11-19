@@ -823,7 +823,43 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description, provider: byId<HTMLSelectElement>("quick-provider").value || "auto" })
     });
-    const payload = await response.json() as EstimateResponse;
+    let payload: EstimateResponse & { provider?: string; model?: string };
+    if (response.headers.get("content-type")?.includes("text/event-stream") && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let completed: (EstimateResponse & { provider?: string; model?: string }) | null = null;
+      let streamError = "";
+      const handleEvent = (block: string) => {
+        const event = block.split("\\n").find((line) => line.startsWith("event:"))?.slice(6).trim();
+        const dataLine = block.split("\\n").find((line) => line.startsWith("data:"))?.slice(5).trim();
+        if (!dataLine) return;
+        const data = JSON.parse(dataLine) as Record<string, unknown>;
+        const status = document.getElementById("quick-model-status");
+        if (event === "progress" && status && typeof data.message === "string") status.textContent = data.message;
+        if (event === "complete") completed = data as EstimateResponse & { provider?: string; model?: string };
+        if (event === "error") streamError = typeof data.error === "string" ? data.error : "All available AI models failed.";
+      };
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+          const blocks = buffer.split("\\n\\n");
+          buffer = blocks.pop() || "";
+          for (const block of blocks) handleEvent(block);
+          if (done) break;
+        }
+        if (buffer.trim()) handleEvent(buffer);
+      } finally {
+        reader.releaseLock();
+      }
+      if (streamError) throw new Error(streamError);
+      if (!completed) throw new Error("The model fallback connection ended before an estimate was returned. Please try again.");
+      payload = completed;
+    } else {
+      payload = await response.json() as EstimateResponse & { provider?: string; model?: string };
+      if (!response.ok) throw new Error(payload.error || "The food estimate could not be completed.");
+    }
     if (!response.ok) throw new Error(payload.error || "The food estimate could not be completed.");
     if (!Array.isArray(payload.items) || payload.items.length === 0) {
       throw new Error("No food items were returned. Try describing your portions more clearly.");
@@ -840,6 +876,14 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       nutrition_basis: item.nutrition_basis,
       nutrition_source_url: item.nutrition_source_url
     }));
+    const attribution = document.getElementById("estimate-attribution");
+    const modelStatus = document.getElementById("quick-model-status");
+    if (attribution && payload.provider && payload.model) {
+      attribution.textContent = "Estimated with " + payload.provider + " · " + payload.model;
+    }
+    if (modelStatus && payload.provider && payload.model) {
+      modelStatus.textContent = "Estimated with " + payload.provider + " · " + payload.model + ". Your saved preference is unchanged.";
+    }
     renderReviewItems(drafts);
     prepareReviewOptions();
     openDialog(reviewDialog);
