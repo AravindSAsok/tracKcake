@@ -96,7 +96,7 @@ for (let index = 0; index < toTest.length; index += 1) {
     const response = await fetch(`${base}/api/estimate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      body: JSON.stringify({ description: query, provider: "openrouter", model, strictModel: true }),
+      body: JSON.stringify({ description: query, provider: "openrouter", model, strictModel: true, skipResearch: true }),
       signal: AbortSignal.timeout(75000)
     });
     const raw = await response.text();
