@@ -321,7 +321,7 @@ export const POST: APIRoute = async ({ request }) => {
                 provider: attempt.provider, model: attempt.model,
                 message: "Nutrition research - verifying portions and calories…"
               });
-              const researched = await researchNutrition(items, description);
+              const researched = strictModel ? items : await researchNutrition(items, description);
               send("complete", {
                 items: researched,
                 total_calories: researched.reduce((sum, item) => sum + item.calories, 0),
