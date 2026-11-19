@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { researchNutrition, type NutritionItem } from "../../lib/nutrition-research";
 
 export const prerender = false;
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 type EstimatedItem = NutritionItem;
 
@@ -149,58 +149,107 @@ async function callGemini(apiKey: string, model: string, prompt: string): Promis
   return content;
 }
 
-async function estimateWithFallback(description: string, requestedProvider: Provider | "auto" = "auto", requestedModel?: string): Promise<ProviderResult> {
-  const prompt = promptFor(description);
-  const groqKey = process.env.GROQ_API_KEY?.trim();
-  const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
-  const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
+type ModelAttempt = { provider: Provider; model: string; run: () => Promise<string> };
 
-  if (groqKey) {
-    const model = requestedModel || process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
-    attempts.push({ provider: "groq", model, run: () => callOpenAICompatible("groq", groqKey, model, prompt) });
-  }
-  if (geminiKey) {
-    const model = requestedModel || process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
-    attempts.push({ provider: "gemini", model, run: () => callGemini(geminiKey, model, prompt) });
-    if (!requestedModel && model !== "gemini-3.6-flash") {
-      attempts.push({ provider: "gemini", model: "gemini-3.6-flash", run: () => callGemini(geminiKey, "gemini-3.6-flash", prompt) });
-    }
-  }
-  if (openRouterKey) {
-    const model = requestedModel || process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free";
-    attempts.push({ provider: "openrouter", model, run: () => callOpenAICompatible("openrouter", openRouterKey, model, prompt) });
-    const fallbackModel = "inclusionai/ling-3.2-flash:free";
-    if (!requestedModel && model !== fallbackModel) {
-      attempts.push({ provider: "openrouter", model: fallbackModel, run: () => callOpenAICompatible("openrouter", openRouterKey, fallbackModel, prompt) });
-    }
-  }
-
-  const selectedAttempts = requestedProvider === "auto" ? attempts : attempts.filter((attempt) => attempt.provider === requestedProvider);
-  if (!selectedAttempts.length) throw new Error(requestedProvider === "auto" ? "No AI provider keys are configured. Add GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in Vercel." : `The ${requestedProvider} provider is not configured in Vercel.`);
-
-  const failures: string[] = [];
-  for (const attempt of selectedAttempts) {
-    const started = Date.now();
-    try {
-      const raw = await attempt.run();
-      const items = parseItems(extractJson(raw));
-      console.info("[trackcake-ai] provider succeeded", {
-        provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started
-      });
-      return { items, model: attempt.model, provider: attempt.provider };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown provider error";
-      failures.push(`${attempt.provider}/${attempt.model}: ${message.slice(0, 180)}`);
-      console.warn("[trackcake-ai] provider failed", {
-        provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started,
-        error: message.slice(0, 180)
-      });
-    }
-  }
-  throw new Error(failures.join(" | ").slice(0, 900));
+async function fetchModelIds(provider: Provider, apiKey: string): Promise<string[]> {
+  const endpoint = provider === "groq"
+    ? "https://api.groq.com/openai/v1/models"
+    : provider === "gemini"
+      ? "https://generativelanguage.googleapis.com/v1beta/models"
+      : "https://openrouter.ai/api/v1/models/user?output_modalities=text&endpoints=%2Fapi%2Fv1%2Fchat%2Fcompletions";
+  const headers: Record<string, string> = provider === "gemini"
+    ? { "x-goog-api-key": apiKey }
+    : {
+        "Authorization": `Bearer ${apiKey}`,
+        ...(provider === "openrouter" ? {
+          "HTTP-Referer": "https://trackcake.vercel.app",
+          "X-Title": "TrackCake"
+        } : {})
+      };
+  const response = await fetch(endpoint, { headers, signal: AbortSignal.timeout(8_000) });
+  if (!response.ok) throw new Error(`${provider} model catalogue returned HTTP ${response.status}`);
+  const payload = await response.json() as {
+    data?: Array<{ id?: string }>;
+    models?: Array<{ name?: string; id?: string; supportedGenerationMethods?: string[] }>;
+  };
+  const records = payload.data ?? payload.models ?? [];
+  return records.map((item) => (item.id ?? item.name ?? "").replace(/^models\//, ""))
+    .filter((id) => {
+      if (!id) return false;
+      const lower = id.toLowerCase();
+      if (provider === "groq") return !/(whisper|orpheus|prompt-guard|safeguard|embedding|tts|transcrib|speech)/.test(lower);
+      if (provider === "gemini") {
+        const record = records.find((item) => (item.id ?? item.name ?? "").replace(/^models\//, "") === id);
+        return (!record || !("supportedGenerationMethods" in record) ||
+          !record.supportedGenerationMethods ||
+          record.supportedGenerationMethods.includes("generateContent")) &&
+          !/(tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(lower);
+      }
+      return !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(lower));
+    });
 }
 
+async function buildAttempts(
+  description: string,
+  requestedProvider: Provider | "auto",
+  requestedModel?: string
+): Promise<ModelAttempt[]> {
+  const prompt = promptFor(description);
+  const keys: Partial<Record<Provider, string>> = {
+    groq: process.env.GROQ_API_KEY?.trim(),
+    gemini: process.env.GEMINI_API_KEY?.trim(),
+    openrouter: process.env.OPENROUTER_API_KEY?.trim()
+  };
+  const defaults: Record<Provider, string> = {
+    gemini: "gemini-flash-lite-latest",
+    groq: process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b",
+    openrouter: process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free"
+  };
+  const attempts: ModelAttempt[] = [];
+  const seen = new Set<string>();
+  const add = (provider: Provider, model: string) => {
+    if (!keys[provider] || !model) return;
+    const key = provider + "/" + model;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const apiKey = keys[provider]!;
+    attempts.push({
+      provider, model,
+      run: () => provider === "gemini"
+        ? callGemini(apiKey, model, prompt)
+        : callOpenAICompatible(provider, apiKey, model, prompt)
+    });
+  };
+
+  // A user's saved model is always tried first, but a failure no longer locks
+  // the request to that one provider.
+  if (requestedModel && requestedProvider !== "auto") add(requestedProvider, requestedModel);
+  if (requestedProvider === "gemini" || requestedProvider === "auto") add("gemini", defaults.gemini);
+  if (requestedProvider === "groq") add("groq", defaults.groq);
+  if (requestedProvider === "openrouter") add("openrouter", defaults.openrouter);
+  for (const provider of ["gemini", "groq", "openrouter"] as Provider[]) add(provider, defaults[provider]);
+
+  const catalogues = await Promise.all((["gemini", "groq", "openrouter"] as Provider[]).map(async (provider) => {
+    const key = keys[provider];
+    if (!key) return { provider, ids: [] as string[] };
+    try {
+      return { provider, ids: await fetchModelIds(provider, key) };
+    } catch (error) {
+      console.warn("[trackcake-ai] model catalogue unavailable", {
+        provider, error: error instanceof Error ? error.message : "Unknown error"
+      });
+      return { provider, ids: [] as string[] };
+    }
+  }));
+  // Keep the catalogue order supplied by each provider. Each provider/model
+  // pair is attempted at most once, sequentially, until one returns valid data.
+  for (const catalogue of catalogues) {
+    for (const model of catalogue.ids) add(catalogue.provider, model);
+  }
+  return attempts;
+}
+
+ 
 export const POST: APIRoute = async ({ request }) => {
   let description: string;
   let providerChoice: Provider | "auto" = "auto";
@@ -216,9 +265,7 @@ export const POST: APIRoute = async ({ request }) => {
       const validModel = requested === "openrouter"
         ? /^~?[a-zA-Z0-9._:/-]+$/.test(body.model)
         : /^[a-zA-Z0-9._:/-]+$/.test(body.model);
-      if (!validModel) {
-        return json({ error: "Choose a valid model from the model list." }, 400);
-      }
+      if (!validModel) return json({ error: "Choose a valid model from the model list." }, 400);
       modelChoice = body.model;
     }
     if (modelChoice && requested === "auto") {
@@ -234,22 +281,78 @@ export const POST: APIRoute = async ({ request }) => {
   if (!description) return json({ error: "Please enter what you ate." }, 400);
   if (description.length > 700) return json({ error: "Please keep the food description under 700 characters." }, 400);
 
-  try {
-    const result = await estimateWithFallback(description, providerChoice, modelChoice);
-    const items = await researchNutrition(result.items, description);
-    return json({
-      items,
-      total_calories: items.reduce((sum, item) => sum + item.calories, 0),
-      provider: result.provider,
-      model: result.model,
-      confidence: "estimate"
-    });
-  } catch (error) {
-    console.error("[trackcake-ai] all configured providers failed", error);
-    return json({
-      error: "All configured AI providers failed this request. Check provider keys, model access and quotas, then try again.",
-      detail: error instanceof Error ? error.message.slice(0, 900) : "Unknown provider error"
-    }, 502);
-  }
-};
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const send = (event: string, data: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      };
+      void (async () => {
+        try {
+          const configured = (["groq", "gemini", "openrouter"] as Provider[])
+            .filter((provider) => Boolean(
+              provider === "groq" ? process.env.GROQ_API_KEY?.trim()
+                : provider === "gemini" ? process.env.GEMINI_API_KEY?.trim()
+                  : process.env.OPENROUTER_API_KEY?.trim()
+            ));
+          if (!configured.length) throw new Error("No AI provider keys are configured in Vercel.");
+          const attempts = await buildAttempts(description, providerChoice, modelChoice);
+          if (!attempts.length) throw new Error("No models are available for the configured API keys.");
 
+          const failures: string[] = [];
+          for (const attempt of attempts) {
+            send("progress", {
+              provider: attempt.provider,
+              model: attempt.model,
+              message: "Trying model - " + attempt.model
+            });
+            const started = Date.now();
+            try {
+              const raw = await attempt.run();
+              const items = parseItems(extractJson(raw));
+              console.info("[trackcake-ai] provider succeeded", {
+                provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started
+              });
+              send("progress", {
+                provider: attempt.provider, model: attempt.model,
+                message: "Nutrition research - verifying portions and calories…"
+              });
+              const researched = await researchNutrition(items, description);
+              send("complete", {
+                items: researched,
+                total_calories: researched.reduce((sum, item) => sum + item.calories, 0),
+                provider: attempt.provider,
+                model: attempt.model,
+                confidence: "estimate"
+              });
+              controller.close();
+              return;
+            } catch (error) {
+              const message = error instanceof Error ? error.message : "Unknown provider error";
+              failures.push(`${attempt.provider}/${attempt.model}: ${message.slice(0, 180)}`);
+              console.warn("[trackcake-ai] provider failed", {
+                provider: attempt.provider, model: attempt.model,
+                durationMs: Date.now() - started, error: message.slice(0, 180)
+              });
+            }
+          }
+          throw new Error(failures.slice(-12).join(" | ").slice(0, 900) || "All available models failed.");
+        } catch (error) {
+          send("error", {
+            error: "All available AI models failed this request. Check provider keys, model access and quotas, then try again.",
+            detail: error instanceof Error ? error.message.slice(0, 900) : "Unknown provider error"
+          });
+          controller.close();
+        }
+      })();
+    }
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no"
+    }
+  });
+};
