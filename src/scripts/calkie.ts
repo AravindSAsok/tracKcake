@@ -80,6 +80,19 @@ async function loadModels(): Promise<void> {
   try {
     const response = await fetch("/api/provider-status", { cache: "no-store" });
     const payload = await response.json() as { providers?: ProviderStatus[] };
+    const availableProviders = (payload.providers ?? [])
+      .filter((item) => item.configured && item.ok && Boolean(item.models?.length))
+      .map((item) => item.provider);
+    for (const option of [...providerSelect.options]) {
+      if (["groq", "gemini", "openrouter"].includes(option.value)) {
+        option.disabled = !availableProviders.includes(option.value);
+      }
+    }
+    if (provider !== "auto" && !availableProviders.includes(provider)) {
+      providerSelect.value = availableProviders[0] || "auto";
+      void loadModels();
+      return;
+    }
     const selected = payload.providers?.find((item) => item.provider === provider);
     modelSelect.replaceChildren();
     if (!selected?.configured || !selected.ok || !selected.models?.length) {

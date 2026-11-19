@@ -428,3 +428,11 @@ The earlier statement that the 12 stale branches' feature code was already repre
 - Environment model overrides must not bypass the registry.
 - Existing registry entries are based on prior successful provider-response/schema checks. This is not a claim that every model has been repeatedly validated for nutrition accuracy. Before adding new candidates, run isolated exact-model tests with non-empty structured output, repeat tests to detect intermittent failures, and separately review nutrition quality against a fixed reference dataset.
 - Keep the user's model preference first, but fall back only to currently available, allowlisted models. Report the actual provider/model used.
+
+### Production model recheck — 2026-11-19
+
+- Production was tested with strict single-model requests; the exact model is known and no fallback can mask a failure.
+- Current registry decision: 3 Groq models and 2 OpenRouter models remain approved. Gemini has no approved models for now: its only simple-prompt pass timed out on the mixed-meal prompt and then returned a provider high-demand error on retry; the other three Gemini candidates also failed current checks.
+- Detailed per-model timings and outputs are recorded in `docs/ai-model-validation-2026-11-19.md`.
+- Strict tests skip nutrition research. They verify provider response, item schema, portions and non-empty macro fields, but do not prove nutrition accuracy. Raw calorie estimates varied across models; keep the nutrition research layer and review final results separately.
+- The model selectors disable providers that currently have no configured, live, approved models. Do not re-enable Gemini until it passes repeated simple and mixed-meal checks.
