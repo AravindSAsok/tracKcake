@@ -14,8 +14,8 @@ const responseJson = (body: unknown, status = 200) => new Response(JSON.stringif
 // Provider catalogues remain dynamic: a model is shown only if it is still offered by its provider.
 const benchmarkPassedModels: Record<"groq" | "gemini" | "openrouter", Set<string>> = {
   groq: new Set(["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]),
-  gemini: new Set(["gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite"]),
-  openrouter: new Set(["baidu/ernie-5.5-flash-preview:free", "particle-ai/particle-1:free", "nvidia/nemotron-3.5-super-vl:free"])
+  gemini: new Set(["gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.5-flash-lite"]),
+  openrouter: new Set(["baidu/ernie-5.5-flash-preview:free", "nvidia/nemotron-3.5-super-vl:free"])
 };
 
 async function probe(
