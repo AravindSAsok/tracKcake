@@ -385,3 +385,18 @@ The earlier statement that the 12 stale branches' feature code was already repre
 - Production deployment: `dpl_1s4m1oFcVQQn4oakPfxJmnt9xdRx`, READY; production alias `trackcake.vercel.app`; Vercel status check PASS.
 - Production endpoint smoke test on 2026-11-19: `/api/provider-status` returned HTTP 200, all 3 providers configured/reachable, and exactly 3 Groq + 5 Gemini + 3 OpenRouter models (11 total). The provider catalogues still list all 11 allowlisted IDs.
 - Limitation: the 11 individual model generation calls were run on 2026-11-18, not repeated after this UI allowlist change. Re-run the benchmark periodically to refresh the allowlist. No per-model live generation test was run during the 2026-11-19 deployment verification.
+
+
+## 14. Fresh model smoke test — 2026-11-19
+
+- Workflow run: `44560753359` (GitHub Actions; completed successfully).
+- Test query: `milk coffee`; one `POST /api/estimate` was sent for each of the 11 models in the then-current allowlist.
+- The benchmark harness was defective: `/api/estimate` returns Server-Sent Events, while `scripts/benchmark-models.mjs` called `response.json()`. The script incorrectly marked all HTTP 200 responses as successes and captured no food items/calories/macros. The original 11/11 count is invalid.
+- Vercel runtime logs were used to inspect the actual model selected in each request. Direct generation results: Groq 3/3 passed; Gemini 4/5 passed; OpenRouter 2/3 passed; total 9/11.
+- Failed direct models:
+  - Gemini `gemini-3.1-flash-lite`: timed out at approximately 30 seconds. The endpoint then fell back to `gemini-flash-lite-latest`; fallback success does not count as a pass for the requested model.
+  - OpenRouter `particle-ai/particle-1:free`: provider returned an error. The endpoint then fell back to `baidu/ernie-5.5-flash-preview:free`; fallback success does not count as a pass for the requested model.
+- Removed those two failing models from `src/pages/api/provider-status.ts`. The app should now expose only 9 models, intersected with the provider's current live catalogue.
+- Corrected `benchmark.md` to show 9/11 direct generation passes and explicitly document that nutrition output was not captured by the defective harness.
+- Before the next benchmark, fix `scripts/benchmark-models.mjs` to parse SSE `progress`, `complete`, and `error` events, and add strict-model mode so benchmark requests cannot silently fall back. Count a pass only when `complete.provider` and `complete.model` match the requested pair and a non-empty `items` array is returned.
+- Do not claim calorie/macro accuracy from this run; only generation availability was verified.
