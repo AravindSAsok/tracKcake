@@ -370,3 +370,18 @@ Mandatory rules:
 ### Correction to the 2026-11-19 branch-consolidation record
 
 The earlier statement that the 12 stale branches' feature code was already represented in `main` was too strong. Their histories were connected to `main`, but the merge strategy preferred the existing `main` tree and the resulting source tree did not change. That history operation alone did **not** prove that the branch implementations were ported. Treat the branch feature inventory above as requiring a source-level audit and selective port into `main`; do not report those feature tasks complete solely because branch refs are ancestors of `main`.
+
+
+## 13. AI model benchmark allowlist — 2026-11-19
+
+- Benchmark source: `benchmark.md`, run `44328509966`, completed 2026-11-18 against production using one sequential end-to-end `POST /api/estimate` smoke test per discovered model.
+- 393 distinct provider/model entries were tested: 11 returned valid nutrition results; 382 failed or were unavailable. This is a single-prompt smoke test, not a universal accuracy ranking or a guarantee of continuing availability.
+- The 11 benchmark-passed models are:
+  - Groq (3): `openai/gpt-oss-120b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-20b`.
+  - Gemini (5): `gemini-flash-lite-latest`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite`.
+  - OpenRouter (3): `baidu/ernie-5.5-flash-preview:free`, `particle-ai/particle-1:free`, `nvidia/nemotron-3.5-super-vl:free`.
+- Changed `src/pages/api/provider-status.ts` to intersect the benchmark-passed allowlist with each provider's live catalogue. The model selector clients (quick estimate and Calkie) consume this endpoint, so only currently listed benchmark-passed models appear. The response reports `benchmarkTestedAt: 2026-11-18` and per-provider filtered counts.
+- Commit: `e0ac352dc3ad4159d3da1be722f0a261d38d434d` (`Show only benchmark-passed AI models`), pushed directly to `main`.
+- Production deployment: `dpl_1s4m1oFcVQQn4oakPfxJmnt9xdRx`, READY; production alias `trackcake.vercel.app`; Vercel status check PASS.
+- Production endpoint smoke test on 2026-11-19: `/api/provider-status` returned HTTP 200, all 3 providers configured/reachable, and exactly 3 Groq + 5 Gemini + 3 OpenRouter models (11 total). The provider catalogues still list all 11 allowlisted IDs.
+- Limitation: the 11 individual model generation calls were run on 2026-11-18, not repeated after this UI allowlist change. Re-run the benchmark periodically to refresh the allowlist. No per-model live generation test was run during the 2026-11-19 deployment verification.
