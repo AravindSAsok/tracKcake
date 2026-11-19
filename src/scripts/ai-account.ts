@@ -15,6 +15,22 @@ const providerSelect = document.getElementById("quick-provider") as HTMLSelectEl
 const modelSelect = document.getElementById("quick-model") as HTMLSelectElement | null;
 const modelStatus = document.getElementById("quick-model-status");
 const estimateUrl = "/api/estimate";
+const MODEL_PREFERENCE_KEY = "trackcake.ai-model-preference.v1";
+type SavedModelPreference = { provider: string; model: string };
+const readModelPreference = (): SavedModelPreference => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MODEL_PREFERENCE_KEY) || "null") as SavedModelPreference | null;
+    if (saved && ["groq", "gemini", "openrouter", "auto"].includes(saved.provider) && typeof saved.model === "string") return saved;
+  } catch { /* Ignore invalid local preferences. */ }
+  return { provider: "gemini", model: "gemini-flash-lite-latest" };
+};
+const saveModelPreference = (): void => {
+  if (!providerSelect || !modelSelect) return;
+  localStorage.setItem(MODEL_PREFERENCE_KEY, JSON.stringify({
+    provider: providerSelect.value || "auto",
+    model: providerSelect.value === "auto" ? "" : modelSelect.value
+  }));
+};
 
 async function loadModels(): Promise<void> {
   if (!providerSelect || !modelSelect) return;
@@ -48,13 +64,20 @@ async function loadModels(): Promise<void> {
       return;
     }
 
-    modelSelect.add(new Option("Use configured default", ""));
+    modelSelect.add(new Option("Use provider default", ""));
     for (const model of provider.models) {
       const label = model.name && model.name !== model.id ? model.name + " · " + model.id : model.id;
       modelSelect.add(new Option(label, model.id));
     }
     modelSelect.disabled = false;
-    if (modelStatus) modelStatus.textContent = provider.modelCount.toLocaleString() + " models returned by " + selectedProvider + ".";
+    const preference = readModelPreference();
+    const preferredModel = preference.provider === selectedProvider
+      ? preference.model
+      : selectedProvider === "gemini" ? "gemini-flash-lite-latest" : "";
+    if (preferredModel && [...modelSelect.options].some((option) => option.value === preferredModel)) {
+      modelSelect.value = preferredModel;
+    }
+    if (modelStatus) modelStatus.textContent = "Your model preference is saved on this device. " + provider.modelCount.toLocaleString() + " models available.";
   } catch {
     modelSelect.replaceChildren(new Option("Model list unavailable", ""));
     if (modelStatus) modelStatus.textContent = "Could not reach the model-list endpoint.";
@@ -62,7 +85,13 @@ async function loadModels(): Promise<void> {
 }
 
 if (providerSelect && modelSelect) {
-  providerSelect.addEventListener("change", () => void loadModels());
+  const initialPreference = readModelPreference();
+  providerSelect.value = initialPreference.provider;
+  providerSelect.addEventListener("change", () => {
+    saveModelPreference();
+    void loadModels();
+  });
+  modelSelect.addEventListener("change", saveModelPreference);
   const nativeFetch = window.fetch.bind(window);
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -77,7 +106,7 @@ if (providerSelect && modelSelect) {
       }
     }
     const response = await nativeFetch(input, init);
-    if (url.endsWith(estimateUrl)) {
+    if (url.endsWith(estimateUrl) && !response.headers.get("content-type")?.includes("text/event-stream")) {
       try {
         const result = await response.clone().json() as { provider?: string; model?: string };
         const attribution = document.getElementById("estimate-attribution");
@@ -87,7 +116,7 @@ if (providerSelect && modelSelect) {
             : "";
         }
       } catch {
-        // Ignore non-JSON responses; the existing estimate flow handles the error.
+        // Ignore non-JSON responses; the estimate flow handles its own errors.
       }
     }
     return response;
