@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { VERIFIED_MODELS } from "../../lib/ai-models";
 
 export const prerender = false;
 export const maxDuration = 20;
@@ -9,14 +10,6 @@ const responseJson = (body: unknown, status = 200) => new Response(JSON.stringif
   status,
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
-
-// Only expose models that passed the latest end-to-end TrackCake benchmark (2026-11-18).
-// Provider catalogues remain dynamic: a model is shown only if it is still offered by its provider.
-const benchmarkPassedModels: Record<"groq" | "gemini" | "openrouter", Set<string>> = {
-  groq: new Set(["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]),
-  gemini: new Set(["gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.5-flash-lite"]),
-  openrouter: new Set(["baidu/ernie-5.5-flash-preview:free", "nvidia/nemotron-3.5-super-vl:free"])
-};
 
 async function probe(
   provider: "groq" | "gemini" | "openrouter",
@@ -75,11 +68,6 @@ async function probe(
         !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(id)) &&
         (!includeAllOpenRouterFree || id.endsWith(":free"));
     });
-    const ids = records.map((model) => {
-      const id = model.id ?? model.name ?? "";
-      return id.replace(/^models\//, "");
-    }).filter(Boolean);
-
     const modelOptions = records.map((model) => {
       const rawId = model.id ?? model.name ?? "";
       const id = rawId.replace(/^models\//, "");
@@ -87,14 +75,10 @@ async function probe(
     }).filter((model): model is { id: string; name: string } => Boolean(model))
       .filter((model) => includeAllOpenRouterFree && provider === "openrouter"
         ? model.id.endsWith(":free")
-        : benchmarkPassedModels[provider].has(model.id));
+        : VERIFIED_MODELS[provider].includes(model.id));
     const verifiedIds = modelOptions.map((model) => model.id);
 
-    const preferred = provider === "groq"
-      ? ["llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"]
-      : provider === "gemini"
-        ? ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"]
-        : ["openrouter/free", ...ids.filter((id) => id.endsWith(":free")).slice(0, 4)];
+    const preferred = VERIFIED_MODELS[provider];
 
     return {
       provider, configured: true, ok: true, status: response.status,

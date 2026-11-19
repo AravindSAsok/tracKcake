@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { createClient } from "@supabase/supabase-js";
+import { isVerifiedModel, VERIFIED_MODELS } from "../../lib/ai-models";
 
 export const prerender = false;
 export const maxDuration = 60;
@@ -89,24 +90,28 @@ async function answerWithFallback(messages: ChatMessage[], providerChoice: Provi
   const groqKey = process.env.GROQ_API_KEY?.trim();
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   const routerKey = process.env.OPENROUTER_API_KEY?.trim();
-  const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
-  if (groqKey) {
-    const model = modelChoice || process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b";
-    attempts.push({ provider: "groq", model, run: () => callCompatible("groq", groqKey, model, messages) });
+  const keys: Partial<Record<Provider, string>> = { groq: groqKey, gemini: geminiKey, openrouter: routerKey };
+  const order: Provider[] = providerChoice === "auto"
+    ? ["groq", "gemini", "openrouter"]
+    : [providerChoice, ...(["groq", "gemini", "openrouter"] as Provider[]).filter((item) => item !== providerChoice)];
+  const selected: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
+  const seen = new Set<string>();
+  const add = (provider: Provider, model: string) => {
+    const key = keys[provider];
+    if (!key || !isVerifiedModel(provider, model) || seen.has(provider + "/" + model)) return;
+    seen.add(provider + "/" + model);
+    selected.push({
+      provider, model,
+      run: () => provider === "gemini"
+        ? callGemini(key, model, messages)
+        : callCompatible(provider, key, model, messages)
+    });
+  };
+  if (modelChoice && providerChoice !== "auto") add(providerChoice, modelChoice);
+  for (const provider of order) {
+    for (const model of VERIFIED_MODELS[provider]) add(provider, model);
   }
-  if (geminiKey) {
-    const model = modelChoice || process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
-    attempts.push({ provider: "gemini", model, run: () => callGemini(geminiKey, model, messages) });
-  }
-  if (routerKey) {
-    const model = modelChoice || process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free";
-    attempts.push({ provider: "openrouter", model, run: () => callCompatible("openrouter", routerKey, model, messages) });
-    if (!modelChoice && model !== "openrouter/free") {
-      attempts.push({ provider: "openrouter", model: "openrouter/free", run: () => callCompatible("openrouter", routerKey, "openrouter/free", messages) });
-    }
-  }
-  const selected = providerChoice === "auto" ? attempts : attempts.filter((attempt) => attempt.provider === providerChoice);
-  if (!selected.length) throw new Error(providerChoice === "auto" ? "No AI providers are configured." : `${providerChoice} is not configured.`);
+  if (!selected.length) throw new Error("No verified models are available for the configured API keys.");
   const failures: string[] = [];
   for (const attempt of selected) {
     try {
@@ -173,7 +178,9 @@ export const POST: APIRoute = async ({ request }) => {
   const provider = body.provider ?? "auto";
   if (!["auto", "groq", "gemini", "openrouter"].includes(String(provider))) return json({ error: "Choose a valid AI provider." }, 400);
   const model = typeof body.model === "string" && body.model.trim() ? body.model.trim() : undefined;
-  if (model && (model.length > 200 || !/^[a-zA-Z0-9._:/-]+$/.test(model))) return json({ error: "Choose a valid model from the model list." }, 400);
+  if (model && (model.length > 200 || typeof provider !== "string" || !isVerifiedModel(provider, model))) {
+    return json({ error: "That model is not currently approved for TrackCake. Refresh the model list and choose a verified model." }, 400);
+  }
   if (model && provider === "auto") return json({ error: "Choose a provider before selecting a model." }, 400);
 
   try {

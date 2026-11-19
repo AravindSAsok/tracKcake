@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { researchNutrition, type NutritionItem } from "../../lib/nutrition-research";
+import { isVerifiedModel, VERIFIED_MODELS } from "../../lib/ai-models";
 
 export const prerender = false;
 export const maxDuration = 300;
@@ -173,20 +174,8 @@ async function fetchModelIds(provider: Provider, apiKey: string): Promise<string
     models?: Array<{ name?: string; id?: string; supportedGenerationMethods?: string[] }>;
   };
   const records = payload.data ?? payload.models ?? [];
-  return records.map((item) => (item.id ?? item.name ?? "").replace(/^models\//, ""))
-    .filter((id) => {
-      if (!id) return false;
-      const lower = id.toLowerCase();
-      if (provider === "groq") return !/(whisper|orpheus|prompt-guard|safeguard|embedding|tts|transcrib|speech)/.test(lower);
-      if (provider === "gemini") {
-        const record = records.find((item) => (item.id ?? item.name ?? "").replace(/^models\//, "") === id);
-        return (!record || !("supportedGenerationMethods" in record) ||
-          !record.supportedGenerationMethods ||
-          record.supportedGenerationMethods.includes("generateContent")) &&
-          !/(tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(lower);
-      }
-      return !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(lower));
-    });
+  const available = new Set(records.map((item) => (item.id ?? item.name ?? "").replace(/^models\//, "")));
+  return VERIFIED_MODELS[provider].filter((id) => available.has(id));
 }
 
 async function buildAttempts(
@@ -202,14 +191,14 @@ async function buildAttempts(
     openrouter: process.env.OPENROUTER_API_KEY?.trim()
   };
   const defaults: Record<Provider, string> = {
-    gemini: "gemini-flash-lite-latest",
-    groq: process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-20b",
-    openrouter: process.env.OPENROUTER_MODEL?.trim() || "baidu/ernie-5.5-flash-preview:free"
+    gemini: VERIFIED_MODELS.gemini[0],
+    groq: "openai/gpt-oss-20b",
+    openrouter: VERIFIED_MODELS.openrouter[0]
   };
   const attempts: ModelAttempt[] = [];
   const seen = new Set<string>();
-  const add = (provider: Provider, model: string) => {
-    if (!keys[provider] || !model) return;
+  const add = (provider: Provider, model: string, available?: Set<string>) => {
+    if (!keys[provider] || !isVerifiedModel(provider, model) || (available && !available.has(model))) return;
     const key = provider + "/" + model;
     if (seen.has(key)) return;
     seen.add(key);
@@ -222,14 +211,11 @@ async function buildAttempts(
     });
   };
 
-  // A user's saved model is always tried first, but a failure no longer locks
-  // the request to that one provider.
-  if (requestedModel && requestedProvider !== "auto") add(requestedProvider, requestedModel);
-  if (strictModel && requestedModel && requestedProvider !== "auto") return attempts;
-  if (requestedProvider === "gemini" || requestedProvider === "auto") add("gemini", defaults.gemini);
-  if (requestedProvider === "groq") add("groq", defaults.groq);
-  if (requestedProvider === "openrouter") add("openrouter", defaults.openrouter);
-  for (const provider of ["gemini", "groq", "openrouter"] as Provider[]) add(provider, defaults[provider]);
+  // Benchmark mode deliberately calls exactly one requested model without fallback.
+  if (strictModel && requestedModel && requestedProvider !== "auto") {
+    add(requestedProvider, requestedModel);
+    return attempts;
+  }
 
   const catalogues = await Promise.all((["gemini", "groq", "openrouter"] as Provider[]).map(async (provider) => {
     const key = keys[provider];
@@ -243,10 +229,22 @@ async function buildAttempts(
       return { provider, ids: [] as string[] };
     }
   }));
-  // Keep the catalogue order supplied by each provider. Each provider/model
-  // pair is attempted at most once, sequentially, until one returns valid data.
-  for (const catalogue of catalogues) {
-    for (const model of catalogue.ids) add(catalogue.provider, model);
+  const availableByProvider = new Map<Provider, Set<string>>(
+    catalogues.map((catalogue) => [catalogue.provider, new Set(catalogue.ids)])
+  );
+
+  // A user's selected model is first, but only if it remains in the live provider catalogue.
+  if (requestedModel && requestedProvider !== "auto") {
+    add(requestedProvider, requestedModel, availableByProvider.get(requestedProvider));
+  }
+  const providerOrder: Provider[] = requestedProvider === "auto"
+    ? ["gemini", "groq", "openrouter"]
+    : [requestedProvider, ...(["gemini", "groq", "openrouter"] as Provider[]).filter((item) => item !== requestedProvider)];
+  for (const provider of providerOrder) {
+    const available = availableByProvider.get(provider);
+    if (!available) continue;
+    add(provider, defaults[provider], available);
+    for (const model of VERIFIED_MODELS[provider]) add(provider, model, available);
   }
   return attempts;
 }
@@ -265,10 +263,9 @@ export const POST: APIRoute = async ({ request }) => {
       if (typeof body.model !== "string" || body.model.length > 200) {
         return json({ error: "Choose a valid model from the model list." }, 400);
       }
-      const validModel = requested === "openrouter"
-        ? /^~?[a-zA-Z0-9._:/-]+$/.test(body.model)
-        : /^[a-zA-Z0-9._:/-]+$/.test(body.model);
-      if (!validModel) return json({ error: "Choose a valid model from the model list." }, 400);
+      if (typeof requested !== "string" || !isVerifiedModel(requested, body.model)) {
+        return json({ error: "That model is not currently approved for TrackCake. Refresh the model list and choose a verified model." }, 400);
+      }
       modelChoice = body.model;
     }
     if (modelChoice && requested === "auto") {
@@ -278,7 +275,7 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ error: "Choose auto, groq, gemini or openrouter." }, 400);
     }
     providerChoice = requested as Provider | "auto";
-    strictModel = body.strictModel === true && providerChoice === "openrouter" && Boolean(modelChoice);
+    strictModel = body.strictModel === true && Boolean(modelChoice);
   } catch {
     return json({ error: "Please enter a food description." }, 400);
   }

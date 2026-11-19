@@ -416,3 +416,15 @@ The earlier statement that the 12 stale branches' feature code was already repre
 - Files changed for this task: `src/pages/api/provider-status.ts` (opt-in full free text catalogue), `src/pages/api/estimate.ts` (strict single-model test mode), `scripts/benchmark-models.mjs` (OpenRouter-only apple test and SSE validation), `.github/workflows/benchmark-models.yml` (wait for deployment, run test, publish one final report).
 - Vercel production deployment for the tested code: commit `7800e015f15f75bcfcb1c4b5b92663a959aeac50`, deployment `dpl_EF6kkUXNqzaFEAJAa7ZN1hJ6Qbz6`, state READY. GitHub Astro build for that commit passed.
 - This is a smoke test of response availability and valid TrackCake output, not a nutrition accuracy benchmark. The allowlist used by the app was not broadened by this test.
+
+
+## AI model approval and fallback policy — 2026-11-19
+
+- Canonical model allowlist: `src/lib/ai-models.ts`. Do not duplicate provider model IDs in UI/API code.
+- `VERIFIED_MODELS` is the only source for selectable text models and text-generation fallback candidates. Provider catalogues are used only to confirm that an allowlisted model is still currently offered; never append arbitrary catalogue entries to a user's selector or fallback chain.
+- The estimate endpoint must validate explicit model IDs against the allowlist and must use live catalogue presence for normal requests. Its strict benchmark mode calls exactly one allowlisted model and must not fall back.
+- Calkie's `/api/assistant` must use the same allowlist. A selected model is tried first, followed by approved models in provider priority order, including other configured providers.
+- Image analysis has a separate `VERIFIED_VISION_MODELS` allowlist. A text-only model must never be sent an image. Do not promote a model to the vision list without a successful image-input test.
+- Environment model overrides must not bypass the registry.
+- Existing registry entries are based on prior successful provider-response/schema checks. This is not a claim that every model has been repeatedly validated for nutrition accuracy. Before adding new candidates, run isolated exact-model tests with non-empty structured output, repeat tests to detect intermittent failures, and separately review nutrition quality against a fixed reference dataset.
+- Keep the user's model preference first, but fall back only to currently available, allowlisted models. Report the actual provider/model used.

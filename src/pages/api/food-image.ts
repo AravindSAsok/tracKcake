@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { researchNutrition, type NutritionItem } from "../../lib/nutrition-research";
+import { isVerifiedVisionModel, VERIFIED_VISION_MODELS } from "../../lib/ai-models";
 
 export const prerender = false;
 export const maxDuration = 60;
@@ -145,30 +146,21 @@ async function analyseImage(imageData: string, context: string, providerChoice: 
   const dataUrl = "data:image/jpeg;base64," + imageData;
   const attempts: Array<{ provider: Provider; model: string; run: () => Promise<string> }> = [];
 
-  if (keys.gemini) {
-    const models = [...new Set([
-      providerChoice === "gemini" ? modelChoice : undefined,
-      process.env.GEMINI_VISION_MODEL?.trim(),
-      process.env.GEMINI_MODEL?.trim(),
-      "gemini-2.5-flash",
-      "gemini-2.0-flash"
-    ].filter((value): value is string => Boolean(value)))];
-    for (const model of models) attempts.push({ provider: "gemini", model, run: () => callGemini(keys.gemini!, model, imageData, prompt) });
-  }
-  // Groq is attempted only when an explicitly configured vision model is available.
-  if (keys.groq && (process.env.GROQ_VISION_MODEL?.trim() || (providerChoice === "groq" && modelChoice))) {
-    const model = providerChoice === "groq" && modelChoice ? modelChoice : process.env.GROQ_VISION_MODEL!.trim();
-    attempts.push({ provider: "groq", model, run: () => callCompatibleVision("groq", keys.groq!, model, dataUrl, prompt) });
-  }
-  if (keys.openrouter) {
-    const models = [...new Set([
-      providerChoice === "openrouter" ? modelChoice : undefined,
-      process.env.OPENROUTER_VISION_MODEL?.trim(),
-      "google/gemini-2.5-flash",
-      "qwen/qwen3-vl-8b-instruct"
-    ].filter((value): value is string => Boolean(value)))];
-    for (const model of models) {
-      attempts.push({ provider: "openrouter", model, run: () => callCompatibleVision("openrouter", keys.openrouter!, model, dataUrl, prompt) });
+  for (const provider of ["gemini", "openrouter"] as Provider[]) {
+    const key = keys[provider];
+    if (!key) continue;
+    const models = VERIFIED_VISION_MODELS[provider] ?? [];
+    const selectedModel = providerChoice === provider && modelChoice && isVerifiedVisionModel(provider, modelChoice)
+      ? modelChoice
+      : undefined;
+    const orderedModels = [...new Set([selectedModel, ...models].filter((value): value is string => Boolean(value)))];
+    for (const model of orderedModels) {
+      attempts.push({
+        provider, model,
+        run: () => provider === "gemini"
+          ? callGemini(key, model, imageData, prompt)
+          : callCompatibleVision("openrouter", key, model, dataUrl, prompt)
+      });
     }
   }
 
@@ -297,4 +289,3 @@ export const POST: APIRoute = async ({ request }) => {
     }
   });
 };
-
