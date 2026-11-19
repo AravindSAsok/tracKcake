@@ -349,3 +349,24 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 - npm ci, npm run check, npm run build all pass under Node 22.23.4; check has 0 errors, 0 warnings, 2 existing hints.
 - One canonical instruction file: AGENTS.md. Lowercase agent.md is deleted. package-lock.json is committed.
 - The local working copy at D:\AI-Projects\TrackCake is synchronized to origin/main and clean.
+
+---
+
+## 12. Critical clarification: main-only development and real feature porting
+
+**The only working and delivery branch is `main`.** Every agent must make application-code changes directly in the repository's `main` branch and commit/push those changes to `main` after verification.
+
+Mandatory rules:
+
+1. Start by fetching the latest `origin/main` and working on the local `main` branch. Confirm the branch before editing and before committing.
+2. Never create, switch to, or develop on a feature/fix/topic branch or a worktree. Never open a PR as a substitute for direct work on `main`, unless the user explicitly changes this instruction.
+3. If a requested feature or fix exists only in an old branch, inspect that branch remotely and selectively port the required source changes into the current `main` working tree. Do not check out that branch. Do not merge stale branch histories just to make their commits ancestors of `main`.
+4. **A merge commit, an ancestor relationship, or `ahead_by=0` is not proof that the feature code is present.** Verify the actual implementation in current `main` source files and tests, then run the relevant behavior tests.
+5. Never use `git merge -s ours` (or an equivalent strategy that discards the other side's code) to claim a feature was merged or ported. If a merge is necessary for an explicitly requested history operation, separately inspect and port every required code change.
+6. Before declaring a branch's work complete, create a feature-by-feature checklist: branch intent, files/commits containing the implementation, whether equivalent behavior exists in current `main`, exact code/tests ported, and verification result. Mark items as missing or unverified when evidence is incomplete.
+7. Keep all changes, commits, and pushes directly on `main`. If direct push is blocked by permissions/protection, stop and report the blocker; do not silently use another branch or PR.
+8. After each task, confirm the commit is on remote `main`, the working tree is clean, checks pass, and the deployment corresponds to that commit when deployment is part of the task.
+
+### Correction to the 2026-11-19 branch-consolidation record
+
+The earlier statement that the 12 stale branches' feature code was already represented in `main` was too strong. Their histories were connected to `main`, but the merge strategy preferred the existing `main` tree and the resulting source tree did not change. That history operation alone did **not** prove that the branch implementations were ported. Treat the branch feature inventory above as requiring a source-level audit and selective port into `main`; do not report those feature tasks complete solely because branch refs are ancestors of `main`.
