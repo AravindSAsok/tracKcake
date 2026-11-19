@@ -4,8 +4,8 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-19T15:58:15.437Z
-- Updated: 2026-11-19T16:00:37.480Z
-- Status: RUNNING
+- Updated: 2026-11-19T16:00:38.879Z
+- Status: COMPLETE
 - Catalogue checked: 2026-11-19T15:58:16.614Z
 - Progress: 11/11 entries; 11 successful; 0 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
