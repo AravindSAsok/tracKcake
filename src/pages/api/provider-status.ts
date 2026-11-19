@@ -10,6 +10,14 @@ const responseJson = (body: unknown, status = 200) => new Response(JSON.stringif
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
 
+// Only expose models that passed the latest end-to-end TrackCake benchmark (2026-11-18).
+// Provider catalogues remain dynamic: a model is shown only if it is still offered by its provider.
+const benchmarkPassedModels: Record<"groq" | "gemini" | "openrouter", Set<string>> = {
+  groq: new Set(["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]),
+  gemini: new Set(["gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite"]),
+  openrouter: new Set(["baidu/ernie-5.5-flash-preview:free", "particle-ai/particle-1:free", "nvidia/nemotron-3.5-super-vl:free"])
+};
+
 async function probe(
   provider: "groq" | "gemini" | "openrouter",
   key: string | undefined
@@ -71,7 +79,9 @@ async function probe(
       const rawId = model.id ?? model.name ?? "";
       const id = rawId.replace(/^models\//, "");
       return id ? { id, name: model.displayName || id } : null;
-    }).filter((model): model is { id: string; name: string } => Boolean(model));
+    }).filter((model): model is { id: string; name: string } => Boolean(model))
+      .filter((model) => benchmarkPassedModels[provider].has(model.id));
+    const verifiedIds = modelOptions.map((model) => model.id);
 
     const preferred = provider === "groq"
       ? ["llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"]
@@ -81,9 +91,10 @@ async function probe(
 
     return {
       provider, configured: true, ok: true, status: response.status,
-      latencyMs: Date.now() - started, modelCount: ids.length,
-      recommendedModels: [...new Set(preferred.filter((id) => id === "openrouter/free" || ids.includes(id)))].slice(0, 5),
-      sampleModels: ids.slice(0, 8),
+      latencyMs: Date.now() - started, modelCount: verifiedIds.length,
+      benchmarkTestedAt: "2026-11-18",
+      recommendedModels: [...new Set(preferred.filter((id) => verifiedIds.includes(id)))].slice(0, 5),
+      sampleModels: verifiedIds.slice(0, 8),
       models: modelOptions
     };
   } catch (error) {
