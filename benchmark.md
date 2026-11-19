@@ -4,10 +4,10 @@
 - Query: `milk coffee`
 - Target: https://trackcake.vercel.app
 - Started: 2026-11-19T15:58:15.437Z
-- Updated: 2026-11-19T15:58:36.904Z
+- Updated: 2026-11-19T15:58:46.719Z
 - Status: RUNNING
 - Catalogue checked: 2026-11-19T15:58:16.614Z
-- Progress: 4/11 entries; 4 successful; 0 failed/unavailable
+- Progress: 5/11 entries; 5 successful; 0 failed/unavailable
 - Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.
 - Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.
 - Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.
@@ -22,6 +22,7 @@
 | groq | openai/gpt-oss-20b | success | 2266 | — | No food items returned |  |
 | groq | openai/gpt-oss-120b | success | 3588 | — | No food items returned |  |
 | gemini | gemini-flash-lite-latest | success | 7987 | — | No food items returned |  |
+| gemini | gemini-3-flash-preview | success | 8314 | — | No food items returned |  |
 
 ## Review notes
 
