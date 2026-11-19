@@ -88,7 +88,7 @@ Nutrition values are estimates, not medical advice. Do not imply that estimates 
 Before editing:
 
 1. Read this guide and the relevant source files.
-2. Check the current branch and latest commit. Work on the requested branch; the production branch is `main`.
+2. Check the current branch and latest commit. Always work directly on `main`; do not switch to or create topic branches.
 3. Inspect the existing implementation and identify the actual cause of the issue.
 4. Trace affected data flow from UI to client logic to API/storage before changing contracts.
 5. Check for existing styles and helpers before adding new ones.
