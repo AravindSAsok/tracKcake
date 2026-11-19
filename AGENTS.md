@@ -400,3 +400,19 @@ The earlier statement that the 12 stale branches' feature code was already repre
 - Corrected `benchmark.md` to show 9/11 direct generation passes and explicitly document that nutrition output was not captured by the defective harness.
 - Before the next benchmark, fix `scripts/benchmark-models.mjs` to parse SSE `progress`, `complete`, and `error` events, and add strict-model mode so benchmark requests cannot silently fall back. Count a pass only when `complete.provider` and `complete.model` match the requested pair and a non-empty `items` array is returned.
 - Do not claim calorie/macro accuracy from this run; only generation availability was verified.
+
+### OpenRouter-only model smoke test — 2026-11-19
+
+- User-requested prompt: `apple`.
+- Scope: live OpenRouter free text-generation models only; no Groq/Gemini requests and no paid model IDs.
+- The benchmark discovers the live OpenRouter catalogue through the server-side provider-status endpoint and filters model IDs ending in `:free`.
+- A strict single-model option in `/api/estimate` prevents fallback to other OpenRouter models or other providers. Strict smoke tests skip nutrition research so this measures model generation + TrackCake JSON validation only.
+- The benchmark parser reads the endpoint's SSE events and counts a pass only when it receives a `complete` event with at least one valid item; HTTP 200 alone is not sufficient.
+- OpenRouter no-credit free-model daily allowance is limited, so each run is capped at 50 requests. This run discovered only 13 eligible free text models and tested all 13 once each, without retries.
+- Verified result: **6/13 passed**.
+  - Passed: `baidu/ernie-5.5-flash-preview:free`, `recursive/flint-v1.0:free`, `nvidia/nemotron-3.5-super-vl:free`, `cohere/north-mini-code:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`.
+  - Failed: `inclusionai/ling-3.2-flash:free` (provider error), `liquid/lfm-3-1.7b:free` (9-second request timeout), `particle-ai/particle-1:free` (provider error), `dots-studio/dots-3-note-preview:free` (9-second request timeout), `nvidia/nemotron-3.5-lightning:free` (empty response), `google/gemma-4-26b-a4b-it:free` (provider error), `google/gemma-4-31b-it:free` (provider error).
+- Benchmark report: `benchmark.md`; GitHub Actions run: https://github.com/AravindSAsok/tracKcake/actions/runs/44564110062 (completed successfully).
+- Files changed for this task: `src/pages/api/provider-status.ts` (opt-in full free text catalogue), `src/pages/api/estimate.ts` (strict single-model test mode), `scripts/benchmark-models.mjs` (OpenRouter-only apple test and SSE validation), `.github/workflows/benchmark-models.yml` (wait for deployment, run test, publish one final report).
+- Vercel production deployment for the tested code: commit `7800e015f15f75bcfcb1c4b5b92663a959aeac50`, deployment `dpl_EF6kkUXNqzaFEAJAa7ZN1hJ6Qbz6`, state READY. GitHub Astro build for that commit passed.
+- This is a smoke test of response availability and valid TrackCake output, not a nutrition accuracy benchmark. The allowlist used by the app was not broadened by this test.
