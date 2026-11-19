@@ -1,174 +1,138 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 
 const base = (process.env.TRACKCAKE_URL || "https://trackcake.vercel.app").replace(/\/$/, "");
-const query = "milk coffee"; // Fresh one-shot validation on 2026-11-19; keep identical to the previous run for comparison.
-const providers = ["groq", "gemini", "openrouter"];
+const query = "apple";
+const DAILY_FREE_REQUEST_CAP = 50;
 const rows = [];
 const startedAt = new Date().toISOString();
 const runId = process.env.GITHUB_RUN_ID || `local-${startedAt.replace(/[:.]/g, "-")}`;
 let catalogueCheckedAt = "unknown";
-let expectedCount = 0;
+let discoveredCount = 0;
 
 const esc = (value) => String(value ?? "").replace(/\|/g, "\\\\|").replace(/[\r\n]+/g, " ").trim();
-const summarize = (items) => {
-  if (!Array.isArray(items) || !items.length) return "No food items returned";
-  return items.map((item) => [
-    item.name,
-    item.amount,
-    `${item.calories} kcal`,
-    `P ${item.protein_g}g / C ${item.carbs_g}g / F ${item.fat_g}g`
-  ].join("; ")).join(" | ");
-};
 
-function git(args) {
-  execFileSync("git", args, { stdio: "inherit" });
-}
-
-// Persist locally, then commit and push before the runner is allowed to test another model.
-// A failed/ambiguous push is reconciled by fetching and rebasing; force-push is never used.
-async function saveAndPublish(status = "RUNNING") {
+async function saveReport(status = "RUNNING") {
   const successful = rows.filter((row) => row.status === "success").length;
-  const failed = rows.length - successful;
+  const failed = rows.filter((row) => row.status !== "success" && row.status !== "skipped_daily_limit").length;
+  const skipped = rows.filter((row) => row.status === "skipped_daily_limit").length;
   const table = rows.map((row) => [
-    row.provider, row.model, row.status, row.ms ?? "—",
-    row.totalCalories ?? "—", row.result ?? "—", row.error ?? ""
+    row.model, row.status, row.ms ?? "—", row.response ?? "—", row.error ?? ""
   ].map(esc));
   const body = table.map((cells) => `| ${cells.join(" | ")} |`).join("\n");
   const md = [
-    "# TrackCake AI Model Benchmark",
+    "# OpenRouter Free Model Smoke Test",
     "",
     `- Run ID: \`${runId}\``,
-    `- Query: \`${query}\``,
+    `- Prompt: \`${query}\``,
     `- Target: ${base}`,
     `- Started: ${startedAt}`,
     `- Updated: ${new Date().toISOString()}`,
     `- Status: ${status}`,
     `- Catalogue checked: ${catalogueCheckedAt}`,
-    `- Progress: ${rows.length}/${expectedCount} entries; ${successful} successful; ${failed} failed/unavailable`,
-    "- Protocol: exactly one POST to /api/estimate per distinct provider/model pair; sequential; no retries; no automatic provider fallback when a specific model is selected.",
-    "- Durability: each result is committed and pushed to main before the next model request. The workflow also uploads benchmark.md as an artifact on success or failure.",
-    "- Latency is end-to-end TrackCake latency and includes nutrition research after model generation; it is not raw model-only latency.",
-    "- Result fields preserve returned food names, portions, calories and macros. Accuracy requires comparison with a consistent nutrition reference.",
-    "- This single query is a smoke/quality comparison, not a universal model ranking.",
+    `- Discovered free text models: ${discoveredCount}`,
+    `- Tested: ${rows.length - skipped}; passed: ${successful}; failed: ${failed}; skipped by daily cap: ${skipped}`,
+    "- Scope: OpenRouter only; only model IDs ending in :free; one request per model; no retries; strict single-model mode prevents fallback to Groq/Gemini/another OpenRouter model.",
+    "- Pass criteria: TrackCake receives a complete non-empty SSE complete event containing at least one returned item. HTTP 200 alone is not a pass.",
+    "- Limit: at most 50 requests in this run to respect the no-credit free-model daily allowance. OpenRouter may count failed requests toward that allowance.",
     "",
     "## Results",
     "",
-    "| Provider | Model ID | Status | Latency (ms) | Total kcal | Returned items | Error / notes |",
-    "|---|---|---:|---:|---:|---|---|",
-    body || "| — | — | pending | — | — | No requests run | — |",
-    "",
-    "## Review notes",
-    "",
-    "Review whether the model correctly interprets 'milk coffee', chooses a plausible serving size, and returns plausible calories/macros. Compare like-for-like portions before ranking. A fast but nutritionally implausible response should not win.",
+    "| Model ID | Status | Latency (ms) | Response | Error |",
+    "|---|---:|---:|---|---|",
+    body || "| — | pending | — | No model requests run | — |",
     ""
   ].join("\n");
-
   await writeFile("benchmark.md", md, "utf8");
-  if (process.env.GITHUB_ACTIONS !== "true") return;
+}
 
-  git(["add", "benchmark.md"]);
-  try {
-    execFileSync("git", ["diff", "--cached", "--quiet"], { stdio: "ignore" });
-    return;
-  } catch {
-    // Staged report changed; create a durable commit.
-  }
-  git(["commit", "-m", `Benchmark progress ${rows.length}/${expectedCount} (${runId})`]);
-
-  let lastError;
-  for (let attempt = 1; attempt <= 5; attempt += 1) {
-    try {
-      git(["push", "origin", "HEAD:main"]);
-      console.log(`Persisted ${rows.length}/${expectedCount} entries to origin/main.`);
-      return;
-    } catch (error) {
-      lastError = error;
-      console.warn(`Push attempt ${attempt}/5 did not confirm. Fetching main and reconciling without force-push...`);
-      try {
-        git(["fetch", "origin", "main"]);
-        git(["rebase", "origin/main"]);
-      } catch (rebaseError) {
-        try { git(["rebase", "--abort"]); } catch {}
-        throw new Error(`Could not safely reconcile main; stopping before the next model. Local report remains in benchmark.md. ${String(rebaseError)}`);
-      }
+function parseSse(raw) {
+  const events = [];
+  for (const block of raw.split(/\r?\n\r?\n/)) {
+    let event = "message";
+    const data = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) data.push(line.slice(5).trim());
+    }
+    if (data.length) {
+      try { events.push({ event, data: JSON.parse(data.join("\n")) }); }
+      catch { events.push({ event, data: { error: "Invalid SSE JSON payload" } }); }
     }
   }
-  throw new Error(`Could not publish benchmark progress after 5 attempts; stopping before the next model. Local report remains in benchmark.md. ${String(lastError)}`);
+  return events;
 }
 
-const statusResponse = await fetch(`${base}/api/provider-status`, {
+const statusResponse = await fetch(`${base}/api/provider-status?includeAllOpenRouterFree=true`, {
   headers: { Accept: "application/json" },
-  signal: AbortSignal.timeout(20000)
+  signal: AbortSignal.timeout(30000)
 });
-const status = await statusResponse.json();
+const status = await statusResponse.json().catch(() => ({}));
 if (!statusResponse.ok) throw new Error(`Provider discovery failed: HTTP ${statusResponse.status}`);
 catalogueCheckedAt = status.checkedAt || new Date().toISOString();
-
-const models = [];
-const seen = new Set();
-for (const provider of providers) {
-  const entry = status.providers?.find((item) => item.provider === provider);
-  if (!entry?.configured || !entry.ok) {
-    rows.push({
-      provider, model: "(catalogue)", status: "provider_unavailable",
-      result: "No model requests sent", error: entry?.message || entry?.status || "Provider not configured"
-    });
-    continue;
-  }
-  for (const model of entry.models || []) {
-    if (!model.id) continue;
-    const key = `${provider}::${model.id}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    models.push({ provider, model: model.id });
-  }
+const openrouter = status.providers?.find((entry) => entry.provider === "openrouter");
+if (!openrouter?.configured || !openrouter.ok) {
+  throw new Error(`OpenRouter catalogue unavailable: ${openrouter?.message || openrouter?.status || "not configured"}`);
 }
-expectedCount = models.length + rows.length;
-await saveAndPublish();
-console.log(`Discovered ${models.length} distinct models across configured providers. Query: "${query}".`);
 
-for (let index = 0; index < models.length; index += 1) {
-  const { provider, model } = models[index];
+const models = [...new Set((openrouter.models || [])
+  .map((model) => model.id)
+  .filter((id) => typeof id === "string" && id.endsWith(":free")))];
+discoveredCount = models.length;
+if (!models.length) throw new Error("No OpenRouter :free text models were returned by the live catalogue.");
+
+const toTest = models.slice(0, DAILY_FREE_REQUEST_CAP);
+for (const model of models.slice(DAILY_FREE_REQUEST_CAP)) {
+  rows.push({ model, status: "skipped_daily_limit", response: "Not requested", error: "50-request free daily cap for this run" });
+}
+await saveReport();
+console.log(`Discovered ${models.length} OpenRouter free text models; testing ${toTest.length} with the prompt "${query}".`);
+
+for (let index = 0; index < toTest.length; index += 1) {
+  const model = toTest[index];
   const started = performance.now();
   let row;
   try {
     const response = await fetch(`${base}/api/estimate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ description: query, provider, model }),
+      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify({ description: query, provider: "openrouter", model, strictModel: true }),
       signal: AbortSignal.timeout(75000)
     });
-    const data = await response.json().catch(() => ({}));
+    const raw = await response.text();
+    const events = parseSse(raw);
+    const complete = events.find((entry) => entry.event === "complete");
+    const failure = events.find((entry) => entry.event === "error");
     const ms = Math.round(performance.now() - started);
-    if (response.ok) {
+    if (response.ok && Array.isArray(complete?.data?.items) && complete.data.items.length > 0) {
+      const items = complete.data.items;
       row = {
-        provider, model, status: "success", ms,
-        totalCalories: data.total_calories ?? "—",
-        result: summarize(data.items),
+        model, status: "success", ms,
+        response: items.map((item) => item.name || "unnamed").join(", ").slice(0, 240),
         error: ""
       };
     } else {
       row = {
-        provider, model,
-        status: response.status === 429 ? "rate_limited" : "error",
-        ms, result: "—",
-        error: data.detail || data.error || `HTTP ${response.status}`
+        model,
+        status: response.status === 429 ? "rate_limited" : "failed",
+        ms, response: "No complete result",
+        error: String(failure?.data?.detail || failure?.data?.error || `HTTP ${response.status}; no valid complete event`).slice(0, 500)
       };
     }
   } catch (error) {
     row = {
-      provider, model, status: "request_error",
-      ms: Math.round(performance.now() - started), result: "—",
+      model, status: "request_error",
+      ms: Math.round(performance.now() - started),
+      response: "No complete result",
       error: error instanceof Error ? error.message : String(error)
     };
   }
   rows.push(row);
-  await saveAndPublish();
-  console.log(`[${index + 1}/${models.length}] ${provider}/${model} ${row.status} ${row.ms}ms`);
+  await saveReport();
+  console.log(`[${index + 1}/${toTest.length}] ${model} ${row.status} ${row.ms}ms`);
 }
 
-await saveAndPublish("COMPLETE");
-const successCount = rows.filter((row) => row.status === "success").length;
-console.log(`Benchmark complete: ${rows.length} entries, ${successCount} successful, ${rows.length - successCount} failed/unavailable.`);
+await saveReport("COMPLETE");
+const successful = rows.filter((row) => row.status === "success").length;
+const tested = rows.length - rows.filter((row) => row.status === "skipped_daily_limit").length;
+console.log(`OpenRouter test complete: ${successful}/${tested} passed; ${discoveredCount} free text models discovered.`);
