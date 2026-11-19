@@ -16,7 +16,7 @@ concurrency:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 120
     steps:
       - name: Check out main
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -34,10 +34,37 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Run benchmark; publish every result before continuing
+      - name: Wait for the updated Vercel API to expose the full free-model catalogue
+        env:
+          TRACKCAKE_URL: https://trackcake.vercel.app
+        run: |
+          for attempt in $(seq 1 90); do
+            count=$(curl -fsS "$TRACKCAKE_URL/api/provider-status?includeAllOpenRouterFree=true" | jq -r '.providers[] | select(.provider=="openrouter") | .modelCount' 2>/dev/null || echo 0)
+            if [ "${count:-0}" -gt 2 ]; then
+              echo "Updated API is live with $count OpenRouter free models."
+              exit 0
+            fi
+            echo "Waiting for Vercel deployment ($attempt/90)..."
+            sleep 10
+          done
+          echo "Updated Vercel API did not become ready in 15 minutes."
+          exit 1
+
+      - name: Test OpenRouter models one by one
         env:
           TRACKCAKE_URL: https://trackcake.vercel.app
         run: node scripts/benchmark-models.mjs
+
+      - name: Publish final report once
+        if: always()
+        run: |
+          if [ -f benchmark.md ]; then
+            git add benchmark.md
+            if ! git diff --cached --quiet; then
+              git commit -m "Publish OpenRouter model smoke-test results"
+              git push origin HEAD:main
+            fi
+          fi
 
       - name: Preserve latest report as a workflow artifact even on failure
         if: always()
