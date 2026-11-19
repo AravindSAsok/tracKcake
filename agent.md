@@ -234,7 +234,7 @@ This section is the shared continuation record for all coding agents. Update it 
 
 ### Branch inventory from GitHub audit
 
-At audit time there were 14 branches total (main + 13 topic branches), and zero open pull requests.
+At audit time there were 15 branches total (main + 14 topic branches), and zero open pull requests.
 
 | Branch | Commits ahead of main | Files changed vs merge base | Audit note |
 |---|---:|---|---|
@@ -261,7 +261,7 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 - [x] Enumerated all remote branches.
 - [x] Confirmed there are no open PRs.
 - [x] Confirmed lowercase `agent.md` exists; uppercase `AGENTS.md` did not exist at audit start.
-- [ ] Add uppercase `AGENTS.md` entry point and keep this detailed guide as the source of truth.
+- [x] Add uppercase `AGENTS.md` entry point and keep this detailed guide as the source of truth.
 - [ ] Review each stale branch's remaining unique behavior against current main.
 - [ ] Merge or selectively port only verified missing work; do not merge overlapping stale branches as-is.
 - [ ] Run `npm ci`, `npm run check`, and `npm run build` on final main.
@@ -278,3 +278,15 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 6. Do not expose credentials or use production user data for tests.
 7. Record each phase, exact files, checks, commit SHA, deployment ID/status, and remaining blockers here and in the completion report.
 8. Do not mark a task complete unless the corresponding behavior was actually tested.
+
+
+### Merge review update — 2026-11-19
+
+- Created `AGENTS.md` on `main` as the required entry point for all agents; it directs agents to this detailed guide.
+- Updated this `agent.md` with the branch inventory and handoff.
+- A targeted content comparison confirmed that `docs/auth-email-delivery.md` on the SMTP documentation branch is byte-identical to the copy already on `main`; no merge is needed for that file.
+- The nutrition research and Android wrapper branches are already ancestors of main (zero commits ahead).
+- Remaining topic branches are stale/diverged and their changed files overlap current account, diary, storage, pagination, styling, and Android code. A file-hash check confirmed several branch snapshots differ from current main. Their changes have **not** been merged in this pass because a blind merge could regress newer code or overwrite later fixes.
+- No branch was force-pushed or deleted. No open PRs were present at audit start.
+- Code/test/build/deployment verification has not been run in this documentation-only pass.
+- Next agent must compare each remaining branch's intended behavior against current main and selectively port only missing behavior, then run checks/build and production smoke tests.
