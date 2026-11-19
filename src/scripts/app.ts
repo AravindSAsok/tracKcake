@@ -831,8 +831,8 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       let completed: (EstimateResponse & { provider?: string; model?: string }) | null = null;
       let streamError = "";
       const handleEvent = (block: string) => {
-        const event = block.split("\\n").find((line) => line.startsWith("event:"))?.slice(6).trim();
-        const dataLine = block.split("\\n").find((line) => line.startsWith("data:"))?.slice(5).trim();
+        const event = block.split("\n").find((line) => line.startsWith("event:"))?.slice(6).trim();
+        const dataLine = block.split("\n").find((line) => line.startsWith("data:"))?.slice(5).trim();
         if (!dataLine) return;
         const data = JSON.parse(dataLine) as Record<string, unknown>;
         const status = document.getElementById("quick-model-status");
@@ -844,7 +844,7 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
         while (true) {
           const { value, done } = await reader.read();
           buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-          const blocks = buffer.split("\\n\\n");
+          const blocks = buffer.split("\n\n");
           buffer = blocks.pop() || "";
           for (const block of blocks) handleEvent(block);
           if (done) break;
