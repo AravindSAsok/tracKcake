@@ -158,18 +158,28 @@ function nutrientValue(food: any, id: number, name: RegExp): number | null {
 }
 
 function matchScore(item: NutritionItem, candidate: any, context: string): number {
+  const requestedText = item.name + " " + context;
+  const candidateText = String(candidate.description);
   const wanted = normalise(item.name).split(" ").filter((part) => part.length > 2);
-  const found = normalise(candidate.description).split(" ");
+  const found = normalise(candidateText).split(" ");
   if (!wanted.length || !found.length) return 0;
   const overlap = wanted.filter((part) => found.includes(part)).length / wanted.length;
-  const rawRequested = /\braw\b/i.test(item.name + " " + context);
-  const cookedCandidate = /\b(cooked|boiled|roasted|fried|baked)\b/i.test(String(candidate.description));
-  const rawCandidate = /\braw\b/i.test(String(candidate.description));
+  const rawRequested = /\braw\b/i.test(requestedText);
+  const cookedCandidate = /\b(cooked|boiled|roasted|fried|baked|steamed|grilled)\b/i.test(candidateText);
+  const rawCandidate = /\braw\b/i.test(candidateText);
   let score = overlap;
   if (rawRequested && rawCandidate) score += 0.15;
   if (rawRequested && cookedCandidate) score -= 0.25;
-  if (/\bjuice\b/i.test(item.name) && !/\bjuice\b/i.test(String(candidate.description))) score -= 0.4;
-  if (!/\bjuice\b/i.test(item.name) && /\bjuice\b/i.test(String(candidate.description))) score -= 0.2;
+  if (/\bjuice\b/i.test(item.name) && !/\bjuice\b/i.test(candidateText)) score -= 0.4;
+  if (!/\bjuice\b/i.test(item.name) && /\bjuice\b/i.test(candidateText)) score -= 0.2;
+
+  const produceRequested = /\b(apple|apples|banana|bananas|orange|oranges|mango|mangoes|grape|grapes|strawberry|strawberries|blueberry|blueberries|raspberry|raspberries|pear|pears|peach|peaches|plum|plums|pineapple|watermelon|papaya|guava|kiwi|cucumber|tomato|tomatoes|carrot|carrots|potato|potatoes|onion|onions|spinach|broccoli|cauliflower|lettuce|cabbage|avocado|eggplant|brinjal|beetroot|okra|peas|corn)\b/i.test(requestedText);
+  const preparationRequested = /\b(raw|fresh|cooked|boiled|roasted|fried|baked|steamed|grilled|dried|dehydrated|powder|chips|juice|nectar|pudding|canned|frozen)\b/i.test(requestedText);
+  if (produceRequested && !preparationRequested) {
+    if (/\b(dehydrated|dried|powder|chips|nectar|pudding|candied|candy|preserves|syrup)\b/i.test(candidateText)) score -= 0.45;
+    else if (cookedCandidate) score -= 0.25;
+    else if (rawCandidate) score += 0.1;
+  }
   return score;
 }
 
@@ -326,4 +336,3 @@ export async function researchNutrition(
     };
   }));
 }
-

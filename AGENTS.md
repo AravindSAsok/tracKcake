@@ -1,4 +1,4 @@
-# TrackCake — AGENT INSTRUCTIONS (single source of truth)
+# TrackCake â€” AGENT INSTRUCTIONS (single source of truth)
 
 **This is the only agent instruction file.** All AI coding agents and human contributors must read this entire AGENTS.md before making changes. Do not create another agent.md, agents.md, or duplicate agent guide.
 
@@ -126,10 +126,10 @@ After committing:
 ## 5. Responsive UI standards
 
 Design for these viewport ranges:
-- 320â€“360px: compact phones.
-- 375â€“430px: standard phones.
-- 431â€“680px: large phones and narrow landscape layouts.
-- 681â€“1024px: tablets.
+- 320Ã¢â‚¬â€œ360px: compact phones.
+- 375Ã¢â‚¬â€œ430px: standard phones.
+- 431Ã¢â‚¬â€œ680px: large phones and narrow landscape layouts.
+- 681Ã¢â‚¬â€œ1024px: tablets.
 - 1025px and above: laptops and desktops.
 
 Rules:
@@ -224,7 +224,7 @@ Accuracy is more important than a green-looking report. Never claim a feature, t
 
 ---
 
-## 11. Verified project handoff â€” 2026-11-19
+## 11. Verified project handoff Ã¢â‚¬â€ 2026-11-19
 
 This section is the shared continuation record for all coding agents. Update it whenever work is completed, deployed, or blocked.
 
@@ -281,8 +281,8 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 - [x] Review all 12 stale topic branches against current main using Git merges with the ours conflict preference; no resulting source-tree changes remained versus the audited main tree.
 - [x] Merge all 14 topic branch histories into main; two were already ancestors and the other 12 now have merge commits. Main source tree remained unchanged by these merges, confirming the feature code was already present in main.
 - [x] npm ci completed with package-lock.json under Node 22.23.4.
-- [ ] Verify the new Vercel production deployment and complete production smoke tests (manual add/edit/delete, history, auth/recovery, nutrition lookup, Calkie).
-- [ ] Confirm production USDA_FDC_API_KEY configuration and test USDA lookup without relying on DEMO_KEY.
+- [ ] Verify the new Vercel deployment after the nutrition matching fix; complete signed-in auth/recovery and production smoke tests.
+- [ ] Confirm production USDA_FDC_API_KEY configuration and verify nutrition matching after the latest fix.
 
 ### Instructions for the next agent
 
@@ -296,12 +296,12 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 8. Do not mark a task complete unless the corresponding behavior was actually tested.
 
 
-### Merge review update — 2026-11-19
+### Merge review update â€” 2026-11-19
 
 - All 14 topic branch histories were merged into main; two were already ancestors and 12 merge commits were created.
 - The merged tree is identical to the original main tree; branch code was already represented in current main.
 - One canonical instruction file remains: AGENTS.md. The lowercase agent.md file was removed.
-### Consolidation execution update — 2026-11-19
+### Consolidation execution update â€” 2026-11-19
 
 - Working copy: D:\AI-Projects\TrackCake, checked out on main.
 - All 14 remote topic branch histories were merged into local main. Twelve merge commits were created; feat/nutrition-research-lookup and feature/trackcake-android-wrapper-ui were already ancestors.
@@ -312,7 +312,7 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 - Final check/build, Vercel deployment verification, and authenticated browser smoke tests are pending and must be recorded below after they run.
 
 
-### Verification results — 2026-11-19
+### Verification results â€” 2026-11-19
 
 - Runtime used: Node v22.23.4 (matches the project engine).
 - npm ci: PASS; 457 packages installed from the newly generated lockfile.
@@ -320,3 +320,17 @@ Important: branch "ahead" counts are commits not reachable from main, not proof 
 - npm run build: PASS; Astro server and Vercel output generated successfully.
 - Dependency audit during install: 11 findings (1 low, 3 moderate, 6 high, 1 critical). No automatic force-fix applied.
 - Not yet verified: production Vercel deployment after this main push; signed-in browser workflows for signup/sign-in/password recovery, food add/edit/delete, history pagination, and live USDA/AI nutrition lookup. These require production/browser access and a test account; do not mark them complete based on build success alone.
+### Production smoke-test findings and nutrition correction — 2026-11-19
+
+- An isolated headless Chrome profile was used against https://trackcake.vercel.app. No existing account was used and no real user data was entered.
+- Guest manual food add: PASS. A unique QA item appeared in today's timeline and food history.
+- Guest edit: PASS. The QA item name, portion, and calories updated in local storage and the history UI.
+- Guest delete: PASS. The app displayed "Food entry deleted"; the QA item was removed from local storage, today's timeline, and history. No QA item remains.
+- Account UI: sign-up, sign-in, and forgot-password modes rendered and toggled. Actual signup/sign-in, verification email, and password-reset email delivery were NOT tested because no test inbox/account was connected.
+- History: one-entry history rendering and navigation controls were visible; multi-page pagination is not yet verified.
+- Provider status endpoint: PASS (HTTP 200); Groq, Gemini, and OpenRouter all reported configured and reachable.
+- Nutrition lookup quality test initially FAILED: "1 medium banana (about 118 g)" was matched to "Bananas, dehydrated, or banana powder" (408 kcal). The USDA search returned both raw and processed banana candidates with equal token-overlap scores; the first result won.
+- Targeted correction made in src/lib/nutrition-research.ts: when the requested item is fresh produce and no preparation is specified, score down dehydrated/dried/powder/chips/nectar/pudding and cooked variants, and favor raw matches.
+- Post-fix npm run check: PASS (0 errors, 0 warnings, 2 hints). Post-fix npm run build: PASS under Node 22.23.4.
+- The nutrition fix has not yet been pushed/deployed or verified against production. Retest the banana example and ensure the returned USDA description is a raw banana entry with a sensible calorie value before marking nutrition lookup complete.
+- TinyFish browser automation could not start because its separate wallet balance was negative. Local isolated Chrome/CDP was used instead.
