@@ -88,7 +88,10 @@ if (providerSelect && modelSelect) {
   const initialPreference = readModelPreference();
   providerSelect.value = initialPreference.provider;
   providerSelect.addEventListener("change", () => {
-    saveModelPreference();
+    localStorage.setItem(MODEL_PREFERENCE_KEY, JSON.stringify({
+      provider: providerSelect.value || "auto",
+      model: ""
+    }));
     void loadModels();
   });
   modelSelect.addEventListener("change", saveModelPreference);
