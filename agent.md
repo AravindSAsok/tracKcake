@@ -204,3 +204,77 @@ Every completed task should report:
 - Deployment URL and terminal status, if deployment was requested.
 
 Accuracy is more important than a green-looking report. Never claim a feature, test, commit, or deployment succeeded unless the corresponding result was observed.
+
+
+---
+
+## 11. Verified project handoff — 2026-11-19
+
+This section is the shared continuation record for all coding agents. Update it whenever work is completed, deployed, or blocked.
+
+### Current verified repository state
+
+- Repository: `AravindSAsok/tracKcake`
+- Production branch: `main`
+- Main HEAD at audit start: `fcb81d2bedc944a4fe10d538c875f2120d3d93c8`
+- Production URL: https://trackcake.vercel.app
+- Framework: Astro 5 + TypeScript; Vercel server deployment.
+- Data/auth: Supabase Auth + PostgreSQL + RLS; local browser-storage fallback.
+- AI providers: Groq, Gemini, OpenRouter.
+- Nutrition sources: Open Food Facts and USDA FoodData Central; optional Gemini Google Search grounding, disabled by default.
+- Existing full contributor/architecture rules remain in this file. Read this file before touching application behavior.
+
+### Work previously reported (historical; not freshly re-tested in this audit)
+
+- Nutrition research lookup was implemented and locally checked on branch `feat/nutrition-research-lookup`, commit `84c6b84f3f3195641d21d537f8f703ab000339b1`. The branch is now an ancestor of `main` (zero commits ahead), so this work is already represented in main's history.
+- Earlier local verification was reported as `npm run check` and `npm run build` passing for that feature. Do not treat this as a fresh verification of current main.
+- An earlier Vercel preview deployment for that work was reported failed with inaccessible logs. Re-check Vercel before making any current deployment claim.
+- Production environment still needs confirmation for `USDA_FDC_API_KEY`; without it the app uses USDA's limited public DEMO_KEY.
+- Gemini Google Search grounding must remain disabled unless explicitly enabled after reviewing current provider pricing/limits.
+
+### Branch inventory from GitHub audit
+
+At audit time there were 14 branches total (main + 13 topic branches), and zero open pull requests.
+
+| Branch | Commits ahead of main | Files changed vs merge base | Audit note |
+|---|---:|---|---|
+| `docs/configure-trackcake-auth-smtp` | 1 | `docs/auth-email-delivery.md` (new) | Documentation-only; candidate for safe merge after PR check. |
+| `feat/account-recovery-auth-feedback` | 6 | `src/pages/index.astro`, `src/scripts/ai-account.ts`, `src/styles/global.css` | Stale/diverged; overlaps account UI. Review before merge. |
+| `feat/edit-delete-todays-food` | 2 | `src/scripts/app.ts`, `src/styles/global.css` | Stale/diverged; overlaps diary UI. |
+| `feat/food-row-action-menu` | 3 | `src/pages/index.astro`, `src/scripts/app.ts`, `src/styles/global.css` | Stale/diverged; overlaps diary UI and another UX branch. |
+| `feat/in-session-password-reset` | 4 | `src/pages/index.astro`, `src/scripts/ai-account.ts`, `src/styles/global.css` | Stale/diverged; overlaps account UI. |
+| `feat/nutrition-research-lookup` | 0 | none | Already ancestor of main; no merge needed. |
+| `feature/trackcake-android-wrapper-ui` | 0 | none | Already ancestor of main; no merge needed. |
+| `fix/android-webview-camera-file-chooser` | 5 | Android workflow/build/manifest/MainActivity/file paths | Stale/diverged; Android-specific; verify against current Android project before merge. |
+| `fix/complete-password-reset-flow` | 2 | `src/scripts/ai-account.ts` | Stale/diverged; overlaps password recovery branches. |
+| `fix/food-entry-preservation-and-smart-meals` | 7 | `src/lib/store.ts`, `src/pages/index.astro`, `src/scripts/app.ts`, `src/styles/global.css` | Stale/diverged; high-risk data/storage and diary overlap. |
+| `fix/food-history-10-per-page` | 2 | `src/lib/store.ts`, `src/scripts/app.ts` | Stale/diverged; overlaps history pagination. |
+| `fix/food-history-pagination` | 2 | `src/lib/store.ts` | Stale/diverged; overlaps history/storage. |
+| `fix/password-reset-rate-limit-feedback` | 1 | `src/scripts/ai-account.ts` | Stale/diverged; overlaps password recovery branches. |
+| `ux/todays-food-row-actions-menu` | 1 | `src/pages/index.astro` | Stale/diverged; overlaps food-row action UI. |
+
+Important: branch "ahead" counts are commits not reachable from main, not proof that the user-visible behavior is absent from main. The branches are based on older histories (main is hundreds of commits ahead of their merge bases). Do not merge stale branches blindly or force-update/delete them. Compare their intent and code with current main first; preserve useful changes by selectively porting only what is still missing.
+
+### Current task status (2026-11-19)
+
+- [x] Confirmed current main branch and HEAD.
+- [x] Enumerated all remote branches.
+- [x] Confirmed there are no open PRs.
+- [x] Confirmed lowercase `agent.md` exists; uppercase `AGENTS.md` did not exist at audit start.
+- [ ] Add uppercase `AGENTS.md` entry point and keep this detailed guide as the source of truth.
+- [ ] Review each stale branch's remaining unique behavior against current main.
+- [ ] Merge or selectively port only verified missing work; do not merge overlapping stale branches as-is.
+- [ ] Run `npm ci`, `npm run check`, and `npm run build` on final main.
+- [ ] Verify Vercel deployment and production smoke tests (manual add/edit/delete, history, auth/recovery, nutrition lookup, Calkie).
+- [ ] Confirm production `USDA_FDC_API_KEY` configuration and test USDA lookup without relying on DEMO_KEY.
+
+### Instructions for the next agent
+
+1. Read `AGENTS.md` and this `agent.md` completely before changing code.
+2. Start from latest `main`; never assume an old topic branch is current.
+3. Review current source and tests before porting any branch work.
+4. Prioritize data integrity, Supabase RLS/auth, and preserving existing food diary entries.
+5. Keep Google Search grounding off by default.
+6. Do not expose credentials or use production user data for tests.
+7. Record each phase, exact files, checks, commit SHA, deployment ID/status, and remaining blockers here and in the completion report.
+8. Do not mark a task complete unless the corresponding behavior was actually tested.
