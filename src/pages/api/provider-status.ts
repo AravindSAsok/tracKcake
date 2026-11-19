@@ -20,7 +20,8 @@ const benchmarkPassedModels: Record<"groq" | "gemini" | "openrouter", Set<string
 
 async function probe(
   provider: "groq" | "gemini" | "openrouter",
-  key: string | undefined
+  key: string | undefined,
+  includeAllOpenRouterFree = false
 ) {
   if (!key) return { provider, configured: false, ok: false, status: "missing_key", modelCount: 0, models: [] as Array<{ id: string; name: string }> };
 
@@ -28,7 +29,9 @@ async function probe(
   const endpoint = provider === "groq"
     ? "https://api.groq.com/openai/v1/models"
     : provider === "openrouter"
-      ? "https://openrouter.ai/api/v1/models/user?output_modalities=text&endpoints=%2Fapi%2Fv1%2Fchat%2Fcompletions"
+      ? includeAllOpenRouterFree
+        ? "https://openrouter.ai/api/v1/models?output_modalities=text"
+        : "https://openrouter.ai/api/v1/models/user?output_modalities=text&endpoints=%2Fapi%2Fv1%2Fchat%2Fcompletions"
       : "https://generativelanguage.googleapis.com/v1beta/models";
 
   try {
@@ -68,7 +71,9 @@ async function probe(
           (!model.supportedGenerationMethods || model.supportedGenerationMethods.includes("generateContent")) &&
           !/(2[.]5|3[.]8|tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
       }
-      return Boolean(model.id) && !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(id));
+      return Boolean(model.id) &&
+        !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(id)) &&
+        (!includeAllOpenRouterFree || id.endsWith(":free"));
     });
     const ids = records.map((model) => {
       const id = model.id ?? model.name ?? "";
@@ -80,7 +85,9 @@ async function probe(
       const id = rawId.replace(/^models\//, "");
       return id ? { id, name: model.displayName || id } : null;
     }).filter((model): model is { id: string; name: string } => Boolean(model))
-      .filter((model) => benchmarkPassedModels[provider].has(model.id));
+      .filter((model) => includeAllOpenRouterFree && provider === "openrouter"
+        ? model.id.endsWith(":free")
+        : benchmarkPassedModels[provider].has(model.id));
     const verifiedIds = modelOptions.map((model) => model.id);
 
     const preferred = provider === "groq"
@@ -107,11 +114,12 @@ async function probe(
   }
 }
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
+  const includeAllOpenRouterFree = new URL(request.url).searchParams.get("includeAllOpenRouterFree") === "true";
   const results = await Promise.all([
     probe("groq", process.env.GROQ_API_KEY?.trim()),
     probe("gemini", process.env.GEMINI_API_KEY?.trim()),
-    probe("openrouter", process.env.OPENROUTER_API_KEY?.trim())
+    probe("openrouter", process.env.OPENROUTER_API_KEY?.trim(), includeAllOpenRouterFree)
   ]);
   const passed = results.filter((result) => result.ok).length;
   return responseJson({
