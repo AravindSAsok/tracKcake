@@ -192,7 +192,8 @@ async function fetchModelIds(provider: Provider, apiKey: string): Promise<string
 async function buildAttempts(
   description: string,
   requestedProvider: Provider | "auto",
-  requestedModel?: string
+  requestedModel?: string,
+  strictModel = false
 ): Promise<ModelAttempt[]> {
   const prompt = promptFor(description);
   const keys: Partial<Record<Provider, string>> = {
@@ -224,6 +225,7 @@ async function buildAttempts(
   // A user's saved model is always tried first, but a failure no longer locks
   // the request to that one provider.
   if (requestedModel && requestedProvider !== "auto") add(requestedProvider, requestedModel);
+  if (strictModel && requestedModel && requestedProvider !== "auto") return attempts;
   if (requestedProvider === "gemini" || requestedProvider === "auto") add("gemini", defaults.gemini);
   if (requestedProvider === "groq") add("groq", defaults.groq);
   if (requestedProvider === "openrouter") add("openrouter", defaults.openrouter);
@@ -254,8 +256,9 @@ export const POST: APIRoute = async ({ request }) => {
   let description: string;
   let providerChoice: Provider | "auto" = "auto";
   let modelChoice: string | undefined;
+  let strictModel = false;
   try {
-    const body = await request.json() as { description?: unknown; provider?: unknown; model?: unknown };
+    const body = await request.json() as { description?: unknown; provider?: unknown; model?: unknown; strictModel?: unknown };
     description = typeof body.description === "string" ? body.description.trim() : "";
     const requested = body.provider ?? "auto";
     if (body.model !== undefined && body.model !== null && body.model !== "") {
@@ -275,6 +278,7 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ error: "Choose auto, groq, gemini or openrouter." }, 400);
     }
     providerChoice = requested as Provider | "auto";
+    strictModel = body.strictModel === true && providerChoice === "openrouter" && Boolean(modelChoice);
   } catch {
     return json({ error: "Please enter a food description." }, 400);
   }
@@ -296,7 +300,7 @@ export const POST: APIRoute = async ({ request }) => {
                   : process.env.OPENROUTER_API_KEY?.trim()
             ));
           if (!configured.length) throw new Error("No AI provider keys are configured in Vercel.");
-          const attempts = await buildAttempts(description, providerChoice, modelChoice);
+          const attempts = await buildAttempts(description, providerChoice, modelChoice, strictModel);
           if (!attempts.length) throw new Error("No models are available for the configured API keys.");
 
           const failures: string[] = [];
