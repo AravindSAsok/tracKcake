@@ -384,3 +384,17 @@ Final report must include:
 - The linked development laptop is offline. No manual UI interaction, provider API request, authenticated diary save, or Firecrawl request was performed during this release.
 - Current limitation: the builder stores one aggregate recipe diary entry and displays ingredient provenance during calculation, but it does not persist a structured ingredient list to the database. The catalogue remains empty pending a trusted curation/admin workflow.
 - Status: basic user-facing ingredient recipe builder released and CI/deployment verified; Nutrition Engine V2 remains partially complete.
+
+
+---
+
+## Structured HTML and JSON-LD extraction closeout — 2026-11-20
+
+- Added deterministic extraction from Schema.org JSON-LD NutritionInformation objects, including servingSize and the four core nutrients. Optional supported nutrients are retained.
+- Added HTML table normalization with explicit row boundaries. Labelled cells are passed to the same strict unit and serving-basis parser as Markdown/text sources.
+- Incomplete JSON-LD candidates are ignored; complete conflicting candidates are rejected rather than silently selecting or averaging values.
+- Added three regression tests covering JSON-LD extraction, HTML table extraction, and incomplete/conflicting JSON-LD.
+- Code commit: 8baff130641ea29338a014f18983d292e73ff417.
+- GitHub Actions run #256: SUCCESS: 16 tests passed, Astro/TypeScript check passed (0 errors, 0 warnings; 2 existing hints), production build passed.
+- Vercel Production deployment dpl_2K4N6DFtZxzj7EXb4mRX1v3AtQqB is READY from the exact code commit; production aliases verified.
+- Manual authenticated source-review and diary-save testing remains outstanding. Firecrawl was not invoked and no diary data was modified.
