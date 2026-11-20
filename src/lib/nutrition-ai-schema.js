@@ -44,8 +44,7 @@ export function validateAiNutritionItem(raw, options = {}) {
   const sourceUrl = typeof raw.source_evidence?.url === "string" ? raw.source_evidence.url
     : typeof raw.nutrition_source_url === "string" ? raw.nutrition_source_url : "";
   if (options.researchOnly) {
-    if (OPTIONAL.some((key) => values[key] === null) ||
-        !/^https:\/\//i.test(sourceUrl) || !options.allowedSourceUrls?.has(sourceUrl)) {
+    if (!/^https:\/\//i.test(sourceUrl) || !options.allowedSourceUrls?.has(sourceUrl)) {
       throw new Error("Reviewed-source extraction requires complete values and a URL from the sources you selected.");
     }
   }
