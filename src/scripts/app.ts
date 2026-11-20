@@ -1,3 +1,4 @@
+import { aggregateIngredientEstimates, parseExplicitQuantity } from "../lib/nutrition-engine.js";
 import {
   addEntry,
   DEFAULT_CALORIE_GOAL,
@@ -29,6 +30,12 @@ type WebResearchSource = { title: string; url: string; content: string; facts?: 
 type WebResearchResponse = { food?: string; sources?: WebResearchSource[]; error?: string };
 
 type EstimateResponse = { items?: DraftItem[]; error?: string };
+type RecipeIngredientResult = {
+  name: string; amount: number; unit: "g" | "ml";
+  values: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+  source: string; sourceUrl: string; originalLine: string;
+};
+type RecipeEstimateResponse = EstimateResponse & { provider?: string; model?: string };
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -48,6 +55,10 @@ const entryDialog = byId<HTMLDialogElement>("entry-dialog");
 const entryForm = byId<HTMLFormElement>("entry-form");
 const reviewDialog = byId<HTMLDialogElement>("review-dialog");
 const reviewForm = byId<HTMLFormElement>("review-form");
+const recipeBuilderDialog = byId<HTMLDialogElement>("recipe-builder-dialog");
+const recipeBuilderForm = byId<HTMLFormElement>("recipe-builder-form");
+let recipeIngredientResults: RecipeIngredientResult[] = [];
+let recipeDraft: DraftItem | null = null;
 const webResearchDialog = byId<HTMLDialogElement>("web-research-dialog");
 let liveResearchSources: WebResearchSource[] = [];
 let liveResearchFood = "";
@@ -980,6 +991,107 @@ async function structureLiveResearch(): Promise<void> {
   }
 }
 
+
+async function requestRecipeIngredientEstimate(description: string): Promise<DraftItem> {
+  const response = await fetch("/api/estimate", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({description,provider:byId<HTMLSelectElement>("quick-provider").value||"auto",
+      model:byId<HTMLSelectElement>("quick-model").value||undefined})
+  });
+  let payload: RecipeEstimateResponse;
+  if (response.headers.get("content-type")?.includes("text/event-stream") && response.body) {
+    const reader=response.body.getReader(), decoder=new TextDecoder();
+    let buffer="", completed:RecipeEstimateResponse|null=null, streamError="";
+    const handle=(block:string)=>{
+      const event=block.split("\n").find(line=>line.startsWith("event:"))?.slice(6).trim();
+      const dataLine=block.split("\n").find(line=>line.startsWith("data:"))?.slice(5).trim();
+      if(!dataLine)return;
+      const data=JSON.parse(dataLine) as RecipeEstimateResponse;
+      if(event==="complete")completed=data;
+      if(event==="error")streamError=data.error||"Ingredient estimate failed.";
+    };
+    try {
+      while(true) {
+        const {value,done}=await reader.read();
+        buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});
+        const blocks=buffer.split("\n\n"); buffer=blocks.pop()||"";
+        blocks.forEach(handle); if(done)break;
+      }
+      if(buffer.trim())handle(buffer);
+    } finally { reader.releaseLock(); }
+    if(streamError)throw new Error(streamError);
+    if(!completed)throw new Error("Ingredient estimate ended before a result was returned.");
+    payload=completed;
+  } else {
+    payload=await response.json() as RecipeEstimateResponse;
+    if(!response.ok)throw new Error(payload.error||"Ingredient estimate failed.");
+  }
+  if(!response.ok)throw new Error(payload.error||"Ingredient estimate failed.");
+  if(!Array.isArray(payload.items)||payload.items.length!==1)
+    throw new Error("Each ingredient must resolve to exactly one food. Split mixed ingredients into separate lines.");
+  const item=payload.items[0];
+  const values={calories_kcal:Number(item.calories),protein_g:Number(item.protein_g),carbs_g:Number(item.carbs_g),fat_g:Number(item.fat_g)};
+  if(!item.name||!Object.values(values).every(value=>Number.isFinite(value)&&value>=0)||values.calories_kcal<=0)
+    throw new Error("The ingredient result is incomplete. Clarify its quantity or description and retry.");
+  return {name:String(item.name).slice(0,90),amount:String(item.amount||description).slice(0,90),
+    calories:values.calories_kcal,protein_g:values.protein_g,carbs_g:values.carbs_g,fat_g:values.fat_g,
+    nutrition_source:item.nutrition_source,nutrition_basis:item.nutrition_basis,nutrition_source_url:item.nutrition_source_url};
+}
+
+async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void> {
+  event.preventDefault();
+  const lines=byId<HTMLTextAreaElement>("recipe-ingredients").value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  const servings=Number(byId<HTMLInputElement>("recipe-servings").value);
+  const recipeName=byId<HTMLInputElement>("recipe-name").value.trim();
+  if(!recipeName||lines.length<2||lines.length>8){showToast("Enter a recipe name and between 2 and 8 ingredients.","error");return;}
+  if(!Number.isInteger(servings)||servings<1||servings>50){showToast("Choose between 1 and 50 servings.","error");return;}
+  if(lines.some(line=>!parseExplicitQuantity(line))){showToast("Every ingredient needs an explicit gram or millilitre amount. Household units are not guessed.","error");return;}
+  const calculateButton=byId<HTMLButtonElement>("recipe-calculate");
+  const reviewButton=byId<HTMLButtonElement>("recipe-review");
+  const status=byId<HTMLElement>("recipe-status");
+  const breakdown=byId<HTMLDivElement>("recipe-breakdown");
+  calculateButton.disabled=true; reviewButton.disabled=true; recipeDraft=null; recipeIngredientResults=[];
+  breakdown.hidden=true; breakdown.replaceChildren();
+  try {
+    for(let index=0;index<lines.length;index+=1) {
+      status.textContent="Estimating ingredient "+(index+1)+" of "+lines.length+": "+lines[index];
+      const quantity=parseExplicitQuantity(lines[index]);
+      if(!quantity)throw new Error("Could not read the quantity for: "+lines[index]);
+      const item=await requestRecipeIngredientEstimate(lines[index]);
+      recipeIngredientResults.push({name:item.name,amount:quantity.value,unit:quantity.unit,
+        values:{calories_kcal:item.calories,protein_g:item.protein_g,carbs_g:item.carbs_g,fat_g:item.fat_g},
+        source:item.nutrition_source||"AI estimate · needs review",sourceUrl:item.nutrition_source_url||"",originalLine:lines[index]});
+    }
+    const aggregate=aggregateIngredientEstimates(recipeIngredientResults.map(item=>({name:item.name,amount:item.amount,unit:item.unit,
+      values:item.values,source:item.source,sourceUrl:item.sourceUrl})),servings);
+    if(!aggregate)throw new Error("Ingredient values could not be combined safely. Check each amount and result.");
+    const values=aggregate.perServing;
+    recipeDraft={name:recipeName.slice(0,90),amount:"1 serving ("+servings+" servings in recipe)",
+      calories:Math.round(values.calories_kcal),protein_g:values.protein_g,carbs_g:values.carbs_g,fat_g:values.fat_g,
+      nutrition_source:"Ingredient calculation · needs review",nutrition_basis:"Per serving · "+servings+" recipe serving(s)"};
+    breakdown.innerHTML=recipeIngredientResults.map(item=>
+      '<div class="recipe-breakdown-row"><span>'+escapeHtml(item.name)+' · '+escapeHtml(item.originalLine)+
+      '<br><small>'+escapeHtml(item.source)+'</small></span><span>'+numberFormat(item.values.calories_kcal)+' kcal</span></div>'
+    ).join("")+'<div class="recipe-breakdown-row"><strong>Per serving</strong><strong>'+
+      numberFormat(values.calories_kcal)+' kcal · P '+decimalFormat(values.protein_g)+' g · C '+
+      decimalFormat(values.carbs_g)+' g · F '+decimalFormat(values.fat_g)+' g</strong></div>';
+    breakdown.hidden=false; reviewButton.disabled=false;
+    status.textContent="Ingredient estimates combined. Values are estimates, not laboratory-verified. Review before saving.";
+  } catch(error) {
+    status.textContent=error instanceof Error?error.message:"Could not calculate this recipe.";
+    showToast(status.textContent,"error");
+  } finally { calculateButton.disabled=false; }
+}
+
+function reviewCalculatedRecipe(): void {
+  if(!recipeDraft||recipeIngredientResults.length<2)return;
+  renderReviewItems([recipeDraft]); prepareReviewOptions();
+  const attribution=document.getElementById("estimate-attribution");
+  if(attribution)attribution.textContent="Combined "+recipeIngredientResults.length+
+    " separately estimated ingredients into one serving. Review and edit the total before saving.";
+  closeDialog("recipe-builder-dialog"); openDialog(reviewDialog);
+}
+
 async function estimateFood(event: SubmitEvent): Promise<void> {
   event.preventDefault();
   if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
@@ -1174,6 +1286,16 @@ function bindEvents(): void {
   quickTime.addEventListener("input", () => { quickTimeManuallySet = true; });
   quickForm.addEventListener("submit", (event) => void estimateFood(event));
   byId<HTMLButtonElement>("live-search-button").addEventListener("click", () => void searchLiveFood());
+  byId<HTMLButtonElement>("recipe-builder-open").addEventListener("click", () => {
+    recipeIngredientResults=[]; recipeDraft=null;
+    byId<HTMLDivElement>("recipe-breakdown").replaceChildren();
+    byId<HTMLDivElement>("recipe-breakdown").hidden=true;
+    byId<HTMLElement>("recipe-status").textContent="Use 2–8 ingredients with explicit g or ml quantities. Each ingredient is estimated separately.";
+    byId<HTMLButtonElement>("recipe-review").disabled=true;
+    openDialog(recipeBuilderDialog);
+  });
+  recipeBuilderForm.addEventListener("submit",event=>void calculateRecipeFromIngredients(event));
+  byId<HTMLButtonElement>("recipe-review").addEventListener("click",reviewCalculatedRecipe);
   byId<HTMLButtonElement>("web-research-structure").addEventListener("click", () => void structureLiveResearch());
   entryForm.addEventListener("submit", (event) => void saveManualEntry(event));
   reviewForm.addEventListener("submit", (event) => void saveReview(event));
@@ -1290,7 +1412,7 @@ function bindEvents(): void {
     });
   });
 
-  [entryDialog, reviewDialog, goalDialog, webResearchDialog].forEach((dialog) => {
+  [entryDialog, reviewDialog, goalDialog, webResearchDialog, recipeBuilderDialog].forEach((dialog) => {
     dialog.addEventListener("click", (event) => {
       if (event.target === dialog) dialog.close();
     });
