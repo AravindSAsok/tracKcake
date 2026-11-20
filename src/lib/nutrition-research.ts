@@ -90,7 +90,13 @@ function scaledItem(
     nutrition_source_url: sourceUrl,
     nutrition_status: quality.status,
     nutrition_confidence: quality.score,
-    nutrition_method: extractionMethod
+    nutrition_method: extractionMethod,
+    nutrition_uncertainty: {
+      calories: "Calculated from " + source + " source data",
+      protein_g: "Calculated from " + source + " source data",
+      carbs_g: "Calculated from " + source + " source data",
+      fat_g: "Calculated from " + source + " source data"
+    }
   };
 }
 
