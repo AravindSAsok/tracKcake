@@ -227,3 +227,11 @@ Built and maintained by **Aravind S Asok**.
 
 <p align="center">Made with care for more mindful food tracking.</p>
 
+
+
+### Nutrition evidence and source reconciliation
+
+- When two independent structured sources are available for the same lookup, TrackCake compares their scaled calorie and macro values without averaging them. The first structured source remains the displayed value.
+- Comparisons use the requested serving unit and explicit tolerances: calories use the greater of 5 kcal or 10%; macros use the greater of 0.5 g or 15%. A serving-unit mismatch or a difference beyond tolerance is marked **Needs review**, with the secondary source values and conflict reason shown in the review dialog.
+- AI-generated values are explicitly labelled as AI estimates at the field level for calories, protein, carbohydrates and fat. Source-backed values retain their source and serving basis. A confidence/status label is not a laboratory accuracy guarantee.
+- Source reconciliation is best-effort: it runs only when the lookup providers both return a usable result for the same request. It does not infer equivalence between unrelated branded products and generic foods.
