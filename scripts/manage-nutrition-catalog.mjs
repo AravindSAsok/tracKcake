@@ -17,9 +17,9 @@ function validate(row, index) {
   for (const field of requiredText) if (typeof row[field] !== "string" || !row[field].trim()) throw new Error(label + ": " + field + " is required.");
   if (row.canonical_name.length > 160 || row.source_name.length > 120) throw new Error(label + ": name/source is too long.");
   if (!["Strong source match", "Good source match"].includes(row.confidence_status)) throw new Error(label + ": confidence_status must be Strong source match or Good source match.");
-  if (!["g", "ml"].includes(row.basis_unit) || !Number.isFinite(Number(row.basis_amount)) || Number(row.basis_amount) <= 0) throw new Error(label + ": basis must be a positive g or ml amount.");
+  if (!["g", "ml"].includes(row.basis_unit) || typeof row.basis_amount !== "number" || !Number.isFinite(row.basis_amount) || row.basis_amount <= 0) throw new Error(label + ": basis must be a positive g or ml amount.");
   for (const field of ["calories_kcal", "protein_g", "carbs_g", "fat_g"]) {
-    if (!Number.isFinite(Number(row[field])) || Number(row[field]) < 0) throw new Error(label + ": " + field + " must be a non-negative numeric source value.");
+    if (typeof row[field] !== "number" || !Number.isFinite(row[field]) || row[field] < 0) throw new Error(label + ": " + field + " must be a non-negative numeric source value.");
   }
   if (row.source_url && !/^https:\/\//i.test(row.source_url)) throw new Error(label + ": source_url must use HTTPS.");
   if (!row.source_url && !row.source_record_id) throw new Error(label + ": provide a source_url or source_record_id for provenance.");
@@ -30,13 +30,13 @@ function validate(row, index) {
   const servings = row.serving_definitions ?? [];
   if (!Array.isArray(servings) || servings.length > 30 || servings.some((item) =>
     !item || typeof item.label !== "string" || !item.label.trim() ||
-    !Number.isFinite(Number(item.amount)) || Number(item.amount) <= 0 || !["g", "ml"].includes(item.unit))) {
+    typeof item.amount !== "number" || !Number.isFinite(item.amount) || item.amount <= 0 || !["g", "ml"].includes(item.unit))) {
     throw new Error(label + ": serving_definitions must contain labelled, quantified g/ml equivalents only.");
   }
   const optional = row.optional_nutrients ?? {};
   if (!optional || typeof optional !== "object" || Array.isArray(optional) ||
       Object.entries(optional).some(([key, value]) => !["fiber_g","sugar_g","saturated_fat_g","sodium_mg"].includes(key) ||
-        (value !== null && (!Number.isFinite(Number(value)) || Number(value) < 0)))) {
+        (value !== null && (typeof value !== "number" || !Number.isFinite(value) || value < 0)))) {
     throw new Error(label + ": optional_nutrients contains an unsupported or invalid nutrient.");
   }
   const aliases = Array.isArray(row.aliases) ? row.aliases : [];
