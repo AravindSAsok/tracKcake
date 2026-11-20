@@ -152,6 +152,7 @@ function normalizeHtmlNutritionText(content) {
   return content
     .replace(/<script\b(?![^>]*application\/ld\+json)[\s\S]*?<\/script>/gi, " ")
     .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+    .replace(/<tr\b[^>]*>/gi, "\n")
     .replace(/<\/tr\s*>/gi, "\n")
     .replace(/<\/t[dh]\s*>/gi, " | ")
     .replace(/<br\s*\/?\s*>/gi, "\n")
