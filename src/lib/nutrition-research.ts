@@ -1,5 +1,3 @@
-import { searchWebNutrition } from "./web-research";
-
 export type NutritionItem = {
   name: string;
   amount: string;
@@ -326,27 +324,7 @@ export async function researchNutrition(
     const usda = await lookupUsda(item, context);
     if (usda) return usda;
 
-    // Live web research is bounded to the first three unmatched foods. Firecrawl
-    // extracts page data; values are accepted only when food, nutrients, basis
-    // and the actual source URL pass validation.
     if (index < 3) {
-      const quantity = findQuantity(item);
-      const webResearch = quantity
-        ? await searchWebNutrition(item.product_name || item.name, item.brand || "", context)
-        : null;
-      if (webResearch && quantity) {
-        const researched = scaledItem(
-          item,
-          { calories: webResearch.calories, protein: webResearch.protein, carbs: webResearch.carbs, fat: webResearch.fat },
-          quantity,
-          webResearch.basis,
-          "Firecrawl web research · source matched",
-          "Per 100 " + webResearch.basis + " · " + webResearch.foodName + " · " + webResearch.sourceTitle,
-          webResearch.sourceUrl
-        );
-        if (researched) return researched;
-      }
-
       // Keep optional Google Search grounding as a bounded fallback.
       const grounded = await lookupGroundedWeb(item, context);
       if (grounded) return grounded;
