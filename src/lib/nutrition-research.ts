@@ -151,7 +151,7 @@ async function lookupApprovedCatalog(item: NutritionItem): Promise<NutritionItem
 }
 
 async function lookupOpenFoodFacts(item: NutritionItem): Promise<NutritionItem | null> {
-  const query = [item.brand, item.product_name].filter(Boolean).join(" ").trim();
+  const query = [item.brand, item.product_name || (!item.brand && !item.product_name ? item.name : "")].filter(Boolean).join(" ").trim();
   if (!query && !item.barcode) return null;
   try {
     const fields = "code,product_name,brands,quantity,nutriments";
