@@ -447,3 +447,23 @@ Final report must include:
 ### Known verification caveat
 
 The GitHub contents API was used for direct commits to `main`; this does not provide a local working tree. The connected Desktop Commander laptop is offline. All code must therefore be validated by GitHub Actions and Vercel build/deployment results before claiming release readiness.
+
+### Additional hardening and verified test run — 2026-11-20
+
+- [x] USDA generic lookup now skips branded or explicitly named products; catalogue matching requires brand identity parity except for exact barcode matches.
+- [x] Added cross-source integration tests with mocked provider responses for agreeing values, conflicting values and no averaging.
+- [x] Added API request validation tests for empty descriptions, unsupported providers, unverified models, missing reviewed source URLs, description limits and body-size limits.
+- [x] Added body-size guards to text estimate, food-photo and opt-in live research endpoints.
+- [x] Added recipe-history record validation tests for quantities, allowed units, HTTPS provenance, serving count and macro validity.
+- [x] Read-only Supabase metadata verification confirmed RLS and owner policies on recipe history, and approved-only read policy on the curated catalogue.
+- [x] GitHub Actions run on exact commit `d7fcb83c25d4de9c3cd9c5dfcff3548f316767c0`: `npm test` 34 passed / 0 failed; `npm run check` 0 errors / 0 warnings; `npm run build` succeeded.
+- [ ] Final documentation commit, exact-commit Vercel Production deployment, production alias check and smoke check remain.
+- [ ] Authenticated browser/device tests remain unavailable without an authenticated browser session.
+- [ ] The curated catalogue remains intentionally unpopulated pending source review. No AI-generated or synthetic nutrition facts may be promoted into it.
+- [ ] Live provider failover is covered through schema/unit tests and existing retry logic, but no paid live-provider calls were made in this run.
+
+### Security and data integrity notes
+
+- Recipe history is stored separately from food diary rows. Recipe deletion never deletes the diary entry. Recipe edits reuse the linked diary row when it is available, preventing duplicate diary entries.
+- Recipe history uses per-user local-storage keys in local-only mode and RLS-protected Supabase rows in cloud mode. Local changes are retained and retried when cloud sync is unavailable.
+- The admin catalogue script requires a trusted server-side service-role key, reviewer identity and source provenance. Private import JSON files are gitignored.
