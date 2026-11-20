@@ -426,3 +426,24 @@ Final report must include:
 - Local `npm test` / `npm run check` could not be executed because this environment has no DNS/network route to clone the repository. The existing GitHub Actions workflow is configured to run `npm test`, `npm run check`, and `npm run build` on pushes to main, but its run/job result was not exposed by the available GitHub connector in this session. Do not report those commands as run or passed based on the Vercel build alone.
 - No Firecrawl requests, AI provider requests, Supabase mutations, or diary writes were performed.
 - Remaining limitation: the reconciliation path only compares two usable records returned for the same lookup. It does not establish that two different product identities are equivalent, and source-backed values remain subject to manual review.
+
+---
+
+## Continued execution — 2026-11-20
+
+### Implementation record
+
+- [x] Extended the curated catalogue schema with serving definitions, optional nutrient payloads, provenance, review metadata and supersession linkage.
+- [x] Added a trusted administrator validation/upsert script and npm command. Catalogue remains empty until real source-backed records are reviewed and loaded; no synthetic facts are seeded.
+- [x] Added an additive, user-scoped recipe-history table with RLS and unique linked diary-entry protection.
+- [x] Applied the recipe-history migration to Supabase project `rdjjlwupwobyojmkaqau`; migration registry and table existence were verified. No production diary data was modified.
+- [x] Added local/cloud recipe CRUD and history retrieval, ingredient/source persistence, edit/recalculate and delete controls. Existing diary entries are preserved; editing a recipe updates its linked diary entry when that row is available.
+- [x] Added a versioned nullable AI nutrition validator and tests for null optional nutrients, missing core fields, implausible values, calorie/macro inconsistency, reviewed-source URL allowlisting and ingredient-list validation.
+- [x] Added field-level provenance labels for source-backed nutrition after scaling.
+- [ ] Full test/check/build results, exact-commit CI, deployment and production alias verification are pending.
+- [ ] Authenticated browser/device journey remains unverified because the connected development laptop is offline and no authenticated browser session is available.
+- [ ] Curated catalogue population remains intentionally pending a trusted review of actual source records. Do not invent or auto-approve data.
+
+### Known verification caveat
+
+The GitHub contents API was used for direct commits to `main`; this does not provide a local working tree. The connected Desktop Commander laptop is offline. All code must therefore be validated by GitHub Actions and Vercel build/deployment results before claiming release readiness.
