@@ -112,8 +112,14 @@ export function extractNutritionFacts(markdown, metadata = {}) {
     const cells = line.split("|").map((cell) => cell.trim().replace(/^[-:]+|[-:]+$/g, "")).filter(Boolean);
     let candidates = cells.length > 1 ? cells : [line.trim()];
     if (cells.length <= 1) {
-      const labelled = line.match(/^\s*(Energy|Calories?|Protein|Carbohydrates?|Carbs?|Total fat|Fat|Total lipid|Dietary fiber|Fibre|Fiber|Total sugars?|Sugars?|Saturated fat|Sodium)\s*[:–-]?\s*(.+)$/i);
-      if (labelled) candidates = [labelled[1], labelled[2]];
+      const colon = line.indexOf(":");
+      if (colon > 0) {
+        const label = line.slice(0, colon).trim();
+        if (nutrientForLabel(label)) candidates = [label, line.slice(colon + 1).trim()];
+      } else {
+        const labelled = line.match(/^\s*(Energy|Calories?|Protein|Carbohydrates?|Carbs?|Total fat|Fat|Total lipid|Dietary fiber|Fibre|Fiber|Total sugars?|Sugars?|Saturated fat|Sodium)\s+(.+)$/i);
+        if (labelled) candidates = [labelled[1], labelled[2]];
+      }
     }
     for (let index = 0; index < candidates.length; index += 1) {
       const key = nutrientForLabel(candidates[index]);
