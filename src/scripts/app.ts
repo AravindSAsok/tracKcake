@@ -23,6 +23,10 @@ type DraftItem = {
   nutrition_source?: string;
   nutrition_basis?: string;
   nutrition_source_url?: string;
+  nutrition_status?: string;
+  nutrition_conflict?: string;
+  nutrition_secondary_values?: { source: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; basis?: string; url?: string };
+  nutrition_uncertainty?: Record<string, string>;
 };
 
 type WebResearchFacts = { values: Record<string, number>; basis: { amount: number; unit: "g" | "ml"; label: string }; sourceTitle?: string; sourceUrl?: string; extractionMethod?: string };
@@ -560,7 +564,7 @@ function renderReviewItems(items: DraftItem[]): void {
       <div class="review-item-heading">
         <span class="review-item-number">0${index + 1}</span>
         <strong>Food item</strong>
-        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}${item.nutrition_source_url ? ` · <a href="${escapeHtml(item.nutrition_source_url)}" target="_blank" rel="noopener noreferrer">source</a>` : ""}</span>` : `<span class="review-source review-source-estimate">AI estimate · no verified nutrition match</span>`}
+        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_status || "Source checked")} · ${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}${item.nutrition_source_url ? ` · <a href="${escapeHtml(item.nutrition_source_url)}" target="_blank" rel="noopener noreferrer">source</a>` : ""}${item.nutrition_conflict ? `<br><strong>Source conflict:</strong> ${escapeHtml(item.nutrition_conflict)}` : ""}${item.nutrition_secondary_values ? `<br><small>Comparison (${escapeHtml(item.nutrition_secondary_values.source)}): ${numberFormat(item.nutrition_secondary_values.calories)} kcal · P ${decimalFormat(item.nutrition_secondary_values.protein_g)} · C ${decimalFormat(item.nutrition_secondary_values.carbs_g)} · F ${decimalFormat(item.nutrition_secondary_values.fat_g)}${item.nutrition_secondary_values.url ? ` · <a href="${escapeHtml(item.nutrition_secondary_values.url)}" target="_blank" rel="noopener noreferrer">compare source</a>` : ""}</small>` : ""}${item.nutrition_uncertainty ? `<br><small>Field uncertainty: ${Object.entries(item.nutrition_uncertainty).map(([field, note]) => escapeHtml(field + ": " + note)).join(" · ")}</small>` : ""}</span>` : `<span class="review-source review-source-estimate">AI estimate · no verified nutrition match</span>`}
         <button class="remove-review-item" type="button" data-remove-review="${index}" aria-label="Remove food item">×</button>
       </div>
       <div class="review-grid">
@@ -802,7 +806,11 @@ async function estimatePhoto(): Promise<void> {
       fat_g: Math.max(0, Number(item.fat_g) || 0),
       nutrition_source: item.nutrition_source,
       nutrition_basis: item.nutrition_basis,
-      nutrition_source_url: item.nutrition_source_url
+      nutrition_source_url: item.nutrition_source_url,
+      nutrition_status: item.nutrition_status,
+      nutrition_conflict: item.nutrition_conflict,
+      nutrition_secondary_values: item.nutrition_secondary_values,
+      nutrition_uncertainty: item.nutrition_uncertainty
     }));
     renderReviewItems(drafts);
     prepareReviewOptions();
@@ -975,7 +983,11 @@ async function structureLiveResearch(): Promise<void> {
       fat_g: Math.max(0, Number(item.fat_g) || 0),
       nutrition_source: item.nutrition_source || "Live web research · AI structured",
       nutrition_basis: item.nutrition_basis || "Extracted from the reviewed scraped source",
-      nutrition_source_url: item.nutrition_source_url
+      nutrition_source_url: item.nutrition_source_url,
+      nutrition_status: item.nutrition_status,
+      nutrition_conflict: item.nutrition_conflict,
+      nutrition_secondary_values: item.nutrition_secondary_values,
+      nutrition_uncertainty: item.nutrition_uncertainty
     }));
     closeDialog("web-research-dialog");
     renderReviewItems(drafts);
