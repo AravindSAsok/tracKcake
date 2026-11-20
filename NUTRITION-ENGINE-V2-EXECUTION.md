@@ -371,3 +371,16 @@ Final report must include:
 - Added tested aggregation logic for ingredient totals and per-serving macros. The user reviews one recipe item in the existing review dialog and must explicitly save it.
 - Ingredient details are displayed during calculation but are not persisted as a structured recipe record. Future work may add durable recipe/ingredient provenance after a separate data-model review.
 - Verification and deployment: pending exact-commit GitHub Actions and Vercel results. Local checks and interactive browser testing are unavailable because the linked development laptop is offline.
+
+
+---
+
+## Recipe editor verification closeout — 2026-11-20
+
+- Final main commit at verification: `6f3623d76b4bae0aae1424c723c9e021fec34748`.
+- GitHub Actions run #254: [SUCCESS](https://github.com/AravindSAsok/tracKcake/actions/runs/44789966155). `npm test`: 13 passed / 0 failed; `npm run check`: 0 errors / 0 warnings (2 existing hints); `npm run build`: passed.
+- Vercel Production deployment: `dpl_6Zx8p2cpmwA1dYwW4a2BeY1C9PbV`, READY, built from the exact main commit. Verified aliases: `trackcake.vercel.app`, `trackcake-kukki.vercel.app`, and `trackcake-git-main-kukki.vercel.app`.
+- Recipe builder implementation and aggregation tests are included in the verified main tree. CI confirms build/type/test integrity; it does not replace interactive authenticated browser testing.
+- The linked development laptop is offline. No manual UI interaction, provider API request, authenticated diary save, or Firecrawl request was performed during this release.
+- Current limitation: the builder stores one aggregate recipe diary entry and displays ingredient provenance during calculation, but it does not persist a structured ingredient list to the database. The catalogue remains empty pending a trusted curation/admin workflow.
+- Status: basic user-facing ingredient recipe builder released and CI/deployment verified; Nutrition Engine V2 remains partially complete.
