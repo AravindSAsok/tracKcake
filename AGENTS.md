@@ -652,3 +652,17 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - Files changed: `src/pages/index.astro`, `src/scripts/app.ts`, `src/styles/global.css`, `src/lib/nutrition-engine.js`, `src/lib/nutrition-engine.d.ts`, `tests/nutrition-engine.test.mjs`, `README.md`, `AGENTS.md`, and `NUTRITION-ENGINE-V2-EXECUTION.md`.
 - Verification: GitHub Actions run #254 for final main commit `6f3623d76b4bae0aae1424c723c9e021fec34748` completed successfully. `npm test`: 13 passed / 0 failed; `npm run check`: 0 errors / 0 warnings (2 existing hints); `npm run build`: passed. The linked development laptop is offline, so interactive browser/device checks remain unavailable.
 - Vercel Production deployment `dpl_6Zx8p2cpmwA1dYwW4a2BeY1C9PbV` reached `READY` from that exact commit. Verified production aliases: `trackcake.vercel.app`, `trackcake-kukki.vercel.app`, and `trackcake-git-main-kukki.vercel.app`. No authenticated diary or provider/Firecrawl end-to-end test was performed.
+
+
+---
+
+## Nutrition extraction format expansion — 2026-11-20
+
+- Extended src/lib/nutrition-engine.js to read Schema.org JSON-LD nutrition records, including serving size and core calorie/protein/carbohydrate/fat values. Optional fiber, sugar, saturated fat and sodium values are retained when they carry supported units.
+- Added deterministic HTML nutrition-table normalization. Table rows are kept separate before passing labelled values through the existing strict parser.
+- Multiple complete JSON-LD candidates are accepted only when their serving bases and core values agree. Incomplete or conflicting candidates are rejected; the parser does not select an arbitrary candidate.
+- Added regression tests for JSON-LD, HTML tables, incomplete records, and conflicting records.
+- Final code commit: 8baff130641ea29338a014f18983d292e73ff417.
+- GitHub Actions run #256: SUCCESS. npm test: 16 passed / 0 failed; npm run check: 0 errors / 0 warnings (2 existing hints); npm run build: passed.
+- Vercel Production deployment dpl_2K4N6DFtZxzj7EXb4mRX1v3AtQqB reached READY from the exact code commit. Production aliases verified: trackcake.vercel.app, trackcake-kukki.vercel.app, and trackcake-git-main-kukki.vercel.app.
+- No Firecrawl calls, production diary writes, or authenticated browser tests were performed. The linked development laptop remains offline; CI verifies code/build/tests, not interactive UI behavior.
