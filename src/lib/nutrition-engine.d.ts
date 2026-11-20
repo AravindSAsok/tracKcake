@@ -20,3 +20,12 @@ export function matchCatalogCandidate(item: object, records: object[]): Record<s
 
 export function nutrientForLabel(label: string): string | null;
 export function parseValueAndUnit(valueText: string, key: string): { value: number; raw: string; rawUnit: string; unit: string; qualifier: string } | null;
+
+export function aggregateIngredientEstimates(ingredients: Array<{
+  name: string; amount: number; unit: NutritionUnit; values: Record<string, number>;
+  source?: string; sourceUrl?: string;
+}>, servings?: number): {
+  total: Record<string, number>; perServing: Record<string, number>; servings: number;
+  contributions: Array<{ name: string; amount: number; unit: NutritionUnit; source: string; sourceUrl: string }>;
+  method: string;
+} | null;
