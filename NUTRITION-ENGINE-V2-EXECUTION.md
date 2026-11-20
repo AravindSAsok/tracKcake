@@ -398,3 +398,16 @@ Final report must include:
 - GitHub Actions run #256: SUCCESS: 16 tests passed, Astro/TypeScript check passed (0 errors, 0 warnings; 2 existing hints), production build passed.
 - Vercel Production deployment dpl_2K4N6DFtZxzj7EXb4mRX1v3AtQqB is READY from the exact code commit; production aliases verified.
 - Manual authenticated source-review and diary-save testing remains outstanding. Firecrawl was not invoked and no diary data was modified.
+
+
+---
+
+## Source reconciliation and field-level uncertainty — 2026-11-20
+
+- [x] Added deterministic reconciliation for two usable structured source results, including explicit serving-unit compatibility checks and documented per-field tolerances.
+- [x] Conflicting source values are not averaged. The primary values remain visible, the secondary values are disclosed, and the item is downgraded to **Needs review** with an explicit reason.
+- [x] Review UI now exposes source status, serving basis, source links, conflict details, secondary-source comparison values, and field-level AI uncertainty labels.
+- [x] AI estimate responses identify calories, protein, carbohydrates and fat as AI estimates rather than presenting a generic confidence score as fact.
+- [x] Added unit tests for agreement, disagreement, incompatible units and no averaging.
+- [ ] Curated catalogue administration/population, persistent ingredient-level recipe history, comprehensive nullable AI schema, full API/security regression suite, and authenticated browser/device testing remain outstanding.
+- Verification: pending exact-commit CI and Vercel Production checks. Firecrawl and production diary writes are not part of this work.
