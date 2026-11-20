@@ -638,3 +638,17 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - The linked development laptop was offline, so no local working-copy test run or interactive local browser session was possible. GitHub Actions provided the verified check/build/test run.
 
 Status: core deterministic delivery released and verified; full one-shot plan remains partially complete.
+
+
+---
+
+## Nutrition Engine V2 recipe editor implementation — 2026-11-20
+
+- Added the first user-facing recipe workflow in the existing food-entry UI. Users can enter 2–8 ingredients, one per line, with explicit g/ml quantities and a declared serving count.
+- Each ingredient is sent separately through the existing `/api/estimate` route using the currently selected provider/model preference. That route retains its deterministic-first source lookup and existing AI fallback. No Firecrawl endpoint is called by this workflow.
+- Added a pure `aggregateIngredientEstimates` helper that validates ingredient count, quantities, servings and macro values before calculating recipe totals and per-serving values.
+- The calculated meal is presented as one editable item in the existing review dialog. Diary persistence remains behind the existing explicit Save to diary action. Ingredient breakdown is displayed during calculation and is not persisted as a new recipe data model.
+- Household units are deliberately rejected because no defensible food-specific conversion is available in this workflow. Ingredient requests are sequential and capped at eight to bound provider usage.
+- Files changed: `src/pages/index.astro`, `src/scripts/app.ts`, `src/styles/global.css`, `src/lib/nutrition-engine.js`, `src/lib/nutrition-engine.d.ts`, `tests/nutrition-engine.test.mjs`, `README.md`, `AGENTS.md`, and `NUTRITION-ENGINE-V2-EXECUTION.md`.
+- Verification: pending GitHub Actions for the resulting commits. The linked development laptop is offline, so local shell and interactive browser checks are unavailable in this session. Do not report tests or browser checks as passing until CI and browser verification are observed.
+- Release: final commit, CI result, and Vercel deployment are pending.
