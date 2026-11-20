@@ -725,3 +725,11 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - Current `trackcake.vercel.app` alias still points to deployment `dpl_BGdkR8fFG7Mck3ASJsoQ51nhrX51`, built from commit `3331f34da8d93e1d5bbef6c87d0299453dcbdf12`, not the latest main commit.
 - Public production homepage fetch succeeded. Authenticated/browser-interaction testing could not be performed: no authenticated browser profile is connected, and the browser automation wallet is below zero. No user data was changed.
 - Required release action: after Vercel's 24-hour deployment API quota resets, or from an online machine with the linked repository and authorized Vercel CLI credentials, pull latest `main` and deploy to Production with the `kukki` team. Then confirm `trackcake.vercel.app` maps to that exact commit.
+
+### Vercel Git-integration deployment correction — 2026-11-20
+
+- After the direct Vercel deployment API hit its daily quota, Vercel's connected Git integration completed a Production deployment: `dpl_8DQwyr2MQxFQBgFwYwDvXn5xAHnC`, state **READY**.
+- `trackcake.vercel.app` now maps to that deployment. It was built from commit `350bb459b4084de5bcf5290f97a061cae7291ede`.
+- GitHub compare `350bb459...b2b91f5` confirms the five commits between that deployed SHA and current `main` modify only `AGENTS.md` and `NUTRITION-ENGINE-V2-EXECUTION.md`; no application/runtime files differ. Thus the deployed application code is identical to current main, although the deployment commit hash is not the exact current main SHA.
+- Exact current main `b2b91f51906fd714dfcf964b55396128863051b3` passed GitHub Actions run #337: 34 tests passed, 0 failed; Astro/TypeScript check 0 errors/0 warnings; production build passed.
+- Public homepage fetch succeeds. No authenticated browser interaction was performed; TinyFish automation was blocked by the negative wallet balance and no authenticated profile was available.
