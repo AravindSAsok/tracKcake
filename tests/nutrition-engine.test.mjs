@@ -81,7 +81,7 @@ test("confidence is capped when basis is missing or sources conflict", () => {
 test("catalog matching requires an approved exact alias or barcode", () => {
   const records = [{ canonical_name: "Whole milk", aliases: ["full cream milk"], barcode: "123",
     brand: "Brand A", is_approved: true }, { canonical_name: "Milk", aliases: [], is_approved: false }];
-  assert.equal(matchCatalogCandidate({ name: "full cream milk" }, records).canonical_name, "Whole milk");
+  assert.equal(matchCatalogCandidate({ name: "full cream milk", brand: "Brand A" }, records).canonical_name, "Whole milk");
   assert.equal(matchCatalogCandidate({ barcode: "123" }, records).canonical_name, "Whole milk");
   assert.equal(matchCatalogCandidate({ name: "milk" }, records), null);
 });
