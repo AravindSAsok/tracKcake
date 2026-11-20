@@ -152,3 +152,45 @@ test("rejects incomplete or unsupported ingredient estimate inputs", () => {
   assert.equal(aggregateIngredientEstimates([ingredient,{...ingredient,name:"Dal"}],0),null);
   assert.equal(aggregateIngredientEstimates([ingredient],1),null);
 });
+
+
+test("extracts structured nutrition from Schema.org JSON-LD", () => {
+  const html = [
+    '<script type="application/ld+json">',
+    '{"@context":"https://schema.org","@type":"Recipe","name":"Test meal","nutrition":{"@type":"NutritionInformation","servingSize":"100 g","calories":"210 kcal","proteinContent":"4.2 g","carbohydrateContent":"31 g","fatContent":"7.5 g"}}',
+    '</script>'
+  ].join("\n");
+  const facts = extractNutritionFacts(html,{sourceTitle:"JSON-LD fixture"});
+  assert.ok(facts);
+  assert.equal(facts.values.calories_kcal,210);
+  assert.equal(facts.values.protein_g,4.2);
+  assert.equal(facts.values.carbs_g,31);
+  assert.equal(facts.values.fat_g,7.5);
+  assert.equal(facts.basis.amount,100);
+  assert.equal(facts.extractionMethod,"deterministic_json_ld");
+});
+
+test("extracts labelled nutrition rows from HTML tables", () => {
+  const html = [
+    "<h3>Nutrition facts per 100 g</h3><table>",
+    "<tr><th>Energy</th><td>210 kcal</td></tr>",
+    "<tr><th>Protein</th><td>4.2 g</td></tr>",
+    "<tr><th>Carbohydrate</th><td>31 g</td></tr>",
+    "<tr><th>Total fat</th><td>7.5 g</td></tr>",
+    "</table><p>Article published in 2024 and reviewed by 3 editors.</p>"
+  ].join("");
+  const facts=extractNutritionFacts(html);
+  assert.ok(facts);
+  assert.equal(facts.values.calories_kcal,210);
+  assert.equal(facts.values.protein_g,4.2);
+  assert.equal(facts.values.carbs_g,31);
+  assert.equal(facts.values.fat_g,7.5);
+  assert.equal(facts.extractionMethod,"deterministic_html_table");
+});
+
+test("rejects incomplete or conflicting JSON-LD nutrition candidates", () => {
+  const incomplete='<script type="application/ld+json">{"nutrition":{"servingSize":"100 g","calories":"100 kcal","proteinContent":"2 g","carbohydrateContent":"3 g"}}</script>';
+  assert.equal(extractNutritionFacts(incomplete),null);
+  const conflicting='<script type="application/ld+json">[{"nutrition":{"servingSize":"100 g","calories":"100 kcal","proteinContent":"2 g","carbohydrateContent":"3 g","fatContent":"4 g"}},{"nutrition":{"servingSize":"100 g","calories":"200 kcal","proteinContent":"2 g","carbohydrateContent":"3 g","fatContent":"4 g"}}]</script>';
+  assert.equal(extractNutritionFacts(conflicting),null);
+});
