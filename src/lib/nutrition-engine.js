@@ -234,3 +234,29 @@ export function matchCatalogCandidate(item, records) {
   });
   return matches.length === 1 ? matches[0] : null;
 }
+
+
+export function aggregateIngredientEstimates(ingredients, servings = 1) {
+  if (!Array.isArray(ingredients) || ingredients.length < 2 || ingredients.length > 8 ||
+      !Number.isInteger(servings) || servings < 1 || servings > 50) return null;
+  const totals = { calories_kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+  const contributions = [];
+  for (const ingredient of ingredients) {
+    const name = String(ingredient?.name ?? "").trim();
+    const amount = Number(ingredient?.amount);
+    const unit = ingredient?.unit;
+    const values = ingredient?.values;
+    if (!name || name.length > 100 || !finiteNonNegative(amount) || amount <= 0 ||
+        !["g", "ml"].includes(unit) || !values) return null;
+    for (const key of CORE_KEYS) {
+      const value = Number(values[key]);
+      if (!finiteNonNegative(value) || value > (key === "calories_kcal" ? 10000 : 1000)) return null;
+      totals[key] += value;
+    }
+    contributions.push({ name, amount, unit, source: String(ingredient.source ?? "").slice(0,180),
+      sourceUrl: String(ingredient.sourceUrl ?? "").slice(0,2048) });
+  }
+  const total = Object.fromEntries(Object.entries(totals).map(([key,value])=>[key,round(value,2)]));
+  const perServing = Object.fromEntries(Object.entries(total).map(([key,value])=>[key,round(value/servings,2)]));
+  return { total, perServing, servings, contributions, method:"estimated_ingredient_sum" };
+}
