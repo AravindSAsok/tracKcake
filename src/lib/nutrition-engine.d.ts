@@ -17,3 +17,6 @@ export function parseExplicitQuantity(text: string): { value: number; unit: Nutr
 export function calculateRecipe(ingredients: Array<{ name: string; amount: number; unit: NutritionUnit; facts: NutritionFacts }>, servings?: number): { total: Record<string, number>; perServing: Record<string, number>; servings: number; contributions: Array<{ name: string; amount: number; unit: NutritionUnit; source: string }>; method: string } | null;
 export function scoreNutritionEvidence(input?: Record<string, any>): { score: number; status: string; reasons: string[] };
 export function matchCatalogCandidate(item: object, records: object[]): Record<string, any> | null;
+
+export function nutrientForLabel(label: string): string | null;
+export function parseValueAndUnit(valueText: string, key: string): { value: number; raw: string; rawUnit: string; unit: string; qualifier: string } | null;

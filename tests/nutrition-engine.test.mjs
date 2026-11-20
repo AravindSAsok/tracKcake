@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   calculateRecipe, extractNutritionFacts, matchCatalogCandidate, normalizeNutrition,
-  parseExplicitQuantity, parseNutritionNumber, parseServingBasis, scoreNutritionEvidence
+  parseExplicitQuantity, parseNutritionNumber, parseServingBasis, scoreNutritionEvidence, nutrientForLabel, parseValueAndUnit
 } from "../src/lib/nutrition-engine.js";
 
 test("parses exact values, decimal comma and unresolved ranges safely", () => {
@@ -118,4 +118,15 @@ test("rejects a row with multiple serving-column values", () => {
     "| Total fat | 7 g | 3.5 g |"
   ].join("\\n");
   assert.equal(extractNutritionFacts(table), null);
+});
+
+test("parses individual labelled nutrient rows", () => {
+  assert.equal(nutrientForLabel("Energy"), "calories_kcal");
+  assert.equal(nutrientForLabel("Protein"), "protein_g");
+  assert.equal(nutrientForLabel("Carbohydrate"), "carbs_g");
+  assert.equal(nutrientForLabel("Total fat"), "fat_g");
+  assert.equal(parseValueAndUnit("210 kcal", "calories_kcal").value, 210);
+  assert.equal(parseValueAndUnit("4,2 g", "protein_g").value, 4.2);
+  assert.equal(parseValueAndUnit("31 g", "carbs_g").value, 31);
+  assert.equal(parseValueAndUnit("7.5 g", "fat_g").value, 7.5);
 });

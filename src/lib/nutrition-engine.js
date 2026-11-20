@@ -64,12 +64,12 @@ export function parseServingBasis(text) {
   return null;
 }
 
-function nutrientForLabel(label) {
+export function nutrientForLabel(label) {
   const clean = normalizeFoodName(label).replace(/\s*\([^)]*\)\s*$/, "").trim();
   return ALIASES.find(([, pattern]) => pattern.test(clean))?.[0] ?? null;
 }
 
-function parseValueAndUnit(valueText, key) {
+export function parseValueAndUnit(valueText, key) {
   const text = String(valueText);
   const values = text.match(/(?:<|>|≤|≥|~)?\s*\d+(?:[.,]\d+)?\s*(?:kcal|calories?|kj|g|grams?|mg|mcg|µg|μg|ml|millilit(?:er|re)s?)\b/gi) || [];
   if (values.length !== 1) return null;
