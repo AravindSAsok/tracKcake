@@ -22,7 +22,23 @@ function validate(row, index) {
     if (!Number.isFinite(Number(row[field])) || Number(row[field]) < 0) throw new Error(label + ": " + field + " must be a non-negative numeric source value.");
   }
   if (row.source_url && !/^https:\/\//i.test(row.source_url)) throw new Error(label + ": source_url must use HTTPS.");
+  if (!row.source_url && !row.source_record_id) throw new Error(label + ": provide a source_url or source_record_id for provenance.");
+  if (row.source_record_id && String(row.source_record_id).length > 180) throw new Error(label + ": source_record_id is too long.");
+  if (typeof row.reviewed_by !== "string" || !row.reviewed_by.trim() || row.reviewed_by.length > 120) throw new Error(label + ": reviewed_by is required for an approved record.");
   if (row.barcode && !/^\d{8,14}$/.test(String(row.barcode))) throw new Error(label + ": barcode must contain 8–14 digits.");
+  if (row.category !== undefined && (typeof row.category !== "string" || row.category.length > 80)) throw new Error(label + ": category must be text up to 80 characters.");
+  const servings = row.serving_definitions ?? [];
+  if (!Array.isArray(servings) || servings.length > 30 || servings.some((item) =>
+    !item || typeof item.label !== "string" || !item.label.trim() ||
+    !Number.isFinite(Number(item.amount)) || Number(item.amount) <= 0 || !["g", "ml"].includes(item.unit))) {
+    throw new Error(label + ": serving_definitions must contain labelled, quantified g/ml equivalents only.");
+  }
+  const optional = row.optional_nutrients ?? {};
+  if (!optional || typeof optional !== "object" || Array.isArray(optional) ||
+      Object.entries(optional).some(([key, value]) => !["fiber_g","sugar_g","saturated_fat_g","sodium_mg"].includes(key) ||
+        (value !== null && (!Number.isFinite(Number(value)) || Number(value) < 0)))) {
+    throw new Error(label + ": optional_nutrients contains an unsupported or invalid nutrient.");
+  }
   const aliases = Array.isArray(row.aliases) ? row.aliases : [];
   if (aliases.some((alias) => typeof alias !== "string" || !alias.trim() || alias.length > 160)) throw new Error(label + ": aliases must be non-empty strings up to 160 characters.");
   return {
@@ -60,9 +76,14 @@ try {
     const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     let written = 0;
     for (const record of records) {
-      let query = supabase.from("nutrition_catalog").select("id")
-        .eq("normalized_name", record.normalized_name).eq("source_name", record.source_name);
-      query = record.source_record_id ? query.eq("source_record_id", record.source_record_id) : query.is("source_record_id", null);
+      let query = supabase.from("nutrition_catalog").select("id").eq("source_name", record.source_name);
+      if (record.source_record_id) {
+        query = query.eq("source_record_id", record.source_record_id);
+      } else {
+        query = query.eq("normalized_name", record.normalized_name);
+        query = record.brand ? query.eq("brand", record.brand) : query.is("brand", null);
+        query = record.barcode ? query.eq("barcode", record.barcode) : query.is("barcode", null);
+      }
       const { data: existing, error: lookupError } = await query.limit(2);
       if (lookupError) throw lookupError;
       if ((existing || []).length > 1) throw new Error("Existing duplicate rows found for " + record.canonical_name + "; resolve them before upsert.");
