@@ -438,6 +438,10 @@ import Layout from "../layouts/Layout.astro";
       </label>
       <p class="recipe-status" id="recipe-status" aria-live="polite">Enter 2–8 ingredients. Household units are not guessed.</p>
       <div class="recipe-breakdown" id="recipe-breakdown" hidden></div>
+      <section class="recipe-history" aria-labelledby="recipe-history-heading">
+        <h3 id="recipe-history-heading">Saved recipes</h3>
+        <div id="recipe-history-list" aria-live="polite">Your saved recipes will appear here.</div>
+      </section>
       <div class="dialog-actions recipe-actions">
         <button class="secondary-button" type="button" data-close="recipe-builder-dialog">Cancel</button>
         <button class="secondary-button" type="submit" id="recipe-calculate">Calculate recipe</button>
