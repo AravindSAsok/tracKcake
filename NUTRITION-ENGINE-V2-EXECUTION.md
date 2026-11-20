@@ -484,3 +484,13 @@ The GitHub contents API was used for direct commits to `main`; this does not pro
 - GitHub compare `350bb459...b2b91f5` confirms the five commits between that deployed SHA and current `main` modify only `AGENTS.md` and `NUTRITION-ENGINE-V2-EXECUTION.md`; no application/runtime files differ. Thus the deployed application code is identical to current main, although the deployment commit hash is not the exact current main SHA.
 - Exact current main `b2b91f51906fd714dfcf964b55396128863051b3` passed GitHub Actions run #337: 34 tests passed, 0 failed; Astro/TypeScript check 0 errors/0 warnings; production build passed.
 - Public homepage fetch succeeds. No authenticated browser interaction was performed; TinyFish automation was blocked by the negative wallet balance and no authenticated profile was available.
+
+### Optional nutrient completeness follow-up — 2026-11-20
+
+- Open Food Facts optional nutrients (fiber, sugars, saturated fat, sodium) are now extracted and normalized; OFF sodium grams are converted to canonical milligrams. USDA optional nutrients use their structured nutrient IDs and mg/g units.
+- Approved catalogue optional nutrient values are normalized using their stored basis. Unknown optional values remain null and are labelled “Not provided by source”.
+- Cross-source reconciliation now compares optional fields when both sources provide them. Conflicts are flagged for review; primary values are retained and secondary values are disclosed. No averaging is performed.
+- Recipe ingredient history stores optional nutrients per ingredient and validates nullable optional values. The recipe breakdown and food review display optional values with field uncertainty.
+- GitHub Actions on implementation commit 8d3b277ddb01e04869335d01d2738766503d3c35: 37 tests passed / 0 failed; Astro check 0 errors / 0 warnings; production build passed.
+- Current production alias still points to dpl_8DQwyr2MQxFQBgFwYwDvXn5xAHnC (Git commit 350bb459b4084de5bcf5290f97a061cae7291ede), which predates these optional-nutrient runtime changes. A direct deploy for newer commits is still blocked by Vercel daily deployment API quota; Desktop Commander remains offline. Do not claim these latest changes are deployed.
+- Remaining genuine blockers: no curated records can be seeded without reviewed source data; authenticated browser/E2E testing is unavailable without a signed-in browser profile and funded browser automation; exact latest runtime deployment must be completed after the Vercel quota reset or via an online authorized CLI machine.
