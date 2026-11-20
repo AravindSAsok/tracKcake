@@ -38,3 +38,14 @@ test("AI schema validates bounded ingredient arrays", () => {
   assert.throws(() => validateAiNutritionItem({ ...base, ingredients: ["rice", 4] }), /invalid ingredient list/);
   assert.deepEqual(validateAiNutritionItem({ ...base, ingredients: ["rice", "water"] }).ingredients, ["rice", "water"]);
 });
+
+test("reviewed-source schema accepts nullable optional nutrients without inventing them", () => {
+  const allowed = new Set(["https://example.org/label"]);
+  const item = validateAiNutritionItem({
+    ...base,
+    fiber_g: null, sugar_g: null, saturated_fat_g: null, sodium_mg: null,
+    source_evidence: { title: "Nutrition label", url: "https://example.org/label" }
+  }, { researchOnly: true, allowedSourceUrls: allowed });
+  assert.equal(item.fiber_g, null);
+  assert.equal(item.nutrition_uncertainty.sodium_mg, "Not provided by model");
+});
