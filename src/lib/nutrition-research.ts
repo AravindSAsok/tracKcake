@@ -1,4 +1,4 @@
-import { matchCatalogCandidate, normalizeNutrition, reconcileNutritionSources, scoreNutritionEvidence } from "./nutrition-engine.js";
+import { isGenericNutritionLookup, matchCatalogCandidate, normalizeNutrition, reconcileNutritionSources, scoreNutritionEvidence } from "./nutrition-engine.js";
 
 export type NutritionItem = {
   name: string;
@@ -256,6 +256,8 @@ function matchScore(item: NutritionItem, candidate: any, context: string): numbe
 }
 
 async function lookupUsda(item: NutritionItem, context: string): Promise<NutritionItem | null> {
+  // USDA generic food search must not be used as a substitute for a named/branded product.
+  if (!isGenericNutritionLookup(item)) return null;
   const quantity = findQuantity(item);
   if (!quantity) return null;
   if (quantity.unit === "ml" && !isLiquid(item.name)) return null;
