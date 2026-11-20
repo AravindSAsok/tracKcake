@@ -467,3 +467,16 @@ The earlier statement that the 12 stale branches' feature code was already repre
 - [ ] Verify the resulting Vercel deployment and production smoke test.
 
 Do not mark live web lookup or deployment as production-verified until the pending checks above are completed.
+
+
+### Verification closeout — 2026-11-20
+
+- Final implementation commit checked: `12523f2f2a3e79aca444bbf87f6a75977129125b`.
+- GitHub Actions: [Build Astro app run #212](https://github.com/AravindSAsok/tracKcake/actions/runs/44770788403) completed successfully. Dependency install, `npm run check`, and `npm run build` all passed.
+- Vercel Production deployment: `dpl_EDdvStinksfXCfbciYhTPEa1vwfo`, state `READY`, deployed from the exact implementation commit. Production aliases include https://trackcake.vercel.app.
+- Production smoke test: fetched the live dashboard successfully; page title was `trackcake — Your food, in focus` and the dashboard rendered.
+- Firecrawl API integration was validated against the official v2 API documentation and the documented `data.web` response shape. The Firecrawl connector also returned structured JSON plus markdown for a test nutrition search.
+- **Activation blocker:** Vercel Production does not currently contain `FIRECRAWL_API_KEY`. The deployed code safely skips Firecrawl until the user adds this secret in Vercel Project Settings → Environment Variables (Production), then redeploys. No API key was requested or exposed in chat.
+- The app's existing Open Food Facts and USDA sources continue to work ahead of Firecrawl. Google Search grounding remains disabled by default.
+- No Browserless/Playwright service was added because Firecrawl already provides the needed browser-backed search and extraction path; revisit only if real sources prove inaccessible.
+- A live Firecrawl request from the deployed TrackCake backend, authenticated-user diary flow, and per-food end-to-end nutrition verification remain untested until the Production API key is configured.
