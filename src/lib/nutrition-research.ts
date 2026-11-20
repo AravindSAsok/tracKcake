@@ -1,4 +1,4 @@
-import { matchCatalogCandidate, normalizeNutrition, scoreNutritionEvidence } from "./nutrition-engine.js";
+import { matchCatalogCandidate, normalizeNutrition, reconcileNutritionSources, scoreNutritionEvidence } from "./nutrition-engine.js";
 
 export type NutritionItem = {
   name: string;
@@ -16,6 +16,8 @@ export type NutritionItem = {
   nutrition_status?: string;
   nutrition_confidence?: number;
   nutrition_method?: string;
+  nutrition_conflict?: string;
+  nutrition_secondary_values?: { source: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; basis?: string; url?: string };
 };
 
 type Quantity = { value: number; unit: "g" | "ml" };
@@ -378,9 +380,15 @@ export async function researchNutrition(
     onProgress("Checking nutrition sources for " + item.name + "…");
     const approved = await lookupApprovedCatalog(item);
     if (approved) return approved;
-    const product = await lookupOpenFoodFacts(item);
+    const [product, usda] = await Promise.all([
+      lookupOpenFoodFacts(item),
+      lookupUsda(item, context)
+    ]);
+    if (product && usda) {
+      const reconciled = reconcileNutritionSources(product, usda);
+      if (reconciled) return reconciled.item as NutritionItem;
+    }
     if (product) return product;
-    const usda = await lookupUsda(item, context);
     if (usda) return usda;
 
     if (index < 3) {
