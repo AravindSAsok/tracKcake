@@ -524,3 +524,27 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - Verification: GitHub Actions run #228 for commit 9a8997aadfd71238568f6b02cf77f7593f05274e completed successfully. Its `Check Astro and TypeScript` and `Build production app` steps both passed. Vercel Production deployment dpl_DYkJkKMH9dCxoiMGWjWQPNNsBz3x for the same commit reached READY and retains the `https://trackcake-git-main-kukki.vercel.app` branch alias. Manual authenticated browser testing of Firecrawl search, AI structuring, and diary save remains outstanding; do not claim those flows were manually smoke-tested.
 - Commit history for this task: implementation changes were committed directly to main in sequential commits, latest code commit before this handoff: f62c3747121cb0b0ae9504a54c9428e7d5ab4286. Follow-up documentation update will record final verification.
 - Follow-up credit cap: each explicit Live web search returns at most three scraped pages (not four). The earlier 2026-11-20 Firecrawl implementation note describing automatic lookups for three unmatched foods is superseded by this opt-in workflow.
+
+
+---
+
+## Nutrition research reliability update — 2026-11-20
+
+### Implemented on main
+
+- Firecrawl live research remains explicitly user-triggered; ordinary text/photo nutrition estimates do not invoke Firecrawl.
+- `src/pages/api/web-research.ts` now limits each search to at most two candidate pages (previously three).
+- Search queries now explicitly request calories, protein, carbohydrates, total fat and serving size.
+- Candidate pages are filtered before being returned: the page must contain at least three nutrition metric categories, a numeric nutrition value with a recognized unit, and the requested food terms.
+- Returned page content is reduced to nutrition-focused lines and immediate context, capped at 4,200 characters per source. Unrelated article sections and recipe galleries are not sent to the browser or AI.
+- `src/scripts/app.ts` now describes the content as compact nutrition-focused excerpts and caps the combined AI research payload at 9,000 characters (previously 22,000).
+- The existing review-before-save workflow and selected provider/model flow are preserved.
+- `README.md` documents the new two-page and compact-evidence behavior.
+
+### Important limitations / next phases
+
+- This is a first reliability and payload-size pass, not the complete Nutrition Engine V2 blueprint.
+- Deterministic numeric extraction into a structured nutrition object, source/serving-basis reconciliation, ingredient decomposition, and a reusable approved-food catalog are not yet implemented.
+- The relevance filter is deliberately conservative and may reject useful pages when the exact food wording is absent. Users can retry with a more specific food name or brand.
+- No Firecrawl credits were spent during implementation or verification.
+- Automated tests, TypeScript check, production build, GitHub Actions and Vercel deployment must be verified for the resulting commit before this work is described as released.
