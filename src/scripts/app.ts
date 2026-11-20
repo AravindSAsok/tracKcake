@@ -839,7 +839,7 @@ async function searchLiveFood(): Promise<void> {
       </details>
     `).join("");
     byId<HTMLElement>("web-research-status").textContent =
-      "Found " + payload.sources.length + " source pages for “" + food + "”. This is raw scraped content, not verified nutrition data.";
+      "Found " + payload.sources.length + " relevant nutrition source(s) for “" + food + "”. Showing compact nutrition-focused excerpts; verify the serving and source before saving.";
     openDialog(webResearchDialog);
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not search live food sources.", "error");
@@ -856,8 +856,8 @@ async function structureLiveResearch(): Promise<void> {
   button.textContent = "Structuring with AI…";
   try {
     const sourceText = liveResearchSources.map((source, index) =>
-      "SOURCE " + (index + 1) + "\nTITLE: " + source.title + "\nURL: " + source.url + "\nPAGE CONTENT:\n" + source.content
-    ).join("\n\n--- NEXT SOURCE ---\n\n").slice(0, 22000);
+      "SOURCE " + (index + 1) + "\nTITLE: " + source.title + "\nURL: " + source.url + "\nNUTRITION-FOCUSED EXCERPT:\n" + source.content.slice(0, 4200)
+    ).join("\n\n--- NEXT SOURCE ---\n\n").slice(0, 9000);
     const response = await fetch("/api/estimate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
