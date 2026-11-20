@@ -436,3 +436,34 @@ The earlier statement that the 12 stale branches' feature code was already repre
 - Detailed per-model timings and outputs are recorded in `docs/ai-model-validation-2026-11-19.md`.
 - Strict tests skip nutrition research. They verify provider response, item schema, portions and non-empty macro fields, but do not prove nutrition accuracy. Raw calorie estimates varied across models; keep the nutrition research layer and review final results separately.
 - The model selectors disable providers that currently have no configured, live, approved models. Do not re-enable Gemini until it passes repeated simple and mixed-meal checks.
+
+---
+
+## Live nutrition web research implementation update — 2026-11-20
+
+### Implemented on main
+- Added `src/lib/web-research.ts` for server-side Firecrawl v2 web search and page extraction.
+- Integrated Firecrawl into the shared `researchNutrition` pipeline, so text estimates and photo estimates use the same source order.
+- Lookup order is Open Food Facts → USDA FoodData Central → Firecrawl live web research → optional Gemini Google Search grounding → clearly labelled AI estimate.
+- Firecrawl research is optional and requires the server-side `FIRECRAWL_API_KEY`.
+- Firecrawl is limited to the first three unmatched foods per meal. It is skipped when the portion cannot be scaled from a supported gram/ml quantity.
+- Extracted values are accepted only when all four nutrition values, a per-100 g/ml basis, a matching food name, page content, and an HTTPS source URL are present and pass bounds checks.
+- Source links and nutrition labels use the existing review UI fields; no database migration or browser-side provider key was introduced.
+- Updated `.env.example` and README setup, architecture, and privacy documentation.
+
+### Deliberate scope decisions
+- A separate Browserless/Playwright service was not added. Firecrawl's search-and-scrape endpoint already handles page rendering/extraction, while a second browser service would add credentials, cost, and another external dependency without demonstrated need. Revisit only if real target sites cannot be read by Firecrawl.
+- Gemini Google Search grounding remains disabled by default.
+- No database schema changes were needed.
+
+### Verification status
+- [x] Confirmed the existing text and photo endpoints both call the shared nutrition research function.
+- [x] Confirmed the existing review UI renders the source label, basis, and source link.
+- [x] Added server-side Firecrawl module and shared pipeline integration.
+- [x] Documented `FIRECRAWL_API_KEY` and live research behavior.
+- [ ] Run `npm run check` and `npm run build` against this exact main commit.
+- [ ] Configure `FIRECRAWL_API_KEY` in Vercel Production and Preview environments.
+- [ ] Verify a live Firecrawl request with a configured key and inspect the resulting source attribution.
+- [ ] Verify the resulting Vercel deployment and production smoke test.
+
+Do not mark live web lookup or deployment as production-verified until the pending checks above are completed.
