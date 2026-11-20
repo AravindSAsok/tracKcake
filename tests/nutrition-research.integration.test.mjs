@@ -40,7 +40,7 @@ function providerFetch({ offCalories = 52, usdaCalories = 52 } = {}, calls = [])
     }
     if (url.startsWith("https://api.nal.usda.gov/")) {
       return new Response(JSON.stringify({ foods: [{
-        description: "Apples, raw, with skin",
+        description: "Apple, raw, with skin",
         foodNutrients: [
           { nutrientId: 1008, nutrientName: "Energy", unitName: "KCAL", value: usdaCalories },
           { nutrientId: 1003, nutrientName: "Protein", unitName: "G", value: 0.26 },
@@ -61,7 +61,7 @@ test("nutrition research reconciles agreeing Open Food Facts and USDA records", 
   try {
     const [item] = await researchNutrition([{ name: "apple", amount: "100 g", calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }]);
     assert.equal(item.calories, 52);
-    assert.equal(item.nutrition_status, "Good source match");
+    assert.equal(item.nutrition_status, "Strong source match");
     assert.match(item.nutrition_uncertainty.calories, /Calculated from Open Food Facts/);
     assert.equal(calls.filter(url => url.startsWith("https://api.nal.usda.gov/")).length, 1);
   } finally { globalThis.fetch = originalFetch; restore(); }
