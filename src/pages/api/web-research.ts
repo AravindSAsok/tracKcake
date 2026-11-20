@@ -3,6 +3,16 @@ import type { APIRoute } from "astro";
 export const prerender = false;
 export const maxDuration = 45;
 
+const MAX_SOURCES = 2;
+const MAX_EVIDENCE_CHARS = 4200;
+const NUTRIENT_TERMS = /calor(?:ie|ies)|energy|kcal|protein|carbohydrate|\bcarbs?\b|total fat|\bfat\b|serving size|per 100\s*(?:g|ml)|nutrition facts|nutritional value/i;
+const METRIC_PATTERNS = [
+  /calor(?:ie|ies)|energy|kcal/i,
+  /protein/i,
+  /carbohydrate|\bcarbs?\b/i,
+  /total fat|\bfat\b/i
+];
+
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), {
   status,
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
@@ -20,6 +30,34 @@ function safeUrl(value: unknown): string | null {
   } catch { return null; }
 }
 
+function queryTerms(food: string): string[] {
+  const ignored = new Set(["with", "and", "the", "one", "small", "large", "medium", "fresh"]);
+  return [...new Set(food.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ")
+    .split(" ").filter((term) => term.length > 2 && !ignored.has(term)))].slice(0, 8);
+}
+
+function relevantNutritionEvidence(food: string, title: string, markdown: string): string | null {
+  const terms = queryTerms(food);
+  const titleText = title.toLowerCase();
+  const bodyText = markdown.toLowerCase();
+  if (terms.length && !terms.every((term) => titleText.includes(term) || bodyText.includes(term))) return null;
+
+  // A source must contain several actual nutrition fields, not just general wellness copy.
+  const metricCount = METRIC_PATTERNS.filter((pattern) => pattern.test(markdown)).length;
+  if (metricCount < 3 || !/\d+(?:\.\d+)?\s*(?:kcal|calories|g|grams|mg|kj)\b/i.test(markdown)) return null;
+
+  // Keep nutrition facts and their immediate context; discard recipe galleries, navigation and unrelated prose.
+  const lines = markdown.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const selected = new Set<number>();
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!NUTRIENT_TERMS.test(lines[i])) continue;
+    for (let j = Math.max(0, i - 1); j <= Math.min(lines.length - 1, i + 1); j += 1) selected.add(j);
+  }
+  const excerpt = [...selected].sort((a, b) => a - b).map((index) => lines[index]).join("\n");
+  if (excerpt.length < 80) return null;
+  return excerpt.slice(0, MAX_EVIDENCE_CHARS);
+}
+
 export const POST: APIRoute = async ({ request }) => {
   let food: string;
   try {
@@ -33,12 +71,13 @@ export const POST: APIRoute = async ({ request }) => {
   if (!key) return json({ error: "Live web search is not configured. Add FIRECRAWL_API_KEY in Vercel." }, 503);
 
   try {
+    const query = food + " nutrition facts calories protein carbohydrates total fat serving size";
     const response = await fetch("https://api.firecrawl.dev/v2/search", {
       method: "POST",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: food + " nutrition facts ingredients calories protein carbohydrates fat",
-        limit: 3,
+        query,
+        limit: MAX_SOURCES,
         sources: [{ type: "web" }],
         country: "IN",
         scrapeOptions: { formats: ["markdown"], onlyMainContent: true, timeout: 15000, removeBase64Images: true, lockdown: true }
@@ -51,19 +90,20 @@ export const POST: APIRoute = async ({ request }) => {
     }
     const payload = await response.json() as { success?: boolean; data?: { web?: unknown[] } };
     const results = Array.isArray(payload.data?.web) ? payload.data!.web! : [];
-    const sources = results.slice(0, 3).flatMap((raw) => {
+    const sources = results.slice(0, MAX_SOURCES).flatMap((raw) => {
       if (!raw || typeof raw !== "object") return [];
       const row = raw as Record<string, unknown>;
       const url = safeUrl(row.url);
       const markdown = typeof row.markdown === "string" ? row.markdown.slice(0, 14000) : "";
+      const title = typeof row.title === "string" ? row.title.slice(0, 180) : "Web result";
       if (!url || markdown.trim().length < 40) return [];
-      return [{
-        title: typeof row.title === "string" ? row.title.slice(0, 180) : "Web result",
-        url,
-        content: markdown
-      }];
+      const content = relevantNutritionEvidence(food, title, markdown);
+      if (!content) return [];
+      return [{ title, url, content }];
     });
-    if (!payload.success || !sources.length) return json({ error: "Search returned no readable food information. Try a more specific food or brand." }, 404);
+    if (!payload.success || !sources.length) {
+      return json({ error: "No sufficiently relevant nutrition facts were found. Try the exact food name, brand, or a more specific serving description." }, 404);
+    }
     return json({ food, sources });
   } catch (error) {
     console.warn("[trackcake-web-research] Search unavailable", error instanceof Error ? error.message : "unknown error");
