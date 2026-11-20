@@ -470,7 +470,7 @@ The GitHub contents API was used for direct commits to `main`; this does not pro
 
 ### Final release blocker — 2026-11-20
 
-- Final main commit is `393aa823d25e8e1dba428e2926e47627766bde5c` (documentation-only follow-up to code SHA `7452d212d520bf0a7f10400a1dc4f82eaf51753f`). GitHub Actions run #335 on the exact final SHA passed all 34 tests, Astro/TypeScript checks (0 errors, 0 warnings), and the production build.
+- Verified implementation commit is `7452d212d520bf0a7f10400a1dc4f82eaf51753f`. GitHub Actions run #335 on documentation follow-up SHA `393aa823d25e8e1dba428e2926e47627766bde5c` passed all 34 tests, Astro/TypeScript checks (0 errors, 0 warnings), and the production build. Later commits in this log are documentation-only; their CI runs are checked separately.
 - Manual Vercel Production deployment for that exact SHA was rejected by Vercel with HTTP 402, code `api-deployments-free-per-day`, because the connection exceeded 100 deployment API calls in the day; retry-after is 86400 seconds.
 - The available CLI fallback was unavailable because the linked Desktop Commander laptop is offline (last seen 130 hours ago). No final deployment was created.
 - Verified production alias `trackcake.vercel.app` still maps to `dpl_BGdkR8fFG7Mck3ASJsoQ51nhrX51`, commit `3331f34da8d93e1d5bbef6c87d0299453dcbdf12`. Production therefore does not yet contain the latest `main` commit.
