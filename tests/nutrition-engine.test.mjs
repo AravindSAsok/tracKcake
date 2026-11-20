@@ -221,3 +221,14 @@ test("USDA generic lookup is not used to fill branded or named products", () => 
   assert.equal(isGenericNutritionLookup({ name: "apple", product_name: "Example Apple Juice" }), false);
   assert.equal(isGenericNutritionLookup({ name: "apple", brand: " ", product_name: "" }), true);
 });
+
+
+test("catalogue matching never substitutes a branded row for a generic food", () => {
+  const records = [
+    { canonical_name: "plain yogurt", normalized_name: "plain yogurt", brand: "Brand A", aliases: [], is_approved: true },
+    { canonical_name: "plain yogurt", normalized_name: "plain yogurt", brand: null, aliases: [], is_approved: true }
+  ];
+  assert.equal(matchCatalogCandidate({ name: "plain yogurt" }, records)?.brand, null);
+  assert.equal(matchCatalogCandidate({ name: "plain yogurt", brand: "Brand A" }, records)?.brand, "Brand A");
+  assert.equal(matchCatalogCandidate({ name: "plain yogurt", brand: "Brand B" }, records), null);
+});
