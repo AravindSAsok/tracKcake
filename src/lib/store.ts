@@ -545,7 +545,7 @@ function writeLocalRecipes(rows: NutritionRecipeRecord[]): void {
 
 
 export async function saveNutritionRecipe(record: NutritionRecipeRecord): Promise<string | undefined> {
-  if (!validRecipeRecord(record)) throw new Error("Recipe details are incomplete or invalid. Nothing was saved.");
+  if (!isValidNutritionRecipeRecord(record)) throw new Error("Recipe details are incomplete or invalid. Nothing was saved.");
   if (cloudConfigured) {
     try { await ensureCloud(); } catch { /* Keep a local-first copy when cloud auth is unavailable. */ }
   }
