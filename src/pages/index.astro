@@ -212,6 +212,9 @@ import Layout from "../layouts/Layout.astro";
                   <button class="secondary-button" id="manual-add" type="button">
                     <span aria-hidden="true">＋</span> Manual entry
                   </button>
+                  <button class="secondary-button" id="live-search-button" type="button" title="Spend Firecrawl credits only when you choose live research">
+                    <span aria-hidden="true">⌕</span> Live web search
+                  </button>
                   <button class="primary-button" id="estimate-button" type="submit">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
                     <span>Estimate with AI</span>
@@ -404,6 +407,21 @@ import Layout from "../layouts/Layout.astro";
         <button class="primary-button" type="submit" id="entry-save">Save food</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog class="app-dialog web-research-dialog" id="web-research-dialog" aria-labelledby="web-research-heading">
+    <div class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">LIVE WEB RESEARCH · FIRECRAWL</p><h2 id="web-research-heading">Review scraped food information</h2><p class="dialog-subtitle">Raw page content from live sources. Check the food and serving details before asking AI to structure it.</p></div>
+        <button class="dialog-close" type="button" data-close="web-research-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <p class="web-research-status" id="web-research-status" aria-live="polite"></p>
+      <div class="web-research-sources" id="web-research-sources"></div>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-close="web-research-dialog">Cancel</button>
+        <button class="primary-button" type="button" id="web-research-structure">Use AI to Save Data</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog class="app-dialog review-dialog" id="review-dialog" aria-labelledby="review-heading">
