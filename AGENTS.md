@@ -716,3 +716,12 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - Supabase read-only policy inspection confirms RLS is enabled on both nutrition tables. `nutrition_catalog` has approved-only SELECT for anon/authenticated; `nutrition_recipes` has owner-scoped SELECT/INSERT/UPDATE/DELETE policies for authenticated sessions.
 - GitHub Actions on commit `d7fcb83c25d4de9c3cd9c5dfcff3548f316767c0`: 34 tests passed, 0 failed; `astro check` 0 errors and 0 warnings; production build completed.
 - Remaining: authenticated browser/device testing is unavailable because no authenticated browser session is connected. The catalogue is still empty until a maintainer supplies and reviews actual source-backed records. Full live-provider fallback tests are not run to avoid paid API calls.
+
+### Release verification blocker — 2026-11-20
+
+- Latest verified source commit before this log: `7452d212d520bf0a7f10400a1dc4f82eaf51753f`. GitHub Actions passed: 34/34 tests, 0 Astro/TypeScript errors, 0 warnings, production build completed.
+- A manual Vercel Production deployment was requested for that exact commit and rejected with HTTP 402 `api-deployments-free-per-day` (more than 100 deployments in the rolling day; retry-after 86400 seconds). No deployment was created for the final SHA.
+- The mapped Vercel CLI fallback could not run because the connected Desktop Commander laptop is offline (last seen 130 hours ago). Do not claim the final commit is deployed.
+- Current `trackcake.vercel.app` alias still points to deployment `dpl_BGdkR8fFG7Mck3ASJsoQ51nhrX51`, built from commit `3331f34da8d93e1d5bbef6c87d0299453dcbdf12`, not the latest main commit.
+- Public production homepage fetch succeeded. Authenticated/browser-interaction testing could not be performed: no authenticated browser profile is connected, and the browser automation wallet is below zero. No user data was changed.
+- Required release action: after Vercel's 24-hour deployment API quota resets, or from an online machine with the linked repository and authorized Vercel CLI credentials, pull latest `main` and deploy to Production with the `kukki` team. Then confirm `trackcake.vercel.app` maps to that exact commit.
