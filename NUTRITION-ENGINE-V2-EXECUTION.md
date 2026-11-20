@@ -411,3 +411,18 @@ Final report must include:
 - [x] Added unit tests for agreement, disagreement, incompatible units and no averaging.
 - [ ] Curated catalogue administration/population, persistent ingredient-level recipe history, comprehensive nullable AI schema, full API/security regression suite, and authenticated browser/device testing remain outstanding.
 - Verification: pending exact-commit CI and Vercel Production checks. Firecrawl and production diary writes are not part of this work.
+
+
+## Execution log — source reconciliation and field-level uncertainty release — 2026-11-20
+
+- Implementation includes deterministic cross-source comparison when both Open Food Facts and USDA return usable nutrition records for a request. The comparison happens after serving normalization, checks compatible g/ml basis, uses the greater of 5 kcal or 10% for calories and the greater of 0.5 g or 15% for each macro, and never averages source values.
+- A conflict or incompatible serving basis downgrades the item to **Needs review** and exposes the secondary source's values, provenance and conflict reason in the review UI. The primary source values remain the editable starting values.
+- AI-generated nutrition carries field-level uncertainty labels for calories, protein, carbohydrates and fat. Review mappings preserve the evidence metadata.
+- Added tests for matching sources, conflicting values, incompatible bases and no-averaging behavior.
+- Exact final implementation commit: `41c52d0f68d64d315bf978a3f8d41ebd2cf78899`.
+- GitHub commit: https://github.com/AravindSAsok/tracKcake/commit/41c52d0f68d64d315bf978a3f8d41ebd2cf78899
+- Vercel Production deployment: `dpl_2FWSNkrDoRM1ZqvZjrE9gPN6qyKQ`, state **READY**, built from the exact commit above. Production alias `trackcake.vercel.app` was verified to map to this deployment.
+- Vercel build log reached `Build Completed` and `Deployment completed`; GitHub's combined commit status reports the Vercel check as success.
+- Local `npm test` / `npm run check` could not be executed because this environment has no DNS/network route to clone the repository. The existing GitHub Actions workflow is configured to run `npm test`, `npm run check`, and `npm run build` on pushes to main, but its run/job result was not exposed by the available GitHub connector in this session. Do not report those commands as run or passed based on the Vercel build alone.
+- No Firecrawl requests, AI provider requests, Supabase mutations, or diary writes were performed.
+- Remaining limitation: the reconciliation path only compares two usable records returned for the same lookup. It does not establish that two different product identities are equivalent, and source-backed values remain subject to manual review.
