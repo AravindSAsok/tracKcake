@@ -521,10 +521,11 @@ export interface NutritionRecipeRecord {
   created_at: string;
 }
 const RECIPES_KEY = "trackcake.nutrition-recipes.v1";
+const recipeStorageKey = () => RECIPES_KEY + (userId ? "." + userId : ".local");
 
 function readLocalRecipes(): NutritionRecipeRecord[] {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]");
+    const value: unknown = JSON.parse(localStorage.getItem(recipeStorageKey()) || "[]");
     if (!Array.isArray(value)) return [];
     return value.filter((row): row is NutritionRecipeRecord =>
       Boolean(row && typeof row === "object" && typeof row.id === "string" &&
@@ -536,7 +537,7 @@ function readLocalRecipes(): NutritionRecipeRecord[] {
 }
 
 function writeLocalRecipes(rows: NutritionRecipeRecord[]): void {
-  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(rows)); }
+  try { localStorage.setItem(recipeStorageKey(), JSON.stringify(rows)); }
   catch { throw new Error("Recipe history could not be saved in this browser. Check available storage space."); }
 }
 
@@ -558,6 +559,9 @@ function validRecipeRecord(record: NutritionRecipeRecord): boolean {
 
 export async function saveNutritionRecipe(record: NutritionRecipeRecord): Promise<string | undefined> {
   if (!validRecipeRecord(record)) throw new Error("Recipe details are incomplete or invalid. Nothing was saved.");
+  if (cloudConfigured) {
+    try { await ensureCloud(); } catch { /* Keep a local-first copy when cloud auth is unavailable. */ }
+  }
   const local = readLocalRecipes();
   writeLocalRecipes([record, ...local.filter((item) => item.id !== record.id)]);
   if (!cloudConfigured) return;
@@ -585,7 +589,17 @@ export async function listNutritionRecipes(): Promise<NutritionRecipeRecord[]> {
       .select("id,recipe_name,servings,ingredients,total_nutrition,per_serving_nutrition,diary_entry_id,created_at")
       .order("created_at", { ascending: false }).limit(100);
     if (error) throw error;
-    const rows = (data || []).filter((row) => validRecipeRecord(row as NutritionRecipeRecord)) as NutritionRecipeRecord[];
+    const remoteRows = (data || []).filter((row) => validRecipeRecord(row as NutritionRecipeRecord)) as NutritionRecipeRecord[];
+    const remoteIds = new Set(remoteRows.map((row) => row.id));
+    const pendingRows = readLocalRecipes().filter((row) => !remoteIds.has(row.id));
+    for (const pending of pendingRows) {
+      const { error: syncError } = await client.from("nutrition_recipes").upsert({
+        ...pending, user_id: userId
+      }, { onConflict: "id" });
+      if (!syncError) remoteRows.push(pending);
+      else console.warn("Pending recipe history remains on this device.", syncError);
+    }
+    const rows = [...remoteRows, ...readLocalRecipes().filter((row) => !remoteIds.has(row.id) && !pendingRows.some((pending) => pending.id === row.id))];
     writeLocalRecipes(rows);
     return rows;
   } catch (error) {
@@ -596,6 +610,9 @@ export async function listNutritionRecipes(): Promise<NutritionRecipeRecord[]> {
 
 export async function deleteNutritionRecipe(id: string): Promise<string | undefined> {
   if (typeof id !== "string" || !id) throw new Error("Choose a recipe to delete.");
+  if (cloudConfigured) {
+    try { await ensureCloud(); } catch { /* Still remove the local copy when offline. */ }
+  }
   writeLocalRecipes(readLocalRecipes().filter((row) => row.id !== id));
   if (!cloudConfigured) return;
   try {
