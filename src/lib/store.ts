@@ -590,16 +590,17 @@ export async function listNutritionRecipes(): Promise<NutritionRecipeRecord[]> {
       .order("created_at", { ascending: false }).limit(100);
     if (error) throw error;
     const remoteRows = (data || []).filter((row) => validRecipeRecord(row as NutritionRecipeRecord)) as NutritionRecipeRecord[];
-    const remoteIds = new Set(remoteRows.map((row) => row.id));
-    const pendingRows = readLocalRecipes().filter((row) => !remoteIds.has(row.id));
+    const syncedIds = new Set(remoteRows.map((row) => row.id));
+    const pendingRows = readLocalRecipes().filter((row) => !syncedIds.has(row.id));
+    const stillPending: NutritionRecipeRecord[] = [];
     for (const pending of pendingRows) {
       const { error: syncError } = await client.from("nutrition_recipes").upsert({
         ...pending, user_id: userId
       }, { onConflict: "id" });
-      if (!syncError) remoteRows.push(pending);
-      else console.warn("Pending recipe history remains on this device.", syncError);
+      if (!syncError) { remoteRows.push(pending); syncedIds.add(pending.id); }
+      else { stillPending.push(pending); console.warn("Pending recipe history remains on this device.", syncError); }
     }
-    const rows = [...remoteRows, ...readLocalRecipes().filter((row) => !remoteIds.has(row.id) && !pendingRows.some((pending) => pending.id === row.id))];
+    const rows = [...remoteRows, ...stillPending];
     writeLocalRecipes(rows);
     return rows;
   } catch (error) {
