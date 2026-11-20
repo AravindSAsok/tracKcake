@@ -93,8 +93,7 @@ test("extracts labelled text rows and rejects ambiguous duplicate values", () =>
     "Protein: 4,2 g",
     "Carbohydrate: 31 g",
     "Total fat: 7.5 g"
-  ].join("\\n");
-  console.log("nutrition text diagnostic", JSON.stringify(textRows), textRows.split(/\\r?\\n/).length, parseServingBasis(textRows), extractNutritionFacts(textRows));
+  ].join("\n");
   const facts = extractNutritionFacts(textRows);
   assert.ok(facts);
   assert.equal(facts.values.protein_g, 4.2);
@@ -106,7 +105,7 @@ test("extracts labelled text rows and rejects ambiguous duplicate values", () =>
     "Protein: 4 g",
     "Carbohydrate: 31 g",
     "Total fat: 7 g"
-  ].join("\\n");
+  ].join("\n");
   assert.equal(extractNutritionFacts(conflicting), null);
 });
 
@@ -117,7 +116,7 @@ test("rejects a row with multiple serving-column values", () => {
     "| Protein | 4 g | 2 g |",
     "| Carbohydrate | 31 g | 15.5 g |",
     "| Total fat | 7 g | 3.5 g |"
-  ].join("\\n");
+  ].join("\n");
   assert.equal(extractNutritionFacts(table), null);
 });
 
