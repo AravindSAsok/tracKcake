@@ -208,7 +208,7 @@ export function extractNutritionFacts(markdown, metadata = {}) {
     basis,
     sourceTitle: String(metadata.sourceTitle ?? "").slice(0, 180),
     sourceUrl: String(metadata.sourceUrl ?? "").slice(0, 2048),
-    extractionMethod: metadata.extractionMethod || (/<(?:table|tr|td|th|caption)/i.test(rawContent) ? "deterministic_html_table" : "deterministic_label_or_table")
+    extractionMethod: metadata.extractionMethod || (rawContent.toLowerCase().includes("<table") ? "deterministic_html_table" : "deterministic_label_or_table")
   };
 }
 
