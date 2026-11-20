@@ -213,3 +213,11 @@ test("reconciles matching sources without averaging and flags material conflicts
   assert.equal(incompatible.conflict, true);
   assert.match(incompatible.item.nutrition_conflict, /incompatible serving units/);
 });
+
+
+test("USDA generic lookup is not used to fill branded or named products", () => {
+  assert.equal(isGenericNutritionLookup({ name: "apple" }), true);
+  assert.equal(isGenericNutritionLookup({ name: "apple", brand: "Example" }), false);
+  assert.equal(isGenericNutritionLookup({ name: "apple", product_name: "Example Apple Juice" }), false);
+  assert.equal(isGenericNutritionLookup({ name: "apple", brand: " ", product_name: "" }), true);
+});
