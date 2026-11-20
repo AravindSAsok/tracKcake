@@ -32,8 +32,10 @@ function parseItems(value: unknown, researchOnly = false, allowedSourceUrls: Set
     const calories = Math.round(asNumber(item.calories));
     const sourceUrl = typeof item.nutrition_source_url === "string" ? item.nutrition_source_url : "";
     if (researchOnly && (
-      !Number.isFinite(Number(item.protein_g)) || !Number.isFinite(Number(item.carbs_g)) ||
-      !Number.isFinite(Number(item.fat_g)) || !/^https:\/\//i.test(sourceUrl) ||
+      item.protein_g === undefined || item.protein_g === null || item.protein_g === "" ||
+      item.carbs_g === undefined || item.carbs_g === null || item.carbs_g === "" ||
+      item.fat_g === undefined || item.fat_g === null || item.fat_g === "" ||
+      !Number.isFinite(Number(item.protein_g)) || !Number.isFinite(Number(item.carbs_g)) || !Number.isFinite(Number(item.fat_g)) || !/^https:\/\//i.test(sourceUrl) ||
       !allowedSourceUrls.has(sourceUrl)
     )) {
       throw new Error("The AI did not return complete nutrition values linked to one of the scraped sources.");
@@ -302,7 +304,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (Array.isArray(body.sourceUrls)) {
       allowedSourceUrls = new Set(body.sourceUrls.filter((url): url is string =>
         typeof url === "string" && url.length <= 2048 && /^https:\/\//i.test(url)
-      ).slice(0, 4));
+      ).slice(0, 3));
     }
     if (researchOnly && !allowedSourceUrls.size) return json({ error: "The reviewed source list is missing. Search again before using AI." }, 400);
   } catch {
