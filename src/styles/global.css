@@ -2824,3 +2824,17 @@ body.calkie-open::before {
     align-items: flex-start;
   }
 }
+
+
+/* Nutrition Engine V2 recipe builder */
+.recipe-dialog { width:min(620px,calc(100% - 28px)); }
+.recipe-dialog .dialog-form > .field { margin-top:13px; }
+.recipe-dialog textarea { min-height:130px; resize:vertical; line-height:1.55; }
+.recipe-status { margin:12px 0 0; color:#71806d; font-size:11px; line-height:1.55; }
+.recipe-breakdown { display:grid; gap:8px; margin-top:13px; padding:12px; border:1px solid #e6ede2; border-radius:12px; background:#fbfcfa; }
+.recipe-breakdown[hidden] { display:none; }
+.recipe-breakdown-row { display:flex; justify-content:space-between; gap:12px; padding-bottom:7px; border-bottom:1px solid #edf1e9; color:#52634f; font-size:11px; }
+.recipe-breakdown-row:last-child { padding-bottom:0; border-bottom:0; }
+.recipe-breakdown-row span:last-child { text-align:right; font-weight:700; white-space:nowrap; }
+.recipe-actions { flex-wrap:wrap; }
+@media (max-width:520px) { .recipe-actions button { flex:1 1 100%; } }
