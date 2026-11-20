@@ -35,7 +35,7 @@ TrackCake makes food logging easier without hiding the details. Add meals manual
 - **Calkie assistant:** ask questions about your diary through a floating chat interface, with provider/model selection and saved conversation history.
 - **Flexible persistence:** use local browser storage or Supabase Auth and cloud-backed PostgreSQL storage.
 - **Nutrition research:** text and photo estimates share a server-side lookup that checks branded products in Open Food Facts and generic foods in USDA FoodData Central, then calculates values for the stated quantity.
-- **On-demand live web research:** users explicitly choose the **Live web search** button to spend Firecrawl credits. TrackCake displays raw scraped page content and source links first; only after the user taps **Use AI to Save Data** does a selected AI provider structure the reviewed source content into the existing food-review form. Firecrawl is never called automatically during normal food estimates.
+- **On-demand live web research:** users explicitly choose the **Live web search** button to spend Firecrawl credits. TrackCake requests at most two pages, filters for relevant nutrition facts, and shows compact nutrition-focused excerpts rather than full articles. Only after the user taps **Use AI to Save Data** does a selected AI provider structure the reviewed evidence into the existing food-review form. Firecrawl is never called automatically during normal food estimates.
 - **Optional Google Search grounding:** Gemini Google Search remains an additional fallback and is disabled by default.
 
 ## Screenshots
@@ -116,7 +116,7 @@ PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
 ~~~
 
-USDA_FDC_API_KEY is optional; without it, the limited public USDA DEMO_KEY is used. For production usage, create a free FoodData Central API key and add it server-side. FIRECRAWL_API_KEY enables opt-in live web research only when a user presses Live web search. Each click searches and scrapes up to three source pages; ordinary estimates never call Firecrawl. Gemini Google Search grounding is disabled unless GEMINI_WEB_SEARCH_ENABLED=true; review Google's current grounding pricing and limits before enabling it. Never commit .env files or expose AI provider keys through PUBLIC_ variables. The Supabase URL and anon/publishable key are browser configuration and must be protected by the included Row Level Security policies. Never put a Supabase service-role key in the browser.
+USDA_FDC_API_KEY is optional; without it, the limited public USDA DEMO_KEY is used. For production usage, create a free FoodData Central API key and add it server-side. FIRECRAWL_API_KEY enables opt-in live web research only when a user presses Live web search. Each click searches and processes at most two source pages; pages without relevant nutrition evidence are discarded and the AI receives compact excerpts rather than full articles. Ordinary estimates never call Firecrawl. Gemini Google Search grounding is disabled unless GEMINI_WEB_SEARCH_ENABLED=true; review Google's current grounding pricing and limits before enabling it. Never commit .env files or expose AI provider keys through PUBLIC_ variables. The Supabase URL and anon/publishable key are browser configuration and must be protected by the included Row Level Security policies. Never put a Supabase service-role key in the browser.
 
 ### AI providers and model catalogue
 
