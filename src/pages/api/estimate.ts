@@ -9,19 +9,12 @@ export const maxDuration = 300;
 type EstimatedItem = NutritionItem;
 
 type Provider = "groq" | "gemini" | "openrouter";
-type ProviderResult = { items: EstimatedItem[]; model: string; provider: Provider };
-
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
   });
 
-function asNumber(value: unknown): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.max(0, Math.round(parsed * 10) / 10);
-}
 
 function parseItems(value: unknown, researchOnly = false, allowedSourceUrls: Set<string> = new Set()): EstimatedItem[] {
   if (!Array.isArray(value)) throw new Error("The AI provider did not return a food list.");
