@@ -102,3 +102,16 @@ test("branded product research does not call generic USDA search", async () => {
     assert.equal(calls.some(url => url.startsWith("https://api.nal.usda.gov/")), false);
   } finally { globalThis.fetch = originalFetch; restore(); }
 });
+
+test("optional source nutrients scale with an explicit larger gram quantity", async () => {
+  configure();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = providerFetch({}, []);
+  try {
+    const [item] = await researchNutrition([{ name: "apple", amount: "200 g", calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }]);
+    assert.equal(item.fiber_g, 4.8);
+    assert.equal(item.sugar_g, 20.8);
+    assert.equal(item.saturated_fat_g, 0.06);
+    assert.equal(item.sodium_mg, 2);
+  } finally { globalThis.fetch = originalFetch; restore(); }
+});
