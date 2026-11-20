@@ -44,6 +44,28 @@ function numeric(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\function extractRecord(result: FirecrawlResult, requestedFood: string): WebNutritionRecord | null {");
+}
+
+function hasExplicitNutrientValue(content: string, label: string, value: number, unit: string): boolean {
+  const number = escapeRegex(String(value));
+  const nutrient = "(?:" + label + ")";
+  const afterLabel = new RegExp("\\\\b" + nutrient + "\\\\b[^\\\\n]{0,100}?\\\\b" + number + "\\\\s*" + unit + "\\\\b", "i");
+  const beforeLabel = new RegExp("\\\\b" + number + "\\\\s*" + unit + "\\\\b[^\\\\n]{0,60}?\\\\b" + nutrient + "\\\\b", "i");
+  return afterLabel.test(content) || beforeLabel.test(content);
+}
+
+function hasExplicitCalories(content: string, value: number): boolean {
+  const number = escapeRegex(String(value));
+  return new RegExp("(?:calories|energy)[^\\\\n]{0,80}?\\\\b" + number + "\\\\b", "i").test(content) ||
+    new RegExp("\\\\b" + number + "\\\\s*(?:kcal|calories)\\\\b", "i").test(content);
+}
+
+function hasExplicitBasis(content: string, basis: "g" | "ml"): boolean {
+  const pattern = basis === "g" ? /(?:per|for)\\s*100\\s*(?:g|grams?)\\b|100\\s*grams?\\b/i : /(?:per|for)\\s*100\\s*(?:ml|millilit(?:er|re)s?)\\b|100\\s*millilit(?:er|re)s?\\b/i;
+  return pattern.test(content);
+}
 function extractRecord(result: FirecrawlResult, requestedFood: string): WebNutritionRecord | null {
   const sourceUrl = safeSourceUrl(result.url);
   if (!sourceUrl) return null;
@@ -71,6 +93,13 @@ function extractRecord(result: FirecrawlResult, requestedFood: string): WebNutri
   const hasFoodMention = normalise(foodName).split(" ").filter((token) => token.length > 2)
     .some((token) => contentText.includes(token));
   if (!hasFoodMention) return null;
+  // Never accept a value merely because an extractor inferred it from a calorie
+  // percentage split or another food. Each nutrient must appear explicitly
+  // beside its own label and unit in the scraped source text.
+  if (!hasExplicitBasis(content, basis) || !hasExplicitCalories(content, calories) ||
+      !hasExplicitNutrientValue(content, "protein", protein, "g") ||
+      !hasExplicitNutrientValue(content, "(?:carbs|carbohydrates)", carbs, "g") ||
+      !hasExplicitNutrientValue(content, "(?:fat|total fat)", fat, "g")) return null;
 
   return {
     foodName,
