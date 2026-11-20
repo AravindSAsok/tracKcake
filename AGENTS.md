@@ -705,3 +705,14 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - Added `src/lib/nutrition-ai-schema.js` plus its TypeScript declaration and regression tests. AI core values are required; optional nutrients are nullable; invalid values, invalid ingredient arrays, unsupported research citations and large calorie/macro inconsistencies are rejected. Server-derived uncertainty labels are applied field by field.
 - Structured source-backed nutrition now reports field-level provenance labels after quantity scaling.
 - Documentation updates are in progress; exact CI, check/build and production deployment verification are pending. Do not report this continuation as complete until CI and Vercel results are confirmed.
+
+### Additional hardening and verification — 2026-11-20
+
+- Added generic-food identity gating: USDA generic lookup is skipped for any item with an explicit brand or product name. Curated catalogue matching now requires brand parity unless an exact barcode match is supplied.
+- Added mocked integration tests for Open Food Facts/USDA agreement, source conflicts (primary values retained; no averaging), and branded-product generic-lookup suppression.
+- Added a reusable estimate API request validator with provider/model allowlisting, description limits, reviewed-source allowlisting and request-body size checks. Added tests without invoking paid AI providers.
+- Added request-body size guards to text estimate, photo estimate and explicit Firecrawl research routes.
+- Added reusable recipe record validation and tests for ingredient quantities, g/ml units, HTTPS source links, serving counts, and core nutrition values.
+- Supabase read-only policy inspection confirms RLS is enabled on both nutrition tables. `nutrition_catalog` has approved-only SELECT for anon/authenticated; `nutrition_recipes` has owner-scoped SELECT/INSERT/UPDATE/DELETE policies for authenticated sessions.
+- GitHub Actions on commit `d7fcb83c25d4de9c3cd9c5dfcff3548f316767c0`: 34 tests passed, 0 failed; `astro check` 0 errors and 0 warnings; production build completed.
+- Remaining: authenticated browser/device testing is unavailable because no authenticated browser session is connected. The catalogue is still empty until a maintainer supplies and reviews actual source-backed records. Full live-provider fallback tests are not run to avoid paid API calls.
