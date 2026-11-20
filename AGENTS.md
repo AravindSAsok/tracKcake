@@ -480,3 +480,29 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - The app's existing Open Food Facts and USDA sources continue to work ahead of Firecrawl. Google Search grounding remains disabled by default.
 - No Browserless/Playwright service was added because Firecrawl already provides the needed browser-backed search and extraction path; revisit only if real sources prove inaccessible.
 - A live Firecrawl request from the deployed TrackCake backend, authenticated-user diary flow, and per-food end-to-end nutrition verification remain untested until the Production API key is configured.
+
+
+---
+
+## Gemini user-test enablement — 2026-11-20
+
+- User explicitly requested that Gemini be turned on so they can test it in the app, even if the mixed-meal retest is not yet conclusive.
+- Updated `src/lib/ai-models.ts` to add only `gemini-flash-lite-latest` to the text-model allowlist.
+- This model passed the prior strict single-model simple-food test (`apple`, 13.0 s) but failed the mixed-meal test twice (30.1 s timeout, then provider high-demand response). It is therefore enabled provisionally for user testing, not certified reliable or nutrition-accurate.
+- Gemini remains text-only; no Gemini model was added to `VERIFIED_VISION_MODELS`.
+- Provider selector still requires a configured Gemini key and confirms the model is present in Gemini's live model catalogue before displaying it.
+- No new Gemini generation request was run during this change. Verify in the app and capture real test results before calling it stable.
+- Implementation commit: `f088c7945443f21d435a5b1fb6d43a5b79a72d6e`.
+- Documentation commit: pending verification in this update.
+- Run `npm run check`, `npm run build`, verify GitHub Actions, and confirm the Vercel Production deployment before marking complete.
+
+### Firecrawl usage notes checked against official docs — 2026-11-20
+
+- Free plan: 1,000 credits per month, reset each billing cycle; unused credits do not roll over.
+- Search: 2 credits per 10 results (rounded up); optional scraping of search results adds per-page scrape costs.
+- Scrape: 1 credit per page.
+- Free-plan rate limits: 10 requests/minute for Search, Scrape, and Map; 2 requests/minute for Crawl, Agent, and Interact.
+- Free plan stops with HTTP 402 after credits are exhausted; no automatic pay-as-you-go on Free.
+- API keys on one Firecrawl team share the team's rate-limit counters. Per-key credit spend limits can be configured in the Firecrawl dashboard.
+- Official references: https://docs.firecrawl.dev/billing and https://docs.firecrawl.dev/rate-limits.
+- TrackCake's current Firecrawl integration caps live lookup at the first three unmatched foods per meal. Actual credit use depends on search result count and how many pages are scraped; inspect usage at https://www.firecrawl.dev/app.
