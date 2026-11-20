@@ -165,6 +165,8 @@ npm run preview
 | npm test | Run deterministic nutrition-engine unit tests |
 | npm run check | Run Astro and TypeScript diagnostics |
 | npm run build | Create the production build |
+| npm run nutrition:catalog -- validate records.json | Validate reviewed catalogue records without writing |
+| npm run nutrition:catalog -- upsert records.json | Insert/update reviewed catalogue records from a trusted admin environment |
 | npm run preview | Preview the production build locally |
 
 ## Deployment
