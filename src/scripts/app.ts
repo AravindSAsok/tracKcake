@@ -24,6 +24,9 @@ type DraftItem = {
   nutrition_source_url?: string;
 };
 
+type WebResearchSource = { title: string; url: string; content: string };
+type WebResearchResponse = { food?: string; sources?: WebResearchSource[]; error?: string };
+
 type EstimateResponse = { items?: DraftItem[]; error?: string };
 
 const byId = <T extends HTMLElement>(id: string): T => {
@@ -44,6 +47,9 @@ const entryDialog = byId<HTMLDialogElement>("entry-dialog");
 const entryForm = byId<HTMLFormElement>("entry-form");
 const reviewDialog = byId<HTMLDialogElement>("review-dialog");
 const reviewForm = byId<HTMLFormElement>("review-form");
+const webResearchDialog = byId<HTMLDialogElement>("web-research-dialog");
+let liveResearchSources: WebResearchSource[] = [];
+let liveResearchFood = "";
 const goalDialog = byId<HTMLDialogElement>("goal-dialog");
 const goalForm = byId<HTMLFormElement>("goal-form");
 const foodActionDialog = byId<HTMLDialogElement>("food-action-dialog");
@@ -802,6 +808,124 @@ async function estimatePhoto(): Promise<void> {
   }
 }
 
+async function searchLiveFood(): Promise<void> {
+  const food = quickDescription.value.trim();
+  if (!food) {
+    showToast("Enter a food name, brand or product first.", "error");
+    quickDescription.focus();
+    return;
+  }
+  const button = byId<HTMLButtonElement>("live-search-button");
+  button.disabled = true;
+  button.textContent = "Searching live web…";
+  byId<HTMLElement>("web-research-status").textContent = "Using Firecrawl credits to search and scrape food information…";
+  byId<HTMLDivElement>("web-research-sources").replaceChildren();
+  try {
+    const response = await fetch("/api/web-research", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ food })
+    });
+    const payload = await response.json() as WebResearchResponse;
+    if (!response.ok) throw new Error(payload.error || "Live food search failed.");
+    if (!Array.isArray(payload.sources) || !payload.sources.length) throw new Error("No readable food information was found.");
+    liveResearchFood = food;
+    liveResearchSources = payload.sources;
+    const container = byId<HTMLDivElement>("web-research-sources");
+    container.innerHTML = payload.sources.map((source, index) => `
+      <details class="web-research-source" ${index === 0 ? "open" : ""}>
+        <summary><span>${escapeHtml(source.title || "Web source")}</span><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">Open source ↗</a></summary>
+        <pre>${escapeHtml(source.content)}</pre>
+      </details>
+    `).join("");
+    byId<HTMLElement>("web-research-status").textContent =
+      "Found " + payload.sources.length + " source pages for “" + food + "”. This is raw scraped content, not verified nutrition data.";
+    openDialog(webResearchDialog);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not search live food sources.", "error");
+  } finally {
+    button.disabled = false;
+    button.innerHTML = '<span aria-hidden="true">⌕</span> Live web search';
+  }
+}
+
+async function structureLiveResearch(): Promise<void> {
+  if (!liveResearchSources.length) return;
+  const button = byId<HTMLButtonElement>("web-research-structure");
+  button.disabled = true;
+  button.textContent = "Structuring with AI…";
+  try {
+    const sourceText = liveResearchSources.map((source, index) =>
+      "SOURCE " + (index + 1) + "\nTITLE: " + source.title + "\nURL: " + source.url + "\nPAGE CONTENT:\n" + source.content
+    ).join("\n\n--- NEXT SOURCE ---\n\n").slice(0, 22000);
+    const response = await fetch("/api/estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: "Requested food: " + liveResearchFood + "\n\n" + sourceText,
+        provider: byId<HTMLSelectElement>("quick-provider").value || "auto",
+        model: byId<HTMLSelectElement>("quick-model").value || undefined,
+        researchOnly: true
+      })
+    });
+    if (!response.ok || !response.headers.get("content-type")?.includes("text/event-stream") || !response.body) {
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(payload.error || "AI could not structure the scraped data.");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let completed: (EstimateResponse & { provider?: string; model?: string }) | null = null;
+    let streamError = "";
+    const handleBlock = (block: string) => {
+      const event = block.split("\n").find((line) => line.startsWith("event:"))?.slice(6).trim();
+      const dataLine = block.split("\n").find((line) => line.startsWith("data:"))?.slice(5).trim();
+      if (!dataLine) return;
+      const data = JSON.parse(dataLine) as Record<string, unknown>;
+      if (event === "progress" && typeof data.message === "string") {
+        byId<HTMLElement>("web-research-status").textContent = data.message;
+      }
+      if (event === "complete") completed = data as EstimateResponse & { provider?: string; model?: string };
+      if (event === "error") streamError = typeof data.error === "string" ? data.error : "AI structuring failed.";
+    };
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const blocks = buffer.split("\n\n");
+      buffer = blocks.pop() || "";
+      blocks.forEach(handleBlock);
+      if (done) break;
+    }
+    if (buffer.trim()) handleBlock(buffer);
+    if (streamError) throw new Error(streamError);
+    if (!completed || !Array.isArray(completed.items) || !completed.items.length) {
+      throw new Error("AI found no complete nutrition records in the scraped pages. Try another source or a more specific search.");
+    }
+    const drafts = completed.items.map((item) => ({
+      name: String(item.name ?? "").slice(0, 90),
+      amount: String(item.amount ?? "").slice(0, 90),
+      calories: Math.max(0, Number(item.calories) || 0),
+      protein_g: Math.max(0, Number(item.protein_g) || 0),
+      carbs_g: Math.max(0, Number(item.carbs_g) || 0),
+      fat_g: Math.max(0, Number(item.fat_g) || 0),
+      nutrition_source: item.nutrition_source || "Live web research · AI structured",
+      nutrition_basis: item.nutrition_basis || "Extracted from the reviewed scraped source",
+      nutrition_source_url: item.nutrition_source_url
+    }));
+    closeDialog("web-research-dialog");
+    renderReviewItems(drafts);
+    prepareReviewOptions();
+    const attribution = document.getElementById("estimate-attribution");
+    if (attribution) attribution.textContent = "Structured from live web research with " + (completed.provider || "AI") + " · " + (completed.model || "selected model");
+    openDialog(reviewDialog);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not structure scraped food data.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Use AI to Save Data";
+  }
+}
+
 async function estimateFood(event: SubmitEvent): Promise<void> {
   event.preventDefault();
   if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
@@ -995,6 +1119,8 @@ async function saveGoal(event: SubmitEvent): Promise<void> {
 function bindEvents(): void {
   quickTime.addEventListener("input", () => { quickTimeManuallySet = true; });
   quickForm.addEventListener("submit", (event) => void estimateFood(event));
+  byId<HTMLButtonElement>("live-search-button").addEventListener("click", () => void searchLiveFood());
+  byId<HTMLButtonElement>("web-research-structure").addEventListener("click", () => void structureLiveResearch());
   entryForm.addEventListener("submit", (event) => void saveManualEntry(event));
   reviewForm.addEventListener("submit", (event) => void saveReview(event));
   goalForm.addEventListener("submit", (event) => void saveGoal(event));
