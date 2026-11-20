@@ -721,6 +721,7 @@ function updatePhotoProgress(event: PhotoStreamEvent): void {
 }
 
 async function estimatePhoto(): Promise<void> {
+  recipePendingSave=false;
   if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
   const file = photoInput.files?.[0];
   if (!file) return;
@@ -1269,7 +1270,7 @@ async function saveReview(event: SubmitEvent): Promise<void> {
       const recipeEntry = created[0];
       const existingRecipe = editingRecipeId ? savedRecipeRecords.find(record=>record.id===editingRecipeId) : undefined;
       const existingDiaryEntry = existingRecipe?.diary_entry_id
-        ? entries.find(entry=>entry.id===existingRecipe.diary_entry_id)
+        ? entries.find(entry=>entry.id===existingRecipe.diary_entry_id) ?? historyEntries.find(entry=>entry.id===existingRecipe.diary_entry_id)
         : undefined;
       if(existingDiaryEntry){
         const updatedEntry:FoodEntry={...existingDiaryEntry,name:recipeEntry.name,amount:recipeEntry.amount,
