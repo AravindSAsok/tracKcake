@@ -1176,7 +1176,11 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       fat_g: Math.max(0, Number(item.fat_g) || 0),
       nutrition_source: item.nutrition_source,
       nutrition_basis: item.nutrition_basis,
-      nutrition_source_url: item.nutrition_source_url
+      nutrition_source_url: item.nutrition_source_url,
+      nutrition_status: item.nutrition_status,
+      nutrition_conflict: item.nutrition_conflict,
+      nutrition_secondary_values: item.nutrition_secondary_values,
+      nutrition_uncertainty: item.nutrition_uncertainty
     }));
     const attribution = document.getElementById("estimate-attribution");
     const modelStatus = document.getElementById("quick-model-status");
