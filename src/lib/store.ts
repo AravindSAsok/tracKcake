@@ -500,3 +500,114 @@ export function getStorageMode(): StorageMode {
 }
 
 export const DEFAULT_CALORIE_GOAL = DEFAULT_GOAL;
+
+export interface NutritionRecipeIngredient {
+  name: string;
+  amount: number;
+  unit: "g" | "ml";
+  values: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+  source: string;
+  sourceUrl: string;
+  originalLine: string;
+}
+export interface NutritionRecipeRecord {
+  id: string;
+  recipe_name: string;
+  servings: number;
+  ingredients: NutritionRecipeIngredient[];
+  total_nutrition: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+  per_serving_nutrition: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+  diary_entry_id: string | null;
+  created_at: string;
+}
+const RECIPES_KEY = "trackcake.nutrition-recipes.v1";
+
+function readLocalRecipes(): NutritionRecipeRecord[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]");
+    if (!Array.isArray(value)) return [];
+    return value.filter((row): row is NutritionRecipeRecord =>
+      Boolean(row && typeof row === "object" && typeof row.id === "string" &&
+        typeof row.recipe_name === "string" && Array.isArray(row.ingredients) &&
+        row.ingredients.length >= 2 && row.ingredients.length <= 8 &&
+        Number.isInteger(row.servings) && row.servings >= 1 && row.servings <= 50)
+    );
+  } catch { return []; }
+}
+
+function writeLocalRecipes(rows: NutritionRecipeRecord[]): void {
+  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(rows)); }
+  catch { throw new Error("Recipe history could not be saved in this browser. Check available storage space."); }
+}
+
+function validRecipeRecord(record: NutritionRecipeRecord): boolean {
+  if (!record || typeof record.id !== "string" || !record.id || record.recipe_name.trim().length < 1 ||
+      record.recipe_name.length > 90 || !Number.isInteger(record.servings) || record.servings < 1 || record.servings > 50 ||
+      !Array.isArray(record.ingredients) || record.ingredients.length < 2 || record.ingredients.length > 8) return false;
+  const validNutrition = (values: Record<string, number>) =>
+    ["calories_kcal", "protein_g", "carbs_g", "fat_g"].every((key) =>
+      Number.isFinite(Number(values?.[key])) && Number(values[key]) >= 0 &&
+      Number(values[key]) <= (key === "calories_kcal" ? 10000 : 1000));
+  if (!validNutrition(record.total_nutrition) || !validNutrition(record.per_serving_nutrition)) return false;
+  return record.ingredients.every((item) =>
+    typeof item.name === "string" && item.name.trim().length > 0 && item.name.length <= 100 &&
+    Number.isFinite(item.amount) && item.amount > 0 && ["g", "ml"].includes(item.unit) &&
+    validNutrition(item.values) && typeof item.source === "string" &&
+    typeof item.sourceUrl === "string" && typeof item.originalLine === "string");
+}
+
+export async function saveNutritionRecipe(record: NutritionRecipeRecord): Promise<string | undefined> {
+  if (!validRecipeRecord(record)) throw new Error("Recipe details are incomplete or invalid. Nothing was saved.");
+  const local = readLocalRecipes();
+  writeLocalRecipes([record, ...local.filter((item) => item.id !== record.id)]);
+  if (!cloudConfigured) return;
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) throw new Error("Your cloud session is not ready.");
+    const { error } = await client.from("nutrition_recipes").upsert({
+      ...record, user_id: userId
+    }, { onConflict: "id" });
+    if (error) throw error;
+  } catch (error) {
+    cloudReady = false;
+    storageMode = "local";
+    console.warn("Recipe history saved locally; cloud sync failed.", error);
+    return "Recipe saved on this device. Cloud sync failed and will need a connection to retry.";
+  }
+}
+
+export async function listNutritionRecipes(): Promise<NutritionRecipeRecord[]> {
+  if (!cloudConfigured) return readLocalRecipes();
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) return readLocalRecipes();
+    const { data, error } = await client.from("nutrition_recipes")
+      .select("id,recipe_name,servings,ingredients,total_nutrition,per_serving_nutrition,diary_entry_id,created_at")
+      .order("created_at", { ascending: false }).limit(100);
+    if (error) throw error;
+    const rows = (data || []).filter((row) => validRecipeRecord(row as NutritionRecipeRecord)) as NutritionRecipeRecord[];
+    writeLocalRecipes(rows);
+    return rows;
+  } catch (error) {
+    console.warn("Recipe history cloud read failed; showing locally saved recipes.", error);
+    return readLocalRecipes();
+  }
+}
+
+export async function deleteNutritionRecipe(id: string): Promise<string | undefined> {
+  if (typeof id !== "string" || !id) throw new Error("Choose a recipe to delete.");
+  writeLocalRecipes(readLocalRecipes().filter((row) => row.id !== id));
+  if (!cloudConfigured) return;
+  try {
+    const client = await ensureCloud();
+    if (!client || !userId) throw new Error("Your cloud session is not ready.");
+    const { error } = await client.from("nutrition_recipes").delete().eq("id", id).eq("user_id", userId);
+    if (error) throw error;
+  } catch (error) {
+    cloudReady = false;
+    storageMode = "local";
+    console.warn("Recipe was deleted locally; cloud deletion failed.", error);
+    return "Deleted on this device. Cloud deletion could not be confirmed.";
+  }
+}
+
