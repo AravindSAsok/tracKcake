@@ -506,3 +506,20 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - API keys on one Firecrawl team share the team's rate-limit counters. Per-key credit spend limits can be configured in the Firecrawl dashboard.
 - Official references: https://docs.firecrawl.dev/billing and https://docs.firecrawl.dev/rate-limits.
 - TrackCake's current Firecrawl integration caps live lookup at the first three unmatched foods per meal. Actual credit use depends on search result count and how many pages are scraped; inspect usage at https://www.firecrawl.dev/app.
+
+---
+
+## User-triggered Firecrawl research workflow — 2026-11-20
+
+- Product decision: conserve Firecrawl credits. Firecrawl must never run automatically during ordinary text or photo food estimation.
+- Added the **Live web search** button to the quick food entry controls. It is an explicit action and calls the server-only `/api/web-research` endpoint.
+- The endpoint calls Firecrawl Search with up to four results, returns raw scraped Markdown and safe HTTPS source URLs, and does not ask Firecrawl to produce nutrition JSON.
+- Added a source-review popup that displays each scraped page in a collapsible source section, including its title and source link.
+- The user must tap **Use AI to Save Data** to send reviewed page content to the selected/available AI provider. The AI uses a strict extraction prompt: it must not invent, calculate, or combine missing nutrition values. Each structured record must include all macros and cite one of the source URLs from the reviewed result set.
+- AI-structured values are passed into the existing food review dialog; the user still edits and explicitly saves the food to the diary. No automatic diary writes occur.
+- Normal researchNutrition no longer calls Firecrawl. Existing Open Food Facts and USDA matching remain unchanged; optional Gemini Google Search grounding remains off by default.
+- Added researchOnly mode to /api/estimate to reuse existing provider/model fallback and JSON parsing without invoking database nutrition lookup. Source title, basis, and URL metadata are preserved in the response.
+- Files changed: src/pages/api/web-research.ts (new), src/pages/api/estimate.ts, src/pages/index.astro, src/scripts/app.ts, src/lib/nutrition-research.ts, src/styles/global.css, README.md.
+- Security: API key remains server-side; scraped content is rendered as escaped text; source URLs are HTTPS-only; model output URLs must match the reviewed source URL list; provider errors do not expose API keys.
+- Verification still required: npm run check, npm run build, GitHub Actions, Vercel Production deployment, and manual authenticated browser tests for both popups and the save flow. Do not mark complete until CI and deployment reach terminal success.
+- Commit history for this task: implementation changes were committed directly to main in sequential commits, latest code commit before this handoff: f62c3747121cb0b0ae9504a54c9428e7d5ab4286. Follow-up documentation update will record final verification.
