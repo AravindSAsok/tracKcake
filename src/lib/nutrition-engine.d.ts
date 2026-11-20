@@ -29,3 +29,7 @@ export function aggregateIngredientEstimates(ingredients: Array<{
   contributions: Array<{ name: string; amount: number; unit: NutritionUnit; source: string; sourceUrl: string }>;
   method: string;
 } | null;
+
+export function reconcileNutritionSources(primary: Record<string, any> | null, secondary: Record<string, any> | null): {
+  item: Record<string, any>; conflict: boolean; reasons: string[];
+} | null;
