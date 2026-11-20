@@ -241,7 +241,7 @@ async function lookupOpenFoodFacts(item: NutritionItem): Promise<NutritionItem |
         fiber_g: typeof n[per100ml ? "fiber_100ml" : "fiber_100g"] === "number" ? n[per100ml ? "fiber_100ml" : "fiber_100g"] : null,
         sugar_g: typeof n[per100ml ? "sugars_100ml" : "sugars_100g"] === "number" ? n[per100ml ? "sugars_100ml" : "sugars_100g"] : null,
         saturated_fat_g: typeof n[per100ml ? "saturated-fat_100ml" : "saturated-fat_100g"] === "number" ? n[per100ml ? "saturated-fat_100ml" : "saturated-fat_100g"] : null,
-        sodium_mg: typeof n[per100ml ? "sodium_100ml" : "sodium_100g"] === "number" ? n[per100ml ? "sodium_100ml" : "sodium_100g"] : null
+        sodium_mg: typeof n[per100ml ? "sodium_100ml" : "sodium_100g"] === "number" ? n[per100ml ? "sodium_100ml" : "sodium_100g"] * 1000 : null
       }
     );
   } catch (error) {
