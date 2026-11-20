@@ -36,7 +36,7 @@ function providerFetch({ offCalories = 52, usdaCalories = 52 } = {}, calls = [])
           "energy-kcal_100g": offCalories, "proteins_100g": 0.26,
           "carbohydrates_100g": 13.81, "fat_100g": 0.17,
           "fiber_100g": 2.4, "sugars_100g": 10.4,
-          "saturated-fat_100g": 0.03, "sodium_100g": 1
+          "saturated-fat_100g": 0.03, "sodium_100g": 0.001
         }
       }] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
