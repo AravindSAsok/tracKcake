@@ -59,7 +59,8 @@ function scaledItem(
   basisUnit: "g" | "ml",
   source: string,
   basisLabel: string,
-  sourceUrl?: string
+  sourceUrl?: string,
+  optionalNutrients: { fiber_g?: number | null; sugar_g?: number | null; saturated_fat_g?: number | null; sodium_mg?: number | null } = {}
 ): NutritionItem | null {
   // Grams and millilitres are never interchangeable without a source-specific density.
   const normalized = normalizeNutrition({
@@ -72,6 +73,13 @@ function scaledItem(
     basis: { amount: 100, unit: basisUnit, label: basisLabel }
   }, quantity);
   if (!normalized) return null;
+  const optionalScale = quantity.value / 100;
+  const optionalValues = {
+    fiber_g: typeof optionalNutrients.fiber_g === "number" ? Math.round(optionalNutrients.fiber_g * optionalScale * 100) / 100 : null,
+    sugar_g: typeof optionalNutrients.sugar_g === "number" ? Math.round(optionalNutrients.sugar_g * optionalScale * 100) / 100 : null,
+    saturated_fat_g: typeof optionalNutrients.saturated_fat_g === "number" ? Math.round(optionalNutrients.saturated_fat_g * optionalScale * 100) / 100 : null,
+    sodium_mg: typeof optionalNutrients.sodium_mg === "number" ? Math.round(optionalNutrients.sodium_mg * optionalScale * 100) / 100 : null
+  };
   const sourceLower = source.toLowerCase();
   const sourceType = sourceLower.includes("open food facts") ? "open_food_facts" : sourceLower.includes("usda") ? "usda" : "reviewed_web";
   const extractionMethod = sourceLower.includes("google search") ? "ai_structured" : "structured_api";
@@ -85,6 +93,7 @@ function scaledItem(
     protein_g: normalized.values.protein_g,
     carbs_g: normalized.values.carbs_g,
     fat_g: normalized.values.fat_g,
+    ...optionalValues,
     nutrition_source: source + " · " + quality.status,
     nutrition_basis: basisLabel + " · calculated for " + quantity.value + " " + quantity.unit,
     nutrition_source_url: sourceUrl,
@@ -95,7 +104,11 @@ function scaledItem(
       calories: "Calculated from " + source + " source data",
       protein_g: "Calculated from " + source + " source data",
       carbs_g: "Calculated from " + source + " source data",
-      fat_g: "Calculated from " + source + " source data"
+      fat_g: "Calculated from " + source + " source data",
+      fiber_g: optionalValues.fiber_g === null ? "Not provided by source" : "Calculated from " + source + " source data",
+      sugar_g: optionalValues.sugar_g === null ? "Not provided by source" : "Calculated from " + source + " source data",
+      saturated_fat_g: optionalValues.saturated_fat_g === null ? "Not provided by source" : "Calculated from " + source + " source data",
+      sodium_mg: optionalValues.sodium_mg === null ? "Not provided by source" : "Calculated from " + source + " source data"
     }
   };
 }
@@ -108,6 +121,7 @@ type CatalogRecord = {
   canonical_name: string; normalized_name: string; aliases?: string[]; brand?: string | null; barcode?: string | null;
   calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number; basis_amount: number; basis_unit: "g" | "ml";
   source_name: string; source_record_id?: string | null; source_url?: string | null; extraction_method: string;
+  optional_nutrients?: { fiber_g?: number | null; sugar_g?: number | null; saturated_fat_g?: number | null; sodium_mg?: number | null } | null;
   confidence_status: string; is_approved: boolean; approved_at?: string | null;
 };
 
@@ -123,7 +137,7 @@ async function lookupApprovedCatalog(item: NutritionItem): Promise<NutritionItem
     if (approvedCatalogCache && approvedCatalogCache.expiresAt > Date.now()) {
       rows = approvedCatalogCache.rows;
     } else {
-      const fields = "canonical_name,normalized_name,aliases,brand,barcode,calories_kcal,protein_g,carbs_g,fat_g,basis_amount,basis_unit,source_name,source_record_id,source_url,extraction_method,confidence_status,is_approved,approved_at";
+      const fields = "canonical_name,normalized_name,aliases,brand,barcode,calories_kcal,protein_g,carbs_g,fat_g,basis_amount,basis_unit,optional_nutrients,source_name,source_record_id,source_url,extraction_method,confidence_status,is_approved,approved_at";
       const response = await fetch(base + "/rest/v1/nutrition_catalog?select=" + fields + "&is_approved=eq.true&approved_at=not.is.null&limit=500", {
         headers: { apikey: anonKey, Authorization: "Bearer " + anonKey },
         signal: AbortSignal.timeout(2500)
@@ -152,10 +166,24 @@ async function lookupApprovedCatalog(item: NutritionItem): Promise<NutritionItem
       ...item, name: record.canonical_name,
       calories: Math.round(normalized.values.calories_kcal), protein_g: normalized.values.protein_g,
       carbs_g: normalized.values.carbs_g, fat_g: normalized.values.fat_g,
+      fiber_g: typeof record.optional_nutrients?.fiber_g === "number" ? Math.round(record.optional_nutrients.fiber_g * quantity.value / Number(record.basis_amount) * 100) / 100 : null,
+      sugar_g: typeof record.optional_nutrients?.sugar_g === "number" ? Math.round(record.optional_nutrients.sugar_g * quantity.value / Number(record.basis_amount) * 100) / 100 : null,
+      saturated_fat_g: typeof record.optional_nutrients?.saturated_fat_g === "number" ? Math.round(record.optional_nutrients.saturated_fat_g * quantity.value / Number(record.basis_amount) * 100) / 100 : null,
+      sodium_mg: typeof record.optional_nutrients?.sodium_mg === "number" ? Math.round(record.optional_nutrients.sodium_mg * quantity.value / Number(record.basis_amount) * 100) / 100 : null,
       nutrition_source: record.source_name + " · " + quality.status,
       nutrition_basis: "Per " + record.basis_amount + " " + record.basis_unit + " · calculated for " + quantity.value + " " + quantity.unit,
       nutrition_source_url: typeof record.source_url === "string" && /^https:\/\//i.test(record.source_url) ? record.source_url : undefined,
-      nutrition_status: quality.status, nutrition_confidence: quality.score, nutrition_method: "approved_catalog"
+      nutrition_status: quality.status, nutrition_confidence: quality.score, nutrition_method: "approved_catalog",
+      nutrition_uncertainty: {
+        calories: "Calculated from " + record.source_name + " source data",
+        protein_g: "Calculated from " + record.source_name + " source data",
+        carbs_g: "Calculated from " + record.source_name + " source data",
+        fat_g: "Calculated from " + record.source_name + " source data",
+        fiber_g: record.optional_nutrients?.fiber_g == null ? "Not provided by source" : "Calculated from " + record.source_name + " source data",
+        sugar_g: record.optional_nutrients?.sugar_g == null ? "Not provided by source" : "Calculated from " + record.source_name + " source data",
+        saturated_fat_g: record.optional_nutrients?.saturated_fat_g == null ? "Not provided by source" : "Calculated from " + record.source_name + " source data",
+        sodium_mg: record.optional_nutrients?.sodium_mg == null ? "Not provided by source" : "Calculated from " + record.source_name + " source data"
+      }
     };
   } catch {
     return null;
@@ -294,7 +322,13 @@ async function lookupUsda(item: NutritionItem, context: string): Promise<Nutriti
       "g",
       "USDA FoodData Central · matched food",
       "Per 100 g",
-      "https://fdc.nal.usda.gov/food-details/" + encodeURIComponent(String(food.fdcId)) + "/nutrients"
+      "https://fdc.nal.usda.gov/food-details/" + encodeURIComponent(String(food.fdcId)) + "/nutrients",
+      {
+        fiber_g: nutrientValue(food, 1079, /fiber/i),
+        sugar_g: nutrientValue(food, 2000, /total sugars/i),
+        saturated_fat_g: nutrientValue(food, 1258, /fatty acids, total saturated/i),
+        sodium_mg: nutrientValue(food, 1093, /sodium/i)
+      }
     );
     if (!result) return null;
     return { ...result, nutrition_basis: result.nutrition_basis + " · " + String(food.description).slice(0, 100) };
