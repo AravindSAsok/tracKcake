@@ -34,8 +34,9 @@ TrackCake makes food logging easier without hiding the details. Add meals manual
 - **Daily nutrition goals:** track calories and macronutrients against a personal calorie target.
 - **Calkie assistant:** ask questions about your diary through a floating chat interface, with provider/model selection and saved conversation history.
 - **Flexible persistence:** use local browser storage or Supabase Auth and cloud-backed PostgreSQL storage.
-- **Nutrition research:** text and photo estimates share a server-side nutrition lookup that checks branded products in Open Food Facts and generic foods in USDA FoodData Central, then calculates values for the stated quantity.
-- **Optional web research:** Gemini Google Search grounding can research foods when database matches are unavailable. It is disabled by default so search usage cannot create unexpected charges.
+- **Nutrition research:** text and photo estimates share a server-side lookup that checks branded products in Open Food Facts and generic foods in USDA FoodData Central, then calculates values for the stated quantity.
+- **Live web research:** when configured, Firecrawl searches and extracts nutrition facts from live pages for the first three unmatched foods in a meal. Extracted values must include all four macros, a matching food name, a per-100 g/ml basis, page content, and a source URL before they can be used.
+- **Optional Google Search grounding:** Gemini Google Search remains an additional fallback and is disabled by default.
 
 ## Screenshots
 
@@ -50,7 +51,7 @@ A curated screenshot set is not currently committed. Add real application captur
 | Server runtime | Astro server output; Vercel adapter, with standalone Node adapter option for Render |
 | Authentication and database | Supabase Auth, PostgreSQL, Row Level Security |
 | AI providers | Groq, Google Gemini, OpenRouter |
-| Nutrition sources | Open Food Facts, USDA FoodData Central; optional Gemini Google Search grounding |
+| Nutrition sources | Open Food Facts, USDA FoodData Central, optional Firecrawl live web research, optional Gemini Google Search grounding |
 | Hosting | Vercel |
 
 ## Architecture
@@ -67,6 +68,7 @@ flowchart TD
   API --> N[Shared nutrition research]
   N --> OFF[Open Food Facts]
   N --> USDA[USDA FoodData Central]
+  N -. optional .-> FC[Firecrawl live web search and extraction]
   N -. optional .-> WEB[Gemini Google Search]
   AI --> N
   N --> R[Review and edit]
@@ -107,13 +109,14 @@ GEMINI_MODEL=
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=
 USDA_FDC_API_KEY=
+FIRECRAWL_API_KEY=
 GEMINI_WEB_SEARCH_ENABLED=false
 GEMINI_WEB_SEARCH_MODEL=gemini-3.6-flash
 PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
 ~~~
 
-USDA_FDC_API_KEY is optional; without it, the limited public USDA DEMO_KEY is used. For production usage, create a free FoodData Central API key and add it server-side. Gemini Google Search grounding is disabled unless GEMINI_WEB_SEARCH_ENABLED=true; review Google's current grounding pricing and limits before enabling it. Never commit .env files or expose AI provider keys through PUBLIC_ variables. The Supabase URL and anon/publishable key are browser configuration and must be protected by the included Row Level Security policies. Never put a Supabase service-role key in the browser.
+USDA_FDC_API_KEY is optional; without it, the limited public USDA DEMO_KEY is used. For production usage, create a free FoodData Central API key and add it server-side. FIRECRAWL_API_KEY enables bounded live web research after Open Food Facts and USDA lookups fail. Firecrawl is called server-side only and is limited to the first three unmatched foods in a meal. Gemini Google Search grounding is disabled unless GEMINI_WEB_SEARCH_ENABLED=true; review Google's current grounding pricing and limits before enabling it. Never commit .env files or expose AI provider keys through PUBLIC_ variables. The Supabase URL and anon/publishable key are browser configuration and must be protected by the included Row Level Security policies. Never put a Supabase service-role key in the browser.
 
 ### AI providers and model catalogue
 
@@ -191,7 +194,8 @@ supabase/
 - Supabase cloud data is protected by user-scoped Row Level Security policies.
 - Calkie requires a valid Supabase session to retrieve diary context and conversation history.
 - Food text and photos are sent to the selected AI provider for analysis. Do not submit information you do not want processed by that provider.
-- Nutrition lookup checks Open Food Facts for identified branded products and USDA FoodData Central for generic foods. Matches are best-effort and depend on accurate food identification and quantity units.
+- Nutrition lookup checks Open Food Facts for identified branded products and USDA FoodData Central for generic foods, then optionally uses Firecrawl to search and extract live page data. Web results are best-effort and are not a guarantee of laboratory-verified nutrition values.
+- Firecrawl web research is disabled until FIRECRAWL_API_KEY is configured, runs server-side, and is bounded to three unmatched items per meal. Its returned source link and research label are shown in the review popup.
 - Optional Gemini Google Search grounding is disabled by default. If enabled, its returned source link is shown in the review popup; Google's usage limits and pricing apply.
 - When no reliable match is found, TrackCake labels the values as an AI estimate instead of presenting them as verified.
 - Food names, portions, calories, and macros generated by AI may be inaccurate. Review and correct every estimate.
