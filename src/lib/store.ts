@@ -519,6 +519,7 @@ export interface NutritionRecipeRecord {
   per_serving_nutrition: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number };
   diary_entry_id: string | null;
   created_at: string;
+  updated_at?: string;
 }
 const RECIPES_KEY = "trackcake.nutrition-recipes.v1";
 const recipeStorageKey = () => RECIPES_KEY + (userId ? "." + userId : ".local");
@@ -562,14 +563,15 @@ export async function saveNutritionRecipe(record: NutritionRecipeRecord): Promis
   if (cloudConfigured) {
     try { await ensureCloud(); } catch { /* Keep a local-first copy when cloud auth is unavailable. */ }
   }
+  const persisted = { ...record, updated_at: new Date().toISOString() };
   const local = readLocalRecipes();
-  writeLocalRecipes([record, ...local.filter((item) => item.id !== record.id)]);
+  writeLocalRecipes([persisted, ...local.filter((item) => item.id !== persisted.id)]);
   if (!cloudConfigured) return;
   try {
     const client = await ensureCloud();
     if (!client || !userId) throw new Error("Your cloud session is not ready.");
     const { error } = await client.from("nutrition_recipes").upsert({
-      ...record, user_id: userId
+      ...persisted, user_id: userId
     }, { onConflict: "id" });
     if (error) throw error;
   } catch (error) {
@@ -586,21 +588,27 @@ export async function listNutritionRecipes(): Promise<NutritionRecipeRecord[]> {
     const client = await ensureCloud();
     if (!client || !userId) return readLocalRecipes();
     const { data, error } = await client.from("nutrition_recipes")
-      .select("id,recipe_name,servings,ingredients,total_nutrition,per_serving_nutrition,diary_entry_id,created_at")
+      .select("id,recipe_name,servings,ingredients,total_nutrition,per_serving_nutrition,diary_entry_id,created_at,updated_at")
       .order("created_at", { ascending: false }).limit(100);
     if (error) throw error;
     const remoteRows = (data || []).filter((row) => validRecipeRecord(row as NutritionRecipeRecord)) as NutritionRecipeRecord[];
-    const syncedIds = new Set(remoteRows.map((row) => row.id));
-    const pendingRows = readLocalRecipes().filter((row) => !syncedIds.has(row.id));
+    const remoteById = new Map(remoteRows.map((row) => [row.id, row]));
+    const pendingRows = readLocalRecipes().filter((row) => {
+      const remote = remoteById.get(row.id);
+      if (!remote) return true;
+      const localTime = Date.parse(row.updated_at || row.created_at);
+      const remoteTime = Date.parse(remote.updated_at || remote.created_at);
+      return Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime > remoteTime;
+    });
     const stillPending: NutritionRecipeRecord[] = [];
     for (const pending of pendingRows) {
       const { error: syncError } = await client.from("nutrition_recipes").upsert({
         ...pending, user_id: userId
       }, { onConflict: "id" });
-      if (!syncError) { remoteRows.push(pending); syncedIds.add(pending.id); }
-      else { stillPending.push(pending); console.warn("Pending recipe history remains on this device.", syncError); }
+      if (!syncError) remoteById.set(pending.id, pending);
+      else { stillPending.push(pending); remoteById.set(pending.id, pending); console.warn("Pending recipe history remains on this device.", syncError); }
     }
-    const rows = [...remoteRows, ...stillPending];
+    const rows = [...remoteById.values()];
     writeLocalRecipes(rows);
     return rows;
   } catch (error) {
