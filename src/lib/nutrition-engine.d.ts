@@ -33,3 +33,4 @@ export function aggregateIngredientEstimates(ingredients: Array<{
 export function reconcileNutritionSources(primary: Record<string, any> | null, secondary: Record<string, any> | null): {
   item: Record<string, any>; conflict: boolean; reasons: string[];
 } | null;
+export function isGenericNutritionLookup(item: { brand?: string; product_name?: string }): boolean;
