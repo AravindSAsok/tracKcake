@@ -236,7 +236,13 @@ async function lookupOpenFoodFacts(item: NutritionItem): Promise<NutritionItem |
       basisUnit,
       "Open Food Facts · brand and product matched",
       "Per 100 " + basisUnit,
-      match.code || item.barcode ? "https://world.openfoodfacts.org/product/" + encodeURIComponent(String(match.code || item.barcode)) : undefined
+      match.code || item.barcode ? "https://world.openfoodfacts.org/product/" + encodeURIComponent(String(match.code || item.barcode)) : undefined,
+      {
+        fiber_g: typeof n[per100ml ? "fiber_100ml" : "fiber_100g"] === "number" ? n[per100ml ? "fiber_100ml" : "fiber_100g"] : null,
+        sugar_g: typeof n[per100ml ? "sugars_100ml" : "sugars_100g"] === "number" ? n[per100ml ? "sugars_100ml" : "sugars_100g"] : null,
+        saturated_fat_g: typeof n[per100ml ? "saturated-fat_100ml" : "saturated-fat_100g"] === "number" ? n[per100ml ? "saturated-fat_100ml" : "saturated-fat_100g"] : null,
+        sodium_mg: typeof n[per100ml ? "sodium_100ml" : "sodium_100g"] === "number" ? n[per100ml ? "sodium_100ml" : "sodium_100g"] : null
+      }
     );
   } catch (error) {
     console.warn("[trackcake-nutrition] Open Food Facts lookup unavailable", error instanceof Error ? error.message : "unknown error");
