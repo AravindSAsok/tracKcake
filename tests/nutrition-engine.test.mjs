@@ -232,3 +232,20 @@ test("catalogue matching never substitutes a branded row for a generic food", ()
   assert.equal(matchCatalogCandidate({ name: "plain yogurt", brand: "Brand A" }, records)?.brand, "Brand A");
   assert.equal(matchCatalogCandidate({ name: "plain yogurt", brand: "Brand B" }, records), null);
 });
+
+test("optional nutrient conflicts are disclosed without averaging", () => {
+  const primary = {
+    calories: 100, protein_g: 4, carbs_g: 20, fat_g: 1,
+    fiber_g: 2, sugar_g: 3, saturated_fat_g: 0.2, sodium_mg: 100,
+    nutrition_basis: "Per 100 g", nutrition_source: "Open Food Facts",
+    nutrition_status: "Strong source match", nutrition_confidence: 90
+  };
+  const secondary = {
+    ...primary, fiber_g: 5, nutrition_source: "USDA FoodData Central"
+  };
+  const result = reconcileNutritionSources(primary, secondary);
+  assert.equal(result.conflict, true);
+  assert.equal(result.item.fiber_g, 2);
+  assert.equal(result.item.nutrition_secondary_values.fiber_g, 5);
+  assert.match(result.item.nutrition_conflict, /fiber differs/i);
+});
