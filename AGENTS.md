@@ -548,3 +548,15 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - The relevance filter is deliberately conservative and may reject useful pages when the exact food wording is absent. Users can retry with a more specific food name or brand.
 - No Firecrawl credits were spent during implementation or verification.
 - Automated tests, TypeScript check, production build, GitHub Actions and Vercel deployment must be verified for the resulting commit before this work is described as released.
+
+
+---
+
+## Nutrition Engine V2 execution plan prepared — 2026-11-20
+
+- Added `NUTRITION-ENGINE-V2-EXECUTION.md` as the one-shot, task-specific implementation brief for the complete Nutrition Engine V2.
+- The plan covers deterministic nutrition extraction, serving/unit normalization, reusable approved-food catalog, ingredient-based calculations, evidence confidence/status scoring, constrained AI fallback, UX integration, API/security safeguards, automated tests, documentation, and direct-main release verification.
+- The plan explicitly preserves the existing review-before-save workflow and requires Firecrawl to remain user-triggered only, capped at two candidate pages, with no Firecrawl credit spend in automated tests.
+- This commit adds planning documentation only. No application code, database schema, or production behavior was changed; none of the planned features should be considered implemented.
+- Execution starts only after the project owner explicitly asks an agent to read and execute the plan.
+- Plan: https://github.com/AravindSAsok/tracKcake/blob/main/NUTRITION-ENGINE-V2-EXECUTION.md
