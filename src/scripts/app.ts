@@ -24,6 +24,10 @@ type DraftItem = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g?: number | null;
+  sugar_g?: number | null;
+  saturated_fat_g?: number | null;
+  sodium_mg?: number | null;
   nutrition_source?: string;
   nutrition_basis?: string;
   nutrition_source_url?: string;
@@ -40,7 +44,7 @@ type WebResearchResponse = { food?: string; sources?: WebResearchSource[]; error
 type EstimateResponse = { items?: DraftItem[]; error?: string };
 type RecipeIngredientResult = {
   name: string; amount: number; unit: "g" | "ml";
-  values: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+  values: { calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g?: number | null; sugar_g?: number | null; saturated_fat_g?: number | null; sodium_mg?: number | null };
   source: string; sourceUrl: string; originalLine: string;
 };
 type RecipeEstimateResponse = EstimateResponse & { provider?: string; model?: string };
@@ -819,6 +823,7 @@ async function estimatePhoto(): Promise<void> {
       nutrition_status: item.nutrition_status,
       nutrition_conflict: item.nutrition_conflict,
       nutrition_secondary_values: item.nutrition_secondary_values,
+      fiber_g: item.fiber_g, sugar_g: item.sugar_g, saturated_fat_g: item.saturated_fat_g, sodium_mg: item.sodium_mg,
       nutrition_uncertainty: item.nutrition_uncertainty
     }));
     renderReviewItems(drafts);
@@ -996,6 +1001,7 @@ async function structureLiveResearch(): Promise<void> {
       nutrition_status: item.nutrition_status,
       nutrition_conflict: item.nutrition_conflict,
       nutrition_secondary_values: item.nutrition_secondary_values,
+      fiber_g: item.fiber_g, sugar_g: item.sugar_g, saturated_fat_g: item.saturated_fat_g, sodium_mg: item.sodium_mg,
       nutrition_uncertainty: item.nutrition_uncertainty
     }));
     closeDialog("web-research-dialog");
@@ -1080,7 +1086,8 @@ async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void>
       if(!quantity)throw new Error("Could not read the quantity for: "+lines[index]);
       const item=await requestRecipeIngredientEstimate(lines[index]);
       recipeIngredientResults.push({name:item.name,amount:quantity.value,unit:quantity.unit,
-        values:{calories_kcal:item.calories,protein_g:item.protein_g,carbs_g:item.carbs_g,fat_g:item.fat_g},
+        values:{calories_kcal:item.calories,protein_g:item.protein_g,carbs_g:item.carbs_g,fat_g:item.fat_g,
+          fiber_g:item.fiber_g??null,sugar_g:item.sugar_g??null,saturated_fat_g:item.saturated_fat_g??null,sodium_mg:item.sodium_mg??null},
         source:item.nutrition_source||"AI estimate · needs review",sourceUrl:item.nutrition_source_url||"",originalLine:lines[index]});
     }
     const aggregate=aggregateIngredientEstimates(recipeIngredientResults.map(item=>({name:item.name,amount:item.amount,unit:item.unit,
@@ -1210,6 +1217,7 @@ async function estimateFood(event: SubmitEvent): Promise<void> {
       nutrition_status: item.nutrition_status,
       nutrition_conflict: item.nutrition_conflict,
       nutrition_secondary_values: item.nutrition_secondary_values,
+      fiber_g: item.fiber_g, sugar_g: item.sugar_g, saturated_fat_g: item.saturated_fat_g, sodium_mg: item.sodium_mg,
       nutrition_uncertainty: item.nutrition_uncertainty
     }));
     const attribution = document.getElementById("estimate-attribution");
