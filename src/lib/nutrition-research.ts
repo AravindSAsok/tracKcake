@@ -330,8 +330,10 @@ export async function researchNutrition(
     // extracts page data; values are accepted only when food, nutrients, basis
     // and the actual source URL pass validation.
     if (index < 3) {
-      const webResearch = await searchWebNutrition(item.product_name || item.name, item.brand || "", context);
       const quantity = findQuantity(item);
+      const webResearch = quantity
+        ? await searchWebNutrition(item.product_name || item.name, item.brand || "", context)
+        : null;
       if (webResearch && quantity) {
         const researched = scaledItem(
           item,
