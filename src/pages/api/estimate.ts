@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { researchNutrition, type NutritionItem } from "../../lib/nutrition-research";
 import { isVerifiedModel, VERIFIED_MODELS } from "../../lib/ai-models";
 import { validateAiNutritionItem } from "../../lib/nutrition-ai-schema.js";
+import { isRequestBodyTooLarge, validateEstimatePayload } from "../../lib/nutrition-api-validation.js";
 
 export const prerender = false;
 export const maxDuration = 300;
@@ -250,8 +251,9 @@ async function buildAttempts(
 
  
 export const POST: APIRoute = async ({ request }) => {
-  const declaredLength = Number(request.headers.get("content-length") || 0);
-  if (declaredLength > 40_000) return json({ error: "The nutrition request is too large. Shorten the description or reviewed source excerpts." }, 413);
+  if (isRequestBodyTooLarge(request.headers.get("content-length"), 40_000)) {
+    return json({ error: "The nutrition request is too large. Shorten the description or reviewed source excerpts." }, 413);
+  }
   let description: string;
   let providerChoice: Provider | "auto" = "auto";
   let modelChoice: string | undefined;
@@ -259,33 +261,15 @@ export const POST: APIRoute = async ({ request }) => {
   let researchOnly = false;
   let allowedSourceUrls = new Set<string>();
   try {
-    const body = await request.json() as { description?: unknown; provider?: unknown; model?: unknown; strictModel?: unknown; researchOnly?: unknown; sourceUrls?: unknown };
-    description = typeof body.description === "string" ? body.description.trim() : "";
-    const requested = body.provider ?? "auto";
-    if (body.model !== undefined && body.model !== null && body.model !== "") {
-      if (typeof body.model !== "string" || body.model.length > 200) {
-        return json({ error: "Choose a valid model from the model list." }, 400);
-      }
-      if (typeof requested !== "string" || !isVerifiedModel(requested, body.model)) {
-        return json({ error: "That model is not currently approved for TrackCake. Refresh the model list and choose a verified model." }, 400);
-      }
-      modelChoice = body.model;
-    }
-    if (modelChoice && requested === "auto") {
-      return json({ error: "Choose a specific AI provider before selecting a model." }, 400);
-    }
-    if (!["auto", "groq", "gemini", "openrouter"].includes(String(requested))) {
-      return json({ error: "Choose auto, groq, gemini or openrouter." }, 400);
-    }
-    providerChoice = requested as Provider | "auto";
-    strictModel = body.strictModel === true && Boolean(modelChoice);
-    researchOnly = body.researchOnly === true;
-    if (Array.isArray(body.sourceUrls)) {
-      allowedSourceUrls = new Set(body.sourceUrls.filter((url): url is string =>
-        typeof url === "string" && url.length <= 2048 && /^https:\/\//i.test(url)
-      ).slice(0, 3));
-    }
-    if (researchOnly && !allowedSourceUrls.size) return json({ error: "The reviewed source list is missing. Search again before using AI." }, 400);
+    const body: unknown = await request.json();
+    const validated = validateEstimatePayload(body, isVerifiedModel);
+    if (!validated.ok) return json({ error: validated.error }, validated.status);
+    description = validated.description;
+    providerChoice = validated.providerChoice;
+    modelChoice = validated.modelChoice;
+    strictModel = validated.strictModel;
+    researchOnly = validated.researchOnly;
+    allowedSourceUrls = validated.allowedSourceUrls;
   } catch {
     return json({ error: "Please enter a food description." }, 400);
   }
