@@ -257,6 +257,8 @@ async function buildAttempts(
 
  
 export const POST: APIRoute = async ({ request }) => {
+  const declaredLength = Number(request.headers.get("content-length") || 0);
+  if (declaredLength > 40_000) return json({ error: "The nutrition request is too large. Shorten the description or reviewed source excerpts." }, 413);
   let description: string;
   let providerChoice: Provider | "auto" = "auto";
   let modelChoice: string | undefined;
