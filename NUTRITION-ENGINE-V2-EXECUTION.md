@@ -317,9 +317,11 @@ Final report must include:
 - No application code, database schema, or production behavior is changed by this planning document.
 - Execution begins only when the user explicitly asks an agent to read and execute this file.
 
-### Completion record
-- Status: Not started.
+### Execution record — 2026-11-20
+- Status: Core deterministic extraction, unit normalization, catalogue schema/lookup, recipe math helper, confidence scoring, deterministic-first simple-food lookup, deterministic-first reviewed-web extraction, and unit tests have been authored.
+- Status is **partial**, not complete: recipe editor UI, full source reconciliation, broader extraction formats, and complete nullable AI field-level schema remain outstanding.
 - Implementation commit: Pending.
-- Test/build/CI status: Pending.
+- Test/build/CI status: Pending GitHub Actions; local checks unavailable because the connected development laptop is offline.
+- Supabase migration: pending application and verification on TrackCake project `rdjjlwupwobyojmkaqau`.
 - Vercel deployment: Pending.
-- Notes: Do not treat this document's requirements as implemented functionality.
+- Notes: Do not treat the remaining partial features as implemented functionality.

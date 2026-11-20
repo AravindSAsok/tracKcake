@@ -24,7 +24,8 @@ type DraftItem = {
   nutrition_source_url?: string;
 };
 
-type WebResearchSource = { title: string; url: string; content: string };
+type WebResearchFacts = { values: Record<string, number>; basis: { amount: number; unit: "g" | "ml"; label: string }; sourceTitle?: string; sourceUrl?: string; extractionMethod?: string };
+type WebResearchSource = { title: string; url: string; content: string; facts?: WebResearchFacts | null };
 type WebResearchResponse = { food?: string; sources?: WebResearchSource[]; error?: string };
 
 type EstimateResponse = { items?: DraftItem[]; error?: string };
@@ -851,6 +852,57 @@ async function searchLiveFood(): Promise<void> {
 
 async function structureLiveResearch(): Promise<void> {
   if (!liveResearchSources.length) return;
+
+  // Use a complete, same-basis deterministic extraction before spending an AI request.
+  const completeSources = liveResearchSources.filter((source) => {
+    const facts = source.facts;
+    const values = facts?.values;
+    const basis = facts?.basis;
+    return Boolean(values && basis && Number.isFinite(basis.amount) && basis.amount > 0 &&
+      (basis.unit === "g" || basis.unit === "ml") &&
+      ["calories_kcal", "protein_g", "carbs_g", "fat_g"].every((key) =>
+        Number.isFinite(values[key]) && values[key] >= 0
+      ));
+  });
+  const firstFacts = completeSources[0]?.facts;
+  const sourceConflict = firstFacts ? completeSources.slice(1).some((source) => {
+    const otherFacts = source.facts;
+    if (!otherFacts) return false;
+    return ["calories_kcal", "protein_g", "carbs_g", "fat_g"].some((key) => {
+      const first = Number(firstFacts.values[key]);
+      const other = Number(otherFacts.values[key]);
+      return Math.abs(first - other) > Math.max(1, Math.abs(first) * 0.15);
+    });
+  }) : false;
+  const deterministic = sourceConflict ? undefined : completeSources[0];
+  if (sourceConflict) {
+    byId<HTMLElement>("web-research-status").textContent =
+      "Sources disagree on one or more nutrition values. Use AI only to inspect the reviewed evidence, then verify the result manually.";
+  }
+  if (deterministic?.facts) {
+    const facts = deterministic.facts;
+    const values = facts.values;
+    const amount = facts.basis.amount + " " + facts.basis.unit;
+    const draft: DraftItem = {
+      name: liveResearchFood.slice(0, 90),
+      amount,
+      calories: Math.round(values.calories_kcal),
+      protein_g: values.protein_g,
+      carbs_g: values.carbs_g,
+      fat_g: values.fat_g,
+      nutrition_source: (deterministic.title || "Reviewed web source") + " · deterministic extraction · Needs review",
+      nutrition_basis: facts.basis.label,
+      nutrition_source_url: deterministic.url
+    };
+    closeDialog("web-research-dialog");
+    renderReviewItems([draft]);
+    prepareReviewOptions();
+    const attribution = document.getElementById("estimate-attribution");
+    if (attribution) attribution.textContent = "Nutrition values extracted deterministically from the reviewed source. Check the serving basis and edit before saving.";
+    openDialog(reviewDialog);
+    return;
+  }
+
   const button = byId<HTMLButtonElement>("web-research-structure");
   button.disabled = true;
   button.textContent = "Structuring with AI…";
@@ -924,7 +976,7 @@ async function structureLiveResearch(): Promise<void> {
     showToast(error instanceof Error ? error.message : "Could not structure scraped food data.", "error");
   } finally {
     button.disabled = false;
-    button.textContent = "Use AI to Save Data";
+    button.textContent = "Use nutrition data";
   }
 }
 

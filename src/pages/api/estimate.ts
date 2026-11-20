@@ -40,8 +40,11 @@ function parseItems(value: unknown, researchOnly = false, allowedSourceUrls: Set
     )) {
       throw new Error("The AI did not return complete nutrition values linked to one of the scraped sources.");
     }
-    if (!name || !amount || calories <= 0 || calories > 10000) {
-      throw new Error("The AI provider returned an incomplete nutrition estimate.");
+    const macroInputs = [item.protein_g, item.carbs_g, item.fat_g];
+    if (!name || !amount || calories <= 0 || calories > 10000 ||
+        macroInputs.some((value) => value === null || value === undefined || value === "" ||
+          !Number.isFinite(Number(value)) || Number(value) < 0 || Number(value) > 1000)) {
+      throw new Error("The AI provider returned incomplete nutrition values. Missing macros are not silently replaced with zero.");
     }
     return {
       name, amount, calories,
@@ -50,7 +53,10 @@ function parseItems(value: unknown, researchOnly = false, allowedSourceUrls: Set
       fat_g: asNumber(item.fat_g),
       brand: typeof item.brand === "string" ? item.brand.trim().slice(0, 80) : undefined,
       product_name: typeof item.product_name === "string" ? item.product_name.trim().slice(0, 100) : undefined,
-      nutrition_source: typeof item.nutrition_source === "string" ? item.nutrition_source.slice(0, 180) : undefined,
+      nutrition_source: typeof item.nutrition_source === "string" ? item.nutrition_source.slice(0, 180) : researchOnly ? "Reviewed web source · AI structured" : "AI estimate · model generated",
+      nutrition_status: researchOnly ? "Needs review" : "AI estimate",
+      nutrition_confidence: 0,
+      nutrition_method: researchOnly ? "ai_structured" : "ai_fallback",
       nutrition_basis: typeof item.nutrition_basis === "string" ? item.nutrition_basis.slice(0, 180) : undefined,
       nutrition_source_url: typeof item.nutrition_source_url === "string" && /^https:\/\//i.test(item.nutrition_source_url) ? item.nutrition_source_url.slice(0, 2048) : undefined
     };
@@ -97,10 +103,21 @@ const promptFor = (description: string, researchOnly = false) => researchOnly ? 
   "Preserve every explicit user quantity and unit exactly; never replace a stated amount with a guessed serving.",
   "Split a meal into separate food items when useful. Use realistic edible portion estimates only when the user gives no amount.",
   "Provide a conservative fallback nutrition estimate, but verified nutrition lookup will replace it when a reliable match is found.",
+  "Do not fabricate missing macro values. If a macro cannot be estimated responsibly, return null; TrackCake will reject incomplete output and try another model.",
   'Return only JSON: {"items":[{"name":"food name","amount":"portion and unit","brand":"brand or empty","product_name":"exact product or empty","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}]}',
   "Calories are kcal. Macros are grams. Use non-negative numbers. No advice, markdown, or extra keys.",
   "Food description:", description
 ].join("\n");
+
+function parseSimpleFoodInput(description: string): EstimatedItem | null {
+  const value = description.trim();
+  const match = value.match(/^\s*(?:(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\s+(.+)|(.+?)\s+(\d+(?:\.\d+)?)\s*(kg|g|ml|l))\s*$/i);
+  if (!match) return null;
+  const amount = match[1] ? match[1] + " " + match[2] : match[5] + " " + match[6];
+  const name = (match[3] || match[4] || "").trim();
+  if (!name || name.length > 90 || /[,;&]|\b(?:and|with|plus)\b/i.test(name)) return null;
+  return { name, amount, calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+}
 
 async function readError(response: Response): Promise<string> {
   try {
@@ -321,6 +338,28 @@ export const POST: APIRoute = async ({ request }) => {
       };
       void (async () => {
         try {
+          // For a single explicitly quantified food, try deterministic sources before invoking any AI model.
+          if (!strictModel && !researchOnly) {
+            const simpleFood = parseSimpleFoodInput(description);
+            if (simpleFood) {
+              send("progress", { message: "Checking approved food records and structured nutrition sources…" });
+              const [deterministic] = await researchNutrition([simpleFood], description, (message) => {
+                send("progress", { message });
+              });
+              if (deterministic?.nutrition_method && deterministic.nutrition_method !== "ai_fallback") {
+                send("complete", {
+                  items: [deterministic],
+                  total_calories: deterministic.calories,
+                  provider: "nutrition database",
+                  model: "deterministic",
+                  confidence: deterministic.nutrition_status || "source-backed"
+                });
+                controller.close();
+                return;
+              }
+            }
+          }
+
           const configured = (["groq", "gemini", "openrouter"] as Provider[])
             .filter((provider) => Boolean(
               provider === "groq" ? process.env.GROQ_API_KEY?.trim()

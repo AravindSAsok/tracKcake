@@ -412,14 +412,14 @@ import Layout from "../layouts/Layout.astro";
   <dialog class="app-dialog web-research-dialog" id="web-research-dialog" aria-labelledby="web-research-heading">
     <div class="dialog-form">
       <div class="dialog-heading">
-        <div><p class="card-kicker">LIVE WEB RESEARCH · FIRECRAWL</p><h2 id="web-research-heading">Review scraped food information</h2><p class="dialog-subtitle">Raw page content from live sources. Check the food and serving details before asking AI to structure it.</p></div>
+        <div><p class="card-kicker">LIVE WEB RESEARCH · FIRECRAWL</p><h2 id="web-research-heading">Review scraped food information</h2><p class="dialog-subtitle">Raw page excerpts from live sources. Check the food and serving details before using extracted values or AI fallback.</p></div>
         <button class="dialog-close" type="button" data-close="web-research-dialog" aria-label="Close dialog">×</button>
       </div>
       <p class="web-research-status" id="web-research-status" aria-live="polite"></p>
       <div class="web-research-sources" id="web-research-sources"></div>
       <div class="dialog-actions">
         <button class="secondary-button" type="button" data-close="web-research-dialog">Cancel</button>
-        <button class="primary-button" type="button" id="web-research-structure">Use AI to Save Data</button>
+        <button class="primary-button" type="button" id="web-research-structure">Use nutrition data</button>
       </div>
     </div>
   </dialog>

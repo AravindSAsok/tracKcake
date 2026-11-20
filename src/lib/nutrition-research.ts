@@ -1,3 +1,5 @@
+import { matchCatalogCandidate, normalizeNutrition, scoreNutritionEvidence } from "./nutrition-engine.js";
+
 export type NutritionItem = {
   name: string;
   amount: string;
@@ -11,6 +13,9 @@ export type NutritionItem = {
   nutrition_source?: string;
   nutrition_basis?: string;
   nutrition_source_url?: string;
+  nutrition_status?: string;
+  nutrition_confidence?: number;
+  nutrition_method?: string;
 };
 
 type Quantity = { value: number; unit: "g" | "ml" };
@@ -38,14 +43,6 @@ function isLiquid(name: string): boolean {
   return /\b(juice|smoothie|milk|drink|beverage|water|soup|broth|tea|coffee)\b/i.test(name);
 }
 
-function densityFor(name: string): number {
-  return /\b(juice|smoothie)\b/i.test(name) ? 1.04 : 1;
-}
-
-function round(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
 function scaledItem(
   item: NutritionItem,
   nutrients: { calories: number; protein: number; carbs: number; fat: number },
@@ -55,39 +52,99 @@ function scaledItem(
   basisLabel: string,
   sourceUrl?: string
 ): NutritionItem | null {
-  let scale: number;
-  let quantityLabel: string;
-  if (quantity.unit === basisUnit) {
-    scale = quantity.value / 100;
-    quantityLabel = quantity.value + " " + quantity.unit;
-  } else if (quantity.unit === "ml" && basisUnit === "g" && isLiquid(item.name)) {
-    const grams = quantity.value * densityFor(item.name);
-    scale = grams / 100;
-    quantityLabel = quantity.value + " ml (approximately " + round(grams) + " g; assumed density)";
-  } else if (quantity.unit === "g" && basisUnit === "ml" && isLiquid(item.name)) {
-    const millilitres = quantity.value / densityFor(item.name);
-    scale = millilitres / 100;
-    quantityLabel = quantity.value + " g (approximately " + round(millilitres) + " ml; assumed density)";
-  } else {
-    return null;
-  }
-
-  const calories = Math.round(nutrients.calories * scale);
-  if (!Number.isFinite(calories) || calories <= 0 || calories > 10000) return null;
+  // Grams and millilitres are never interchangeable without a source-specific density.
+  const normalized = normalizeNutrition({
+    values: {
+      calories_kcal: nutrients.calories,
+      protein_g: nutrients.protein,
+      carbs_g: nutrients.carbs,
+      fat_g: nutrients.fat
+    },
+    basis: { amount: 100, unit: basisUnit, label: basisLabel }
+  }, quantity);
+  if (!normalized) return null;
+  const sourceLower = source.toLowerCase();
+  const sourceType = sourceLower.includes("open food facts") ? "open_food_facts" : sourceLower.includes("usda") ? "usda" : "reviewed_web";
+  const extractionMethod = sourceLower.includes("google search") ? "ai_structured" : "structured_api";
+  const quality = scoreNutritionEvidence({
+    sourceType, matchType: "exact", extractionMethod,
+    values: normalized.values, basis: { amount: 100, unit: basisUnit }
+  });
   return {
     ...item,
-    calories,
-    protein_g: round(nutrients.protein * scale),
-    carbs_g: round(nutrients.carbs * scale),
-    fat_g: round(nutrients.fat * scale),
-    nutrition_source: source,
-    nutrition_basis: basisLabel + " · calculated for " + quantityLabel,
-    nutrition_source_url: sourceUrl
+    calories: Math.round(normalized.values.calories_kcal),
+    protein_g: normalized.values.protein_g,
+    carbs_g: normalized.values.carbs_g,
+    fat_g: normalized.values.fat_g,
+    nutrition_source: source + " · " + quality.status,
+    nutrition_basis: basisLabel + " · calculated for " + quantity.value + " " + quantity.unit,
+    nutrition_source_url: sourceUrl,
+    nutrition_status: quality.status,
+    nutrition_confidence: quality.score,
+    nutrition_method: extractionMethod
   };
 }
 
 function findQuantity(item: NutritionItem): Quantity | null {
   return quantityFromAmount(item.amount);
+}
+
+type CatalogRecord = {
+  canonical_name: string; normalized_name: string; aliases?: string[]; brand?: string | null; barcode?: string | null;
+  calories_kcal: number; protein_g: number; carbs_g: number; fat_g: number; basis_amount: number; basis_unit: "g" | "ml";
+  source_name: string; source_record_id?: string | null; source_url?: string | null; extraction_method: string;
+  confidence_status: string; is_approved: boolean; approved_at?: string | null;
+};
+
+let approvedCatalogCache: { expiresAt: number; rows: CatalogRecord[] } | null = null;
+
+async function lookupApprovedCatalog(item: NutritionItem): Promise<NutritionItem | null> {
+  const base = process.env.PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "");
+  const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const quantity = findQuantity(item);
+  if (!base || !anonKey || !quantity) return null;
+  try {
+    let rows: CatalogRecord[];
+    if (approvedCatalogCache && approvedCatalogCache.expiresAt > Date.now()) {
+      rows = approvedCatalogCache.rows;
+    } else {
+      const fields = "canonical_name,normalized_name,aliases,brand,barcode,calories_kcal,protein_g,carbs_g,fat_g,basis_amount,basis_unit,source_name,source_record_id,source_url,extraction_method,confidence_status,is_approved,approved_at";
+      const response = await fetch(base + "/rest/v1/nutrition_catalog?select=" + fields + "&is_approved=eq.true&approved_at=not.is.null&limit=500", {
+        headers: { apikey: anonKey, Authorization: "Bearer " + anonKey },
+        signal: AbortSignal.timeout(2500)
+      });
+      if (!response.ok) return null;
+      const payload = await response.json() as CatalogRecord[];
+      rows = Array.isArray(payload) ? payload : [];
+      approvedCatalogCache = { rows, expiresAt: Date.now() + 5 * 60_000 };
+    }
+    const record = matchCatalogCandidate(item, rows);
+    if (!record) return null;
+    const normalized = normalizeNutrition({
+      values: { calories_kcal: Number(record.calories_kcal), protein_g: Number(record.protein_g), carbs_g: Number(record.carbs_g), fat_g: Number(record.fat_g) },
+      basis: { amount: Number(record.basis_amount), unit: record.basis_unit, label: "Per " + record.basis_amount + " " + record.basis_unit },
+      sourceTitle: record.source_name, sourceUrl: record.source_url || undefined, extractionMethod: record.extraction_method
+    }, quantity);
+    if (!normalized) return null;
+    const quality = scoreNutritionEvidence({
+      sourceType: "approved_catalog",
+      matchType: item.barcode && item.barcode === record.barcode ? "barcode" : "exact",
+      extractionMethod: "structured_api", values: normalized.values,
+      basis: { amount: Number(record.basis_amount), unit: record.basis_unit }
+    });
+    if (quality.status === "Needs review") return null;
+    return {
+      ...item, name: record.canonical_name,
+      calories: Math.round(normalized.values.calories_kcal), protein_g: normalized.values.protein_g,
+      carbs_g: normalized.values.carbs_g, fat_g: normalized.values.fat_g,
+      nutrition_source: record.source_name + " · " + quality.status,
+      nutrition_basis: "Per " + record.basis_amount + " " + record.basis_unit + " · calculated for " + quantity.value + " " + quantity.unit,
+      nutrition_source_url: typeof record.source_url === "string" && /^https:\/\//i.test(record.source_url) ? record.source_url : undefined,
+      nutrition_status: quality.status, nutrition_confidence: quality.score, nutrition_method: "approved_catalog"
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function lookupOpenFoodFacts(item: NutritionItem): Promise<NutritionItem | null> {
@@ -319,6 +376,8 @@ export async function researchNutrition(
 ): Promise<NutritionItem[]> {
   return Promise.all(items.map(async (item, index) => {
     onProgress("Checking nutrition sources for " + item.name + "…");
+    const approved = await lookupApprovedCatalog(item);
+    if (approved) return approved;
     const product = await lookupOpenFoodFacts(item);
     if (product) return product;
     const usda = await lookupUsda(item, context);
@@ -332,7 +391,10 @@ export async function researchNutrition(
     return {
       ...item,
       nutrition_source: "AI estimate · no verified nutrition match",
-      nutrition_basis: "No reliable matching database or enabled web source was found. Please review the estimate."
+      nutrition_basis: "No reliable matching database or enabled web source was found. Please review the estimate.",
+      nutrition_status: "AI estimate",
+      nutrition_confidence: 0,
+      nutrition_method: "ai_fallback"
     };
   }));
 }

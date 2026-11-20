@@ -560,3 +560,41 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - This commit adds planning documentation only. No application code, database schema, or production behavior was changed; none of the planned features should be considered implemented.
 - Execution starts only after the project owner explicitly asks an agent to read and execute the plan.
 - Plan: https://github.com/AravindSAsok/tracKcake/blob/main/NUTRITION-ENGINE-V2-EXECUTION.md
+
+
+---
+
+## Nutrition Engine V2 execution — 2026-11-20
+
+### Implemented in this delivery (verification pending)
+
+- Added `src/lib/nutrition-engine.js` plus TypeScript declarations. It provides strict numeric/unit parsing, serving-basis detection, deterministic extraction from labelled text and Markdown nutrition tables, same-basis scaling, explicit-quantity parsing, deterministic recipe totals, exact/alias/barcode catalogue matching, and evidence-quality scoring.
+- Extraction rejects unresolved numeric ranges, ambiguous thousands-style decimal commas, duplicate conflicting values, unsupported units, and rows containing multiple nutrition-column values.
+- Updated `src/lib/nutrition-research.ts` to use the shared normalization and confidence helpers. Generic ml↔g density assumptions were removed; a value is scaled only when source basis and requested quantity use the same unit.
+- Added lookup of approved shared catalogue records through Supabase's public Data API. Results are cached in the server process for five minutes. The query selects only approved records; external provider lookups remain fallback paths.
+- Added additive migration `supabase/migrations/202611200001_nutrition_catalog.sql`. The table has RLS enabled, read-only SELECT for anon/authenticated on approved rows, and no client write policies. It is intentionally empty until trusted records are curated.
+- Updated `src/pages/api/estimate.ts`: a single explicitly quantified food can use approved catalogue / Open Food Facts / USDA source records before any AI provider call. If no source match exists, the existing provider/model fallback continues. Missing macro values are rejected rather than silently defaulted to zero.
+- Updated `src/pages/api/web-research.ts` and `src/scripts/app.ts`: after the explicit Firecrawl search and source-review step, TrackCake attempts deterministic extraction first. A complete, non-conflicting same-basis result goes directly to the existing review dialog without an AI call. Conflicting or incomplete evidence continues through the existing selected AI provider flow.
+- Firecrawl remains user-triggered only and capped at two candidate pages. No Firecrawl calls or credits are used by automated tests.
+- Added `tests/nutrition-engine.test.mjs` and an `npm test` script; CI now runs the unit tests before Astro/TypeScript and production build checks.
+- Updated README to document the actual pipeline and the current limitations.
+
+### Scope still incomplete / must not be described as finished
+
+- The recipe calculation core is implemented, but a user-facing ingredient/recipe editor and review workflow have not yet been integrated into the diary UI.
+- The approved-food catalogue schema and lookup are implemented, but the catalogue contains no seeded records. It must be populated only with reviewed, traceable nutrition facts; no placeholder values were inserted.
+- The deterministic Firecrawl parser supports explicit labelled text rows and Markdown tables. It does not yet cover every possible HTML/JSON-LD nutrition schema or all manufacturer label layouts.
+- Source conflict handling currently rejects conflicting extracted values and sends the reviewed evidence to the existing AI fallback; a full cross-provider reconciliation UI is not implemented.
+- The AI fallback is stricter about missing macro values and labels outputs as AI estimates / needs review, but a complete nullable nutrition schema with field-level uncertainty and ingredient evidence is not yet integrated end-to-end.
+- Full regression coverage for all app flows, mobile/desktop browser smoke tests, and authenticated user testing remain outstanding.
+
+### Verification and release log
+
+- Current implementation changes were authored through GitHub Git Data API because the linked development laptop was offline; no local checkout or terminal was available in this session.
+- `npm test`, `npm run check`, and `npm run build` have not yet been run locally. GitHub Actions will be checked against the exact pushed commit.
+- The Supabase production migration is not yet applied in this log. Apply it only to TrackCake project `rdjjlwupwobyojmkaqau` after the migration file is committed, then verify the table, grants, RLS and advisors.
+- No production data rows were modified or migrated.
+- Commit SHA: pending.
+- GitHub Actions: pending.
+- Supabase migration verification: pending.
+- Vercel Production deployment and alias verification: pending.

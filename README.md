@@ -38,6 +38,16 @@ TrackCake makes food logging easier without hiding the details. Add meals manual
 - **On-demand live web research:** users explicitly choose the **Live web search** button to spend Firecrawl credits. TrackCake requests at most two pages, filters for relevant nutrition facts, and shows compact nutrition-focused excerpts rather than full articles. Only after the user taps **Use AI to Save Data** does a selected AI provider structure the reviewed evidence into the existing food-review form. Firecrawl is never called automatically during normal food estimates.
 - **Optional Google Search grounding:** Gemini Google Search remains an additional fallback and is disabled by default.
 
+## Nutrition Engine V2
+
+- Explicitly quantified single-food text entries (g/ml/kg/l) now try the curated approved-food catalogue and structured Open Food Facts / USDA records before invoking an AI model. If a complete source-backed match is found, the request can finish without AI.
+- Serving conversions are deliberately strict: gram and millilitre bases are not interchanged using generic density assumptions. Unknown household portions are not silently converted.
+- The **Live web search** action remains user-triggered and limited to two source pages. TrackCake attempts deterministic extraction from the reviewed nutrition-focused excerpts first; when facts are incomplete or sources conflict, the existing selected AI provider can structure the reviewed evidence. The user still reviews and saves explicitly.
+- Nutrition extraction supports labelled rows and Markdown tables with explicit units and a clear per-100g, per-100ml, or serving basis. Ambiguous ranges, conflicting duplicates, and multiple serving columns are rejected rather than guessed.
+- A read-only, RLS-protected `nutrition_catalog` reference table is introduced for curated approved foods. It starts empty until trusted source-backed records are reviewed and added by an administrator; no synthetic nutrition values are seeded. Public app roles can only read approved rows.
+- Deterministic recipe-summing and evidence-quality helpers are included in the shared nutrition engine. The interactive ingredient/recipe editor is not yet part of the diary UI.
+- AI-generated values remain labelled as estimates or needs-review data. Missing macro fields are rejected instead of being silently converted to zero.
+
 ## Screenshots
 
 A curated screenshot set is not currently committed. Add real application captures under docs/screenshots/ and link them here when available; do not use mockups that suggest features the app does not have.
@@ -142,6 +152,7 @@ The migration creates the food diary and tracker settings tables, indexes, grant
 ## Build and verify
 
 ~~~bash
+npm test
 npm run check
 npm run build
 npm run preview
@@ -150,6 +161,7 @@ npm run preview
 | Command | Purpose |
 | --- | --- |
 | npm run dev | Start the development server |
+| npm test | Run deterministic nutrition-engine unit tests |
 | npm run check | Run Astro and TypeScript diagnostics |
 | npm run build | Create the production build |
 | npm run preview | Preview the production build locally |

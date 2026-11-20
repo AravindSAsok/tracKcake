@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { extractNutritionFacts, scoreNutritionEvidence } from "../../lib/nutrition-engine.js";
 
 export const prerender = false;
 export const maxDuration = 45;
@@ -99,7 +100,16 @@ export const POST: APIRoute = async ({ request }) => {
       if (!url || markdown.trim().length < 40) return [];
       const content = relevantNutritionEvidence(food, title, markdown);
       if (!content) return [];
-      return [{ title, url, content }];
+      const extracted = extractNutritionFacts(content, { sourceTitle: title, sourceUrl: url });
+      const facts = extracted ? {
+        ...extracted,
+        confidence: scoreNutritionEvidence({
+          sourceType: "reviewed_web", matchType: "exact",
+          extractionMethod: "deterministic_label_or_table",
+          values: extracted.values, basis: extracted.basis
+        })
+      } : null;
+      return [{ title, url, content, facts }];
     });
     if (!payload.success || !sources.length) {
       return json({ error: "No sufficiently relevant nutrition facts were found. Try the exact food name, brand, or a more specific serving description." }, 404);
