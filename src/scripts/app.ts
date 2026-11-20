@@ -865,7 +865,8 @@ async function structureLiveResearch(): Promise<void> {
         description: "Requested food: " + liveResearchFood + "\n\n" + sourceText,
         provider: byId<HTMLSelectElement>("quick-provider").value || "auto",
         model: byId<HTMLSelectElement>("quick-model").value || undefined,
-        researchOnly: true
+        researchOnly: true,
+        sourceUrls: liveResearchSources.map((source) => source.url)
       })
     });
     if (!response.ok || !response.headers.get("content-type")?.includes("text/event-stream") || !response.body) {
