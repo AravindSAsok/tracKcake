@@ -467,3 +467,12 @@ The GitHub contents API was used for direct commits to `main`; this does not pro
 - Recipe history is stored separately from food diary rows. Recipe deletion never deletes the diary entry. Recipe edits reuse the linked diary row when it is available, preventing duplicate diary entries.
 - Recipe history uses per-user local-storage keys in local-only mode and RLS-protected Supabase rows in cloud mode. Local changes are retained and retried when cloud sync is unavailable.
 - The admin catalogue script requires a trusted server-side service-role key, reviewer identity and source provenance. Private import JSON files are gitignored.
+
+### Final release blocker — 2026-11-20
+
+- The latest tested source SHA at this point is `7452d212d520bf0a7f10400a1dc4f82eaf51753f`. Its GitHub Actions run passed all 34 tests, Astro/TypeScript checks (0 errors, 0 warnings), and the production build.
+- Manual Vercel Production deployment for that exact SHA was rejected by Vercel with HTTP 402, code `api-deployments-free-per-day`, because the connection exceeded 100 deployment API calls in the day; retry-after is 86400 seconds.
+- The available CLI fallback was unavailable because the linked Desktop Commander laptop is offline (last seen 130 hours ago). No final deployment was created.
+- Verified production alias `trackcake.vercel.app` still maps to `dpl_BGdkR8fFG7Mck3ASJsoQ51nhrX51`, commit `3331f34da8d93e1d5bbef6c87d0299453dcbdf12`. Production therefore does not yet contain the latest `main` commit.
+- Public homepage fetch returned the TrackCake diary page successfully. Browser interaction and authenticated journey testing remain unavailable: no authenticated profile, and TinyFish automation could not start because its wallet balance is -$0.39. No diary data was touched.
+- Required next action: after the Vercel deployment API quota resets (or using the linked Vercel CLI from an online authorized machine), deploy the latest `main` commit to Production and verify the alias. Authenticated browser checks require a signed-in browser profile.
