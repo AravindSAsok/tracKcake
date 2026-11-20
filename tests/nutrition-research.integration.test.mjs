@@ -34,7 +34,9 @@ function providerFetch({ offCalories = 52, usdaCalories = 52 } = {}, calls = [])
         code: "1234567890123", product_name: "apple", brands: "",
         nutriments: {
           "energy-kcal_100g": offCalories, "proteins_100g": 0.26,
-          "carbohydrates_100g": 13.81, "fat_100g": 0.17
+          "carbohydrates_100g": 13.81, "fat_100g": 0.17,
+          "fiber_100g": 2.4, "sugars_100g": 10.4,
+          "saturated-fat_100g": 0.03, "sodium_100g": 1
         }
       }] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
@@ -45,7 +47,11 @@ function providerFetch({ offCalories = 52, usdaCalories = 52 } = {}, calls = [])
           { nutrientId: 1008, nutrientName: "Energy", unitName: "KCAL", value: usdaCalories },
           { nutrientId: 1003, nutrientName: "Protein", unitName: "G", value: 0.26 },
           { nutrientId: 1005, nutrientName: "Carbohydrate, by difference", unitName: "G", value: 13.81 },
-          { nutrientId: 1004, nutrientName: "Total lipid (fat)", unitName: "G", value: 0.17 }
+          { nutrientId: 1004, nutrientName: "Total lipid (fat)", unitName: "G", value: 0.17 },
+          { nutrientId: 1079, nutrientName: "Fiber, total dietary", unitName: "G", value: 2.4 },
+          { nutrientId: 2000, nutrientName: "Total Sugars", unitName: "G", value: 10.4 },
+          { nutrientId: 1258, nutrientName: "Fatty acids, total saturated", unitName: "G", value: 0.03 },
+          { nutrientId: 1093, nutrientName: "Sodium, Na", unitName: "MG", value: 1 }
         ]
       }] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
@@ -61,6 +67,11 @@ test("nutrition research reconciles agreeing Open Food Facts and USDA records", 
   try {
     const [item] = await researchNutrition([{ name: "apple", amount: "100 g", calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }]);
     assert.equal(item.calories, 52);
+    assert.equal(item.fiber_g, 2.4);
+    assert.equal(item.sugar_g, 10.4);
+    assert.equal(item.saturated_fat_g, 0.03);
+    assert.equal(item.sodium_mg, 1);
+    assert.equal(item.nutrition_uncertainty.fiber_g.includes("Calculated from"), true);
     assert.equal(item.nutrition_status, "Strong source match");
     assert.match(item.nutrition_uncertainty.calories, /Calculated from Open Food Facts/);
     assert.equal(calls.filter(url => url.startsWith("https://api.nal.usda.gov/")).length, 1);
