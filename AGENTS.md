@@ -666,3 +666,12 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - GitHub Actions run #256: SUCCESS. npm test: 16 passed / 0 failed; npm run check: 0 errors / 0 warnings (2 existing hints); npm run build: passed.
 - Vercel Production deployment dpl_2K4N6DFtZxzj7EXb4mRX1v3AtQqB reached READY from the exact code commit. Production aliases verified: trackcake.vercel.app, trackcake-kukki.vercel.app, and trackcake-git-main-kukki.vercel.app.
 - No Firecrawl calls, production diary writes, or authenticated browser tests were performed. The linked development laptop remains offline; CI verifies code/build/tests, not interactive UI behavior.
+
+
+## Execution log — source reconciliation and field-level uncertainty — 2026-11-20
+
+- Added a deterministic source reconciliation helper. It compares calories and macros after each source has been normalized to the requested quantity, rejects incompatible g/ml bases, uses documented absolute/relative tolerances, retains the primary source values without averaging, and marks material differences as **Needs review**.
+- The nutrition research pipeline now requests Open Food Facts and USDA results concurrently after the approved catalogue lookup and reconciles them when both return usable records. No source is represented as independently verified merely because an HTTP request succeeded.
+- Added source conflict details and secondary-source comparison values to the existing review UI. AI outputs now carry explicit per-field uncertainty labels for calories, protein, carbohydrates and fat.
+- Added regression coverage for agreement, material disagreement, incompatible serving units, and the no-averaging rule.
+- Verification status for this change: pending GitHub Actions and Vercel Production deployment. Interactive authenticated browser testing remains unavailable in this execution environment; do not claim it passed.
