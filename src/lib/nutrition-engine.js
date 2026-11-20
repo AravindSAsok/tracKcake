@@ -293,12 +293,22 @@ export function reconcileNutritionSources(primary, secondary) {
   if (primaryUnit && secondaryUnit && primaryUnit !== secondaryUnit) {
     reasons.push("Sources use incompatible serving units.");
   }
-  const keys = [["calories","calories",5,0.1],["protein_g","protein_g",0.5,0.15],["carbs_g","carbs_g",0.5,0.15],["fat_g","fat_g",0.5,0.15]];
-  for (const [key, label, absoluteTolerance, relativeTolerance] of keys) {
+  const keys = [
+    ["calories","calories",5,0.1,true],
+    ["protein_g","protein_g",0.5,0.15,true],
+    ["carbs_g","carbs_g",0.5,0.15,true],
+    ["fat_g","fat_g",0.5,0.15,true],
+    ["fiber_g","fiber",0.2,0.2,false],
+    ["sugar_g","sugar",0.2,0.2,false],
+    ["saturated_fat_g","saturated fat",0.1,0.2,false],
+    ["sodium_mg","sodium",5,0.2,false]
+  ];
+  for (const [key, label, absoluteTolerance, relativeTolerance, required] of keys) {
+    if (!required && (primary[key] == null || secondary[key] == null)) continue;
     const a = Number(primary[key]);
     const b = Number(secondary[key]);
     if (!Number.isFinite(a) || !Number.isFinite(b)) {
-      reasons.push("A source is missing " + label + ".");
+      if (required) reasons.push("A source is missing " + label + ".");
       continue;
     }
     const tolerance = Math.max(absoluteTolerance, Math.max(Math.abs(a), Math.abs(b)) * relativeTolerance);
@@ -315,7 +325,10 @@ export function reconcileNutritionSources(primary, secondary) {
       nutrition_conflict: conflict ? reasons.join(" ") : undefined,
       nutrition_secondary_values: conflict ? {
         source: secondarySource, calories: secondary.calories, protein_g: secondary.protein_g,
-        carbs_g: secondary.carbs_g, fat_g: secondary.fat_g, basis: secondary.nutrition_basis,
+        carbs_g: secondary.carbs_g, fat_g: secondary.fat_g,
+        fiber_g: secondary.fiber_g ?? null, sugar_g: secondary.sugar_g ?? null,
+        saturated_fat_g: secondary.saturated_fat_g ?? null, sodium_mg: secondary.sodium_mg ?? null,
+        basis: secondary.nutrition_basis,
         url: secondary.nutrition_source_url
       } : undefined
     },
