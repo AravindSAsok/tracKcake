@@ -57,6 +57,7 @@ function parseItems(value: unknown, researchOnly = false, allowedSourceUrls: Set
       nutrition_status: researchOnly ? "Needs review" : "AI estimate",
       nutrition_confidence: 0,
       nutrition_method: researchOnly ? "ai_structured" : "ai_fallback",
+      nutrition_uncertainty: { calories: "AI estimate", protein_g: "AI estimate", carbs_g: "AI estimate", fat_g: "AI estimate" },
       nutrition_basis: typeof item.nutrition_basis === "string" ? item.nutrition_basis.slice(0, 180) : undefined,
       nutrition_source_url: typeof item.nutrition_source_url === "string" && /^https:\/\//i.test(item.nutrition_source_url) ? item.nutrition_source_url.slice(0, 2048) : undefined
     };
