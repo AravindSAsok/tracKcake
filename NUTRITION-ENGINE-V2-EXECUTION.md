@@ -359,3 +359,15 @@ Final report must include:
 ### Final status
 
 **Partially complete, core released.** The remaining unchecked items above are real scope gaps, not deployment blockers. Do not describe the entire Nutrition Engine V2 plan as finished until the recipe UI, curated catalogue workflow, full AI schema, and full regression/authenticated browser tests are implemented.
+
+
+---
+
+## Recipe editor implementation — 2026-11-20
+
+- Added a user-facing **Build recipe** dialog with a recipe name, serving count, and 2–8 measured ingredient lines.
+- Each line must contain an explicit g/ml amount. The client rejects missing quantities and unsupported household units rather than guessing.
+- Each ingredient is estimated independently through the existing estimate API. The API remains responsible for deterministic source lookup before its configured AI fallback. The recipe workflow does not invoke Firecrawl.
+- Added tested aggregation logic for ingredient totals and per-serving macros. The user reviews one recipe item in the existing review dialog and must explicitly save it.
+- Ingredient details are displayed during calculation but are not persisted as a structured recipe record. Future work may add durable recipe/ingredient provenance after a separate data-model review.
+- Verification and deployment: pending exact-commit GitHub Actions and Vercel results. Local checks and interactive browser testing are unavailable because the linked development laptop is offline.
