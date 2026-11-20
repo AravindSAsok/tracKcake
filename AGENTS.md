@@ -690,3 +690,18 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - Local `npm test` / `npm run check` could not be executed because this environment has no DNS/network route to clone the repository. The existing GitHub Actions workflow is configured to run `npm test`, `npm run check`, and `npm run build` on pushes to main, but its run/job result was not exposed by the available GitHub connector in this session. Do not report those commands as run or passed based on the Vercel build alone.
 - No Firecrawl requests, AI provider requests, Supabase mutations, or diary writes were performed.
 - Remaining limitation: the reconciliation path only compares two usable records returned for the same lookup. It does not establish that two different product identities are equivalent, and source-backed values remain subject to manual review.
+
+---
+
+## Nutrition Engine V2 continuation — 2026-11-20
+
+### Implemented on main after the earlier partial-release handoff
+
+- Added additive migration `202611200002_nutrition_recipe_history.sql`. It extends the approved catalogue with category, serving definitions, optional nutrients, provenance, supersession and review metadata, and creates `nutrition_recipes` with owner-scoped RLS and a unique diary-entry link.
+- Applied the migration to Supabase project `rdjjlwupwobyojmkaqau`. The migration registry reports `nutrition_recipe_history`; a read-only information-schema query confirmed both `nutrition_catalog` and `nutrition_recipes` exist. No user records were read or changed.
+- Added structured recipe persistence in `src/lib/store.ts`: validated local storage fallback plus authenticated Supabase CRUD/list operations scoped by `user_id`.
+- Integrated recipe history into the recipe dialog: saved recipes can be retrieved, ingredient lines edited and recalculated, then saved against the existing linked diary row when available; deletion removes only recipe history and deliberately leaves the diary row unchanged. Added responsive controls in `src/styles/global.css`.
+- Added `scripts/manage-nutrition-catalog.mjs` and the `nutrition:catalog` npm command for trusted admin validation/upsert. The script refuses malformed nutrition, unsupported bases, non-HTTPS provenance, invalid barcodes and duplicate input/existing identities. It requires a server-side service-role key only for the explicit upsert action. No catalogue records were invented or seeded.
+- Added `src/lib/nutrition-ai-schema.js` plus its TypeScript declaration and regression tests. AI core values are required; optional nutrients are nullable; invalid values, invalid ingredient arrays, unsupported research citations and large calorie/macro inconsistencies are rejected. Server-derived uncertainty labels are applied field by field.
+- Structured source-backed nutrition now reports field-level provenance labels after quantity scaling.
+- Documentation updates are in progress; exact CI, check/build and production deployment verification are pending. Do not report this continuation as complete until CI and Vercel results are confirmed.
