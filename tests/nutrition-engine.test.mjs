@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  aggregateIngredientEstimates, calculateRecipe, extractNutritionFacts, matchCatalogCandidate, normalizeNutrition,
+  aggregateIngredientEstimates, calculateRecipe, extractNutritionFacts, matchCatalogCandidate, normalizeNutrition, reconcileNutritionSources,
   parseExplicitQuantity, parseNutritionNumber, parseServingBasis, scoreNutritionEvidence, nutrientForLabel, parseValueAndUnit
 } from "../src/lib/nutrition-engine.js";
 
@@ -193,4 +193,23 @@ test("rejects incomplete or conflicting JSON-LD nutrition candidates", () => {
   assert.equal(extractNutritionFacts(incomplete),null);
   const conflicting='<script type="application/ld+json">[{"nutrition":{"servingSize":"100 g","calories":"100 kcal","proteinContent":"2 g","carbohydrateContent":"3 g","fatContent":"4 g"}},{"nutrition":{"servingSize":"100 g","calories":"200 kcal","proteinContent":"2 g","carbohydrateContent":"3 g","fatContent":"4 g"}}]</script>';
   assert.equal(extractNutritionFacts(conflicting),null);
+});
+
+test("reconciles matching sources without averaging and flags material conflicts", () => {
+  const first = { calories: 200, protein_g: 5, carbs_g: 30, fat_g: 4, nutrition_source: "USDA",
+    nutrition_basis: "Per 100 g", nutrition_status: "Strong source match", nutrition_confidence: 90 };
+  const close = { calories: 203, protein_g: 5.2, carbs_g: 30.5, fat_g: 4.1, nutrition_source: "Open Food Facts",
+    nutrition_basis: "Per 100 g", nutrition_status: "Good source match", nutrition_confidence: 80 };
+  const agreed = reconcileNutritionSources(first, close);
+  assert.equal(agreed.conflict, false);
+  assert.equal(agreed.item.calories, 200, "primary values are retained; sources are never averaged");
+  assert.match(agreed.item.nutrition_source, /Open Food Facts/);
+  const conflicting = reconcileNutritionSources(first, { ...close, calories: 260, nutrition_basis: "Per 100 g" });
+  assert.equal(conflicting.conflict, true);
+  assert.equal(conflicting.item.nutrition_status, "Needs review");
+  assert.equal(conflicting.item.nutrition_confidence, 0);
+  assert.match(conflicting.item.nutrition_conflict, /calories differs/);
+  const incompatible = reconcileNutritionSources(first, { ...close, nutrition_basis: "Per 100 ml" });
+  assert.equal(incompatible.conflict, true);
+  assert.match(incompatible.item.nutrition_conflict, /incompatible serving units/);
 });
