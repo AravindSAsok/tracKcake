@@ -1102,7 +1102,8 @@ async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void>
         source:item.nutrition_source||"AI estimate · needs review",sourceUrl:item.nutrition_source_url||"",originalLine:lines[index]});
     }
     const aggregate=aggregateIngredientEstimates(recipeIngredientResults.map(item=>({name:item.name,amount:item.amount,unit:item.unit,
-      values:item.values,source:item.source,sourceUrl:item.sourceUrl})),servings);
+      values:{calories_kcal:item.values.calories_kcal,protein_g:item.values.protein_g,carbs_g:item.values.carbs_g,fat_g:item.values.fat_g},
+      source:item.source,sourceUrl:item.sourceUrl})),servings);
     if(!aggregate)throw new Error("Ingredient values could not be combined safely. Check each amount and result.");
     recipeCalculation=aggregate;
     const values=aggregate.perServing;
