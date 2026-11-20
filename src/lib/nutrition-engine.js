@@ -333,7 +333,7 @@ export function matchCatalogCandidate(item, records) {
     if (record?.is_approved !== true) return false;
     if (barcode && String(record.barcode ?? "") === barcode) return true;
     const recordBrand = normalizeFoodName(record.brand);
-    if (brand && recordBrand !== brand) return false;
+    if (recordBrand !== brand) return false;
     const names = [record.canonical_name, ...(Array.isArray(record.aliases) ? record.aliases : [])].map(normalizeFoodName);
     return names.includes(wanted);
   });
