@@ -215,6 +215,7 @@ import Layout from "../layouts/Layout.astro";
                   <button class="secondary-button" id="live-search-button" type="button" title="Spend Firecrawl credits only when you choose live research">
                     <span aria-hidden="true">⌕</span> Live web search
                   </button>
+                  <button class="secondary-button" id="recipe-builder-open" type="button"><span aria-hidden="true">＋</span> Build recipe</button>
                   <button class="primary-button" id="estimate-button" type="submit">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
                     <span>Estimate with AI</span>
@@ -422,6 +423,27 @@ import Layout from "../layouts/Layout.astro";
         <button class="primary-button" type="button" id="web-research-structure">Use nutrition data</button>
       </div>
     </div>
+  </dialog>
+
+  <dialog class="app-dialog recipe-dialog" id="recipe-builder-dialog" aria-labelledby="recipe-builder-heading">
+    <form id="recipe-builder-form" class="dialog-form">
+      <div class="dialog-heading">
+        <div><p class="card-kicker">NUTRITION ENGINE V2</p><h2 id="recipe-builder-heading">Build a recipe</h2><p class="dialog-subtitle">Estimate measured ingredients separately, combine their nutrition and divide by servings.</p></div>
+        <button class="dialog-close" type="button" data-close="recipe-builder-dialog" aria-label="Close dialog">×</button>
+      </div>
+      <label class="field">Recipe name<input id="recipe-name" maxlength="90" value="Homemade recipe" required /></label>
+      <label class="field">Number of servings<input id="recipe-servings" type="number" min="1" max="50" step="1" value="1" required /></label>
+      <label class="field">Ingredients <span class="field-help">One per line, with an explicit amount in grams or millilitres. Example: 100 g cooked rice.</span>
+        <textarea id="recipe-ingredients" rows="6" maxlength="1600" placeholder="100 g cooked rice&#10;80 g cooked lentils&#10;5 ml olive oil" required></textarea>
+      </label>
+      <p class="recipe-status" id="recipe-status" aria-live="polite">Enter 2–8 ingredients. Household units are not guessed.</p>
+      <div class="recipe-breakdown" id="recipe-breakdown" hidden></div>
+      <div class="dialog-actions recipe-actions">
+        <button class="secondary-button" type="button" data-close="recipe-builder-dialog">Cancel</button>
+        <button class="secondary-button" type="submit" id="recipe-calculate">Calculate recipe</button>
+        <button class="primary-button" type="button" id="recipe-review" disabled>Review recipe</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog class="app-dialog review-dialog" id="review-dialog" aria-labelledby="review-heading">
