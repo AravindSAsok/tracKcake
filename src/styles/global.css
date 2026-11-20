@@ -2746,3 +2746,81 @@ body.calkie-open::before {
 
 .daily-recap-quote { max-width: 390px; margin: -5px auto 16px; padding: 10px 15px; border-left: 0; color: #9a5b80; font-family: "Manrope", sans-serif; font-size: 13px; font-style: italic; line-height: 1.55; }
 .daily-recap-dialog[data-tone="gentle"] .daily-recap-quote { color: #796575; }
+
+
+/* User-triggered Firecrawl research review */
+.quick-buttons #live-search-button {
+  border-color: #d8e4d3;
+  color: #587a4e;
+}
+.web-research-dialog {
+  width: min(820px, calc(100% - 28px));
+}
+.web-research-dialog .dialog-form {
+  max-height: min(82dvh, 850px);
+  display: flex;
+  flex-direction: column;
+}
+.web-research-status {
+  margin: 0 0 12px;
+  color: #71806f;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.web-research-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.web-research-source {
+  border: 1px solid #e6ece2;
+  border-radius: 11px;
+  background: #fbfcfa;
+  overflow: hidden;
+}
+.web-research-source summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 13px;
+  color: #425a43;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.web-research-source summary a {
+  flex: 0 0 auto;
+  color: #688b5d;
+  font-size: 10px;
+  text-decoration: none;
+}
+.web-research-source pre {
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px 14px;
+  margin: 0;
+  border-top: 1px solid #e9eee6;
+  color: #5f6e60;
+  font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .quick-buttons {
+    flex-wrap: wrap;
+  }
+  .quick-buttons > button {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .web-research-dialog .dialog-form {
+    max-height: 86dvh;
+  }
+  .web-research-source summary {
+    align-items: flex-start;
+  }
+}
