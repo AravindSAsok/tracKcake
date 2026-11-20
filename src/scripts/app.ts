@@ -1070,7 +1070,7 @@ async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void>
   const reviewButton=byId<HTMLButtonElement>("recipe-review");
   const status=byId<HTMLElement>("recipe-status");
   const breakdown=byId<HTMLDivElement>("recipe-breakdown");
-  calculateButton.disabled=true; reviewButton.disabled=true; recipeDraft=null; recipeIngredientResults=[];
+  calculateButton.disabled=true; reviewButton.disabled=true; recipeDraft=null; recipeCalculation=null; recipePendingSave=false; recipeIngredientResults=[];
   breakdown.hidden=true; breakdown.replaceChildren();
   try {
     for(let index=0;index<lines.length;index+=1) {
@@ -1134,6 +1134,7 @@ function reviewCalculatedRecipe(): void {
 
 async function estimateFood(event: SubmitEvent): Promise<void> {
   event.preventDefault();
+  recipePendingSave=false;
   if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
   const description = quickDescription.value.trim();
   if (!description) {
