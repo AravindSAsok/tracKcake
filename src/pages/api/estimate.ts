@@ -22,7 +22,7 @@ function asNumber(value: unknown): number {
   return Math.max(0, Math.round(parsed * 10) / 10);
 }
 
-function parseItems(value: unknown): EstimatedItem[] {
+function parseItems(value: unknown, researchOnly = false, allowedSourceUrls: Set<string> = new Set()): EstimatedItem[] {
   if (!Array.isArray(value)) throw new Error("The AI provider did not return a food list.");
   const items = value.slice(0, 10).map((entry): EstimatedItem => {
     if (!entry || typeof entry !== "object") throw new Error("The AI provider returned an invalid food item.");
@@ -30,6 +30,14 @@ function parseItems(value: unknown): EstimatedItem[] {
     const name = typeof item.name === "string" ? item.name.trim().slice(0, 90) : "";
     const amount = typeof item.amount === "string" ? item.amount.trim().slice(0, 90) : "";
     const calories = Math.round(asNumber(item.calories));
+    const sourceUrl = typeof item.nutrition_source_url === "string" ? item.nutrition_source_url : "";
+    if (researchOnly && (
+      !Number.isFinite(Number(item.protein_g)) || !Number.isFinite(Number(item.carbs_g)) ||
+      !Number.isFinite(Number(item.fat_g)) || !/^https:\/\//i.test(sourceUrl) ||
+      !allowedSourceUrls.has(sourceUrl)
+    )) {
+      throw new Error("The AI did not return complete nutrition values linked to one of the scraped sources.");
+    }
     if (!name || !amount || calories <= 0 || calories > 10000) {
       throw new Error("The AI provider returned an incomplete nutrition estimate.");
     }
@@ -268,8 +276,9 @@ export const POST: APIRoute = async ({ request }) => {
   let modelChoice: string | undefined;
   let strictModel = false;
   let researchOnly = false;
+  let allowedSourceUrls = new Set<string>();
   try {
-    const body = await request.json() as { description?: unknown; provider?: unknown; model?: unknown; strictModel?: unknown; researchOnly?: unknown };
+    const body = await request.json() as { description?: unknown; provider?: unknown; model?: unknown; strictModel?: unknown; researchOnly?: unknown; sourceUrls?: unknown };
     description = typeof body.description === "string" ? body.description.trim() : "";
     const requested = body.provider ?? "auto";
     if (body.model !== undefined && body.model !== null && body.model !== "") {
@@ -290,6 +299,12 @@ export const POST: APIRoute = async ({ request }) => {
     providerChoice = requested as Provider | "auto";
     strictModel = body.strictModel === true && Boolean(modelChoice);
     researchOnly = body.researchOnly === true;
+    if (Array.isArray(body.sourceUrls)) {
+      allowedSourceUrls = new Set(body.sourceUrls.filter((url): url is string =>
+        typeof url === "string" && url.length <= 2048 && /^https:\/\//i.test(url)
+      ).slice(0, 4));
+    }
+    if (researchOnly && !allowedSourceUrls.size) return json({ error: "The reviewed source list is missing. Search again before using AI." }, 400);
   } catch {
     return json({ error: "Please enter a food description." }, 400);
   }
@@ -324,7 +339,7 @@ export const POST: APIRoute = async ({ request }) => {
             const started = Date.now();
             try {
               const raw = await attempt.run();
-              const items = parseItems(extractJson(raw));
+              const items = parseItems(extractJson(raw), researchOnly, allowedSourceUrls);
               console.info("[trackcake-ai] provider succeeded", {
                 provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started
               });
