@@ -365,3 +365,7 @@ export function aggregateIngredientEstimates(ingredients, servings = 1) {
   const perServing = Object.fromEntries(Object.entries(total).map(([key,value])=>[key,round(value/servings,2)]));
   return { total, perServing, servings, contributions, method:"estimated_ingredient_sum" };
 }
+
+export function isGenericNutritionLookup(item) {
+  return !String(item?.brand ?? "").trim() && !String(item?.product_name ?? "").trim();
+}
