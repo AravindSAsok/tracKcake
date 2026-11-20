@@ -115,6 +115,17 @@ function decimalFormat(value: number): string {
   return Number(value.toFixed(1)).toLocaleString("en-IN");
 }
 
+function optionalNutrientSummary(values: { fiber_g?: number | null; sugar_g?: number | null; saturated_fat_g?: number | null; sodium_mg?: number | null }): string {
+  return [
+    ["Fiber", values.fiber_g, "g"],
+    ["Sugar", values.sugar_g, "g"],
+    ["Saturated fat", values.saturated_fat_g, "g"],
+    ["Sodium", values.sodium_mg, "mg"]
+  ].filter((entry) => typeof entry[1] === "number")
+    .map(([label, value, unit]) => label + " " + decimalFormat(value as number) + " " + unit)
+    .join(" · ");
+}
+
 function dateTimeLocalValue(date = new Date()): string {
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
@@ -576,7 +587,7 @@ function renderReviewItems(items: DraftItem[]): void {
       <div class="review-item-heading">
         <span class="review-item-number">0${index + 1}</span>
         <strong>Food item</strong>
-        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_status || "Source checked")} · ${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}${item.nutrition_source_url ? ` · <a href="${escapeHtml(item.nutrition_source_url)}" target="_blank" rel="noopener noreferrer">source</a>` : ""}${item.nutrition_conflict ? `<br><strong>Source conflict:</strong> ${escapeHtml(item.nutrition_conflict)}` : ""}${item.nutrition_secondary_values ? `<br><small>Comparison (${escapeHtml(item.nutrition_secondary_values.source)}): ${numberFormat(item.nutrition_secondary_values.calories)} kcal · P ${decimalFormat(item.nutrition_secondary_values.protein_g)} · C ${decimalFormat(item.nutrition_secondary_values.carbs_g)} · F ${decimalFormat(item.nutrition_secondary_values.fat_g)}${item.nutrition_secondary_values.url ? ` · <a href="${escapeHtml(item.nutrition_secondary_values.url)}" target="_blank" rel="noopener noreferrer">compare source</a>` : ""}</small>` : ""}${item.nutrition_uncertainty ? `<br><small>Field uncertainty: ${Object.entries(item.nutrition_uncertainty).map(([field, note]) => escapeHtml(field + ": " + note)).join(" · ")}</small>` : ""}</span>` : `<span class="review-source review-source-estimate">AI estimate · no verified nutrition match</span>`}
+        ${item.nutrition_source ? `<span class="review-source">${escapeHtml(item.nutrition_status || "Source checked")} · ${escapeHtml(item.nutrition_source)} · ${escapeHtml(item.nutrition_basis || "")}${item.nutrition_source_url ? ` · <a href="${escapeHtml(item.nutrition_source_url)}" target="_blank" rel="noopener noreferrer">source</a>` : ""}${item.nutrition_conflict ? `<br><strong>Source conflict:</strong> ${escapeHtml(item.nutrition_conflict)}` : ""}${item.nutrition_secondary_values ? `<br><small>Comparison (${escapeHtml(item.nutrition_secondary_values.source)}): ${numberFormat(item.nutrition_secondary_values.calories)} kcal · P ${decimalFormat(item.nutrition_secondary_values.protein_g)} · C ${decimalFormat(item.nutrition_secondary_values.carbs_g)} · F ${decimalFormat(item.nutrition_secondary_values.fat_g)}${item.nutrition_secondary_values.url ? ` · <a href="${escapeHtml(item.nutrition_secondary_values.url)}" target="_blank" rel="noopener noreferrer">compare source</a>` : ""}</small>` : ""}${optionalNutrientSummary(item) ? `<br><small>Optional nutrients: ${escapeHtml(optionalNutrientSummary(item))}</small>` : ""}${item.nutrition_uncertainty ? `<br><small>Field uncertainty: ${Object.entries(item.nutrition_uncertainty).map(([field, note]) => escapeHtml(field + ": " + note)).join(" · ")}</small>` : ""}</span>` : `<span class="review-source review-source-estimate">AI estimate · no verified nutrition match</span>`}
         <button class="remove-review-item" type="button" data-remove-review="${index}" aria-label="Remove food item">×</button>
       </div>
       <div class="review-grid">
