@@ -17,6 +17,12 @@ export type NutritionItem = {
   nutrition_confidence?: number;
   nutrition_method?: string;
   nutrition_uncertainty?: Record<string, string>;
+  fiber_g?: number | null;
+  sugar_g?: number | null;
+  saturated_fat_g?: number | null;
+  sodium_mg?: number | null;
+  ingredients?: string[];
+  nutrition_schema_version?: string;
   nutrition_conflict?: string;
   nutrition_secondary_values?: { source: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; basis?: string; url?: string };
 };
