@@ -1111,7 +1111,9 @@ async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void>
       nutrition_source:"Ingredient calculation · needs review",nutrition_basis:"Per serving · "+servings+" recipe serving(s)"};
     breakdown.innerHTML=recipeIngredientResults.map(item=>
       '<div class="recipe-breakdown-row"><span>'+escapeHtml(item.name)+' · '+escapeHtml(item.originalLine)+
-      '<br><small>'+escapeHtml(item.source)+'</small></span><span>'+numberFormat(item.values.calories_kcal)+' kcal</span></div>'
+      '<br><small>'+escapeHtml(item.source)+'</small>'+
+      (optionalNutrientSummary(item.values) ? '<br><small>Optional nutrients: '+escapeHtml(optionalNutrientSummary(item.values))+'</small>' : '')+
+      '</span><span>'+numberFormat(item.values.calories_kcal)+' kcal</span></div>'
     ).join("")+'<div class="recipe-breakdown-row"><strong>Per serving</strong><strong>'+
       numberFormat(values.calories_kcal)+' kcal · P '+decimalFormat(values.protein_g)+' g · C '+
       decimalFormat(values.carbs_g)+' g · F '+decimalFormat(values.fat_g)+' g</strong></div>';
