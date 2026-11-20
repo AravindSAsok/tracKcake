@@ -341,7 +341,7 @@ export async function researchNutrition(
           quantity,
           webResearch.basis,
           "Firecrawl web research · source matched",
-          "Per 100 " + webResearch.basis + " · " + webResearch.foodName,
+          "Per 100 " + webResearch.basis + " · " + webResearch.foodName + " · " + webResearch.sourceTitle,
           webResearch.sourceUrl
         );
         if (researched) return researched;
