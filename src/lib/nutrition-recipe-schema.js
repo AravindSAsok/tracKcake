@@ -1,7 +1,11 @@
 const CORE = ["calories_kcal", "protein_g", "carbs_g", "fat_g"];
+const OPTIONAL = ["fiber_g", "sugar_g", "saturated_fat_g", "sodium_mg"];
 const validNutrition = (values) => Boolean(values && typeof values === "object" &&
   CORE.every((key) => typeof values[key] === "number" && Number.isFinite(values[key]) &&
-    values[key] >= 0 && values[key] <= (key === "calories_kcal" ? 10000 : 1000)));
+    values[key] >= 0 && values[key] <= (key === "calories_kcal" ? 10000 : 1000)) &&
+  OPTIONAL.every((key) => values[key] === undefined || values[key] === null ||
+    (typeof values[key] === "number" && Number.isFinite(values[key]) && values[key] >= 0 &&
+      values[key] <= (key === "sodium_mg" ? 100000 : 1000))));
 
 export function isValidNutritionRecipeRecord(record) {
   if (!record || typeof record !== "object" || Array.isArray(record) ||
