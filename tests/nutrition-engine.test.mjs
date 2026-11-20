@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   aggregateIngredientEstimates, calculateRecipe, extractNutritionFacts, matchCatalogCandidate, normalizeNutrition, reconcileNutritionSources,
-  parseExplicitQuantity, parseNutritionNumber, parseServingBasis, scoreNutritionEvidence, nutrientForLabel, parseValueAndUnit
+  parseExplicitQuantity, parseNutritionNumber, parseServingBasis, scoreNutritionEvidence, nutrientForLabel, parseValueAndUnit, isGenericNutritionLookup
 } from "../src/lib/nutrition-engine.js";
 
 test("parses exact values, decimal comma and unresolved ranges safely", () => {
