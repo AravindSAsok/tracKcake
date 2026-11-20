@@ -719,7 +719,7 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 
 ### Release verification blocker — 2026-11-20
 
-- Final main commit: `393aa823d25e8e1dba428e2926e47627766bde5c` (documentation-only follow-up after the tested code commit `7452d212d520bf0a7f10400a1dc4f82eaf51753f`). GitHub Actions run #335 on the exact final SHA passed: 34/34 tests, 0 Astro/TypeScript errors, 0 warnings, production build completed.
+- Verified implementation commit: `7452d212d520bf0a7f10400a1dc4f82eaf51753f`. GitHub Actions run #335 on the documentation follow-up SHA `393aa823d25e8e1dba428e2926e47627766bde5c` passed: 34/34 tests, 0 Astro/TypeScript errors, 0 warnings, production build completed. Later commits in this log are documentation-only; their CI runs are checked separately.
 - A manual Vercel Production deployment was requested for that exact commit and rejected with HTTP 402 `api-deployments-free-per-day` (more than 100 deployments in the rolling day; retry-after 86400 seconds). No deployment was created for the final SHA.
 - The mapped Vercel CLI fallback could not run because the connected Desktop Commander laptop is offline (last seen 130 hours ago). Do not claim the final commit is deployed.
 - Current `trackcake.vercel.app` alias still points to deployment `dpl_BGdkR8fFG7Mck3ASJsoQ51nhrX51`, built from commit `3331f34da8d93e1d5bbef6c87d0299453dcbdf12`, not the latest main commit.
