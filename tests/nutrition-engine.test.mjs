@@ -94,6 +94,7 @@ test("extracts labelled text rows and rejects ambiguous duplicate values", () =>
     "Carbohydrate: 31 g",
     "Total fat: 7.5 g"
   ].join("\\n");
+  console.log("nutrition text diagnostic", JSON.stringify(textRows), textRows.split(/\\r?\\n/).length, parseServingBasis(textRows), extractNutritionFacts(textRows));
   const facts = extractNutritionFacts(textRows);
   assert.ok(facts);
   assert.equal(facts.values.protein_g, 4.2);
