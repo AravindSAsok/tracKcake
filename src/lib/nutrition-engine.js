@@ -101,8 +101,72 @@ export function parseValueAndUnit(valueText, key) {
   return { value: round(value, 4), raw: match[0].trim(), rawUnit: match[4], unit: key === "calories_kcal" ? "kcal" : key === "sodium_mg" ? "mg" : "g", qualifier: match[1] || "exact" };
 }
 
+
+function schemaNutritionCandidates(value, output = [], depth = 0, budget = { count: 0 }) {
+  if (depth > 12 || budget.count > 1200 || value === null || value === undefined) return output;
+  if (Array.isArray(value)) {
+    for (const item of value) schemaNutritionCandidates(item, output, depth + 1, budget);
+    return output;
+  }
+  if (typeof value !== "object") return output;
+  budget.count += 1;
+  const required = ["servingSize", "calories", "proteinContent", "carbohydrateContent", "fatContent"];
+  if (required.every((key) => value[key] !== undefined && value[key] !== null && value[key] !== "")) output.push(value);
+  for (const child of Object.values(value)) schemaNutritionCandidates(child, output, depth + 1, budget);
+  return output;
+}
+
+function factsFromJsonLd(content, metadata) {
+  const scripts = [...content.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  if (!scripts.length) return null;
+  const candidates = [];
+  for (const match of scripts) {
+    try { schemaNutritionCandidates(JSON.parse(match[1].trim()), candidates); } catch { /* Ignore malformed JSON-LD. */ }
+  }
+  const complete = [];
+  for (const candidate of candidates) {
+    const calories = typeof candidate.calories === "number" ? candidate.calories + " kcal" : String(candidate.calories);
+    const rows = [
+      "Serving size: " + String(candidate.servingSize),
+      "Energy: " + calories,
+      "Protein: " + String(candidate.proteinContent),
+      "Carbohydrate: " + String(candidate.carbohydrateContent),
+      "Total fat: " + String(candidate.fatContent)
+    ];
+    for (const [property, label] of [["fiberContent","Dietary fiber"],["sugarContent","Total sugars"],
+      ["saturatedFatContent","Saturated fat"],["sodiumContent","Sodium"]]) {
+      if (candidate[property] !== undefined && candidate[property] !== null) rows.push(label + ": " + String(candidate[property]));
+    }
+    const facts = extractNutritionFacts(rows.join("\n"), { ...metadata, extractionMethod:"deterministic_json_ld" });
+    if (facts) complete.push(facts);
+  }
+  if (!complete.length) return null;
+  const first = complete[0];
+  const sameBasis = complete.every(candidate => candidate.basis.amount === first.basis.amount && candidate.basis.unit === first.basis.unit);
+  const sameValues = complete.every(candidate => CORE_KEYS.every(key => Math.abs(candidate.values[key] - first.values[key]) <= 0.01));
+  return sameBasis && sameValues ? first : null;
+}
+
+function normalizeHtmlNutritionText(content) {
+  if (!/<(?:table|tr|td|th|caption|br)\b/i.test(content)) return content;
+  return content
+    .replace(/<script\b(?![^>]*application\/ld\+json)[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+    .replace(/<\/tr\s*>/gi, "\n")
+    .replace(/<\/t[dh]\s*>/gi, " | ")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
+    .replace(/[ \t]+/g, " ");
+}
+
 export function extractNutritionFacts(markdown, metadata = {}) {
-  const content = String(markdown ?? "").slice(0, 14000);
+  const rawContent = String(markdown ?? "").slice(0, 14000);
+  const jsonLdFacts = factsFromJsonLd(rawContent, metadata);
+  if (jsonLdFacts) return jsonLdFacts;
+  const content = normalizeHtmlNutritionText(rawContent);
   const basis = parseServingBasis(content);
   if (!basis) return null;
   const values = {};
@@ -144,7 +208,7 @@ export function extractNutritionFacts(markdown, metadata = {}) {
     basis,
     sourceTitle: String(metadata.sourceTitle ?? "").slice(0, 180),
     sourceUrl: String(metadata.sourceUrl ?? "").slice(0, 2048),
-    extractionMethod: "deterministic_label_or_table"
+    extractionMethod: metadata.extractionMethod || (/<(?:table|tr|td|th|caption)/i.test(rawContent) ? "deterministic_html_table" : "deterministic_label_or_table")
   };
 }
 
