@@ -31,3 +31,20 @@ test("recipe history rejects untrusted non-HTTPS source links and invalid servin
   assert.equal(isValidNutritionRecipeRecord({ ...recipe, servings: 0 }), false);
   assert.equal(isValidNutritionRecipeRecord({ ...recipe, ingredients: [ingredient] }), false);
 });
+
+test("recipe history preserves nullable optional nutrients without accepting invalid values", () => {
+  const withOptional = {
+    ...recipe,
+    ingredients: recipe.ingredients.map((item) => ({
+      ...item, values: { ...item.values, fiber_g: 2.4, sugar_g: null, saturated_fat_g: 0.03, sodium_mg: 1 }
+    }))
+  };
+  assert.equal(isValidNutritionRecipeRecord(withOptional), true);
+  const invalid = {
+    ...recipe,
+    ingredients: recipe.ingredients.map((item) => ({
+      ...item, values: { ...item.values, sodium_mg: -1 }
+    }))
+  };
+  assert.equal(isValidNutritionRecipeRecord(invalid), false);
+});
