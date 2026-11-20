@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { isValidNutritionRecipeRecord } from "./nutrition-recipe-schema.js";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export type EntrySource = "ai" | "manual";
@@ -542,21 +543,6 @@ function writeLocalRecipes(rows: NutritionRecipeRecord[]): void {
   catch { throw new Error("Recipe history could not be saved in this browser. Check available storage space."); }
 }
 
-function validRecipeRecord(record: NutritionRecipeRecord): boolean {
-  if (!record || typeof record.id !== "string" || !record.id || record.recipe_name.trim().length < 1 ||
-      record.recipe_name.length > 90 || !Number.isInteger(record.servings) || record.servings < 1 || record.servings > 50 ||
-      !Array.isArray(record.ingredients) || record.ingredients.length < 2 || record.ingredients.length > 8) return false;
-  const validNutrition = (values: Record<string, number>) =>
-    ["calories_kcal", "protein_g", "carbs_g", "fat_g"].every((key) =>
-      Number.isFinite(Number(values?.[key])) && Number(values[key]) >= 0 &&
-      Number(values[key]) <= (key === "calories_kcal" ? 10000 : 1000));
-  if (!validNutrition(record.total_nutrition) || !validNutrition(record.per_serving_nutrition)) return false;
-  return record.ingredients.every((item) =>
-    typeof item.name === "string" && item.name.trim().length > 0 && item.name.length <= 100 &&
-    Number.isFinite(item.amount) && item.amount > 0 && ["g", "ml"].includes(item.unit) &&
-    validNutrition(item.values) && typeof item.source === "string" &&
-    typeof item.sourceUrl === "string" && typeof item.originalLine === "string");
-}
 
 export async function saveNutritionRecipe(record: NutritionRecipeRecord): Promise<string | undefined> {
   if (!validRecipeRecord(record)) throw new Error("Recipe details are incomplete or invalid. Nothing was saved.");
@@ -591,7 +577,7 @@ export async function listNutritionRecipes(): Promise<NutritionRecipeRecord[]> {
       .select("id,recipe_name,servings,ingredients,total_nutrition,per_serving_nutrition,diary_entry_id,created_at,updated_at")
       .order("created_at", { ascending: false }).limit(100);
     if (error) throw error;
-    const remoteRows = (data || []).filter((row) => validRecipeRecord(row as NutritionRecipeRecord)) as NutritionRecipeRecord[];
+    const remoteRows = (data || []).filter((row) => isValidNutritionRecipeRecord(row)) as NutritionRecipeRecord[];
     const remoteById = new Map(remoteRows.map((row) => [row.id, row]));
     const pendingRows = readLocalRecipes().filter((row) => {
       const remote = remoteById.get(row.id);
