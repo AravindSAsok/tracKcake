@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
         query: food + " nutrition facts ingredients calories protein carbohydrates fat",
-        limit: 4,
+        limit: 3,
         sources: [{ type: "web" }],
         country: "IN",
         scrapeOptions: { formats: ["markdown"], onlyMainContent: true, timeout: 15000, removeBase64Images: true, lockdown: true }
@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
     const payload = await response.json() as { success?: boolean; data?: { web?: unknown[] } };
     const results = Array.isArray(payload.data?.web) ? payload.data!.web! : [];
-    const sources = results.slice(0, 4).flatMap((raw) => {
+    const sources = results.slice(0, 3).flatMap((raw) => {
       if (!raw || typeof raw !== "object") return [];
       const row = raw as Record<string, unknown>;
       const url = safeUrl(row.url);
