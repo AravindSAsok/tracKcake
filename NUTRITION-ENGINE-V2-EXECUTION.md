@@ -325,3 +325,37 @@ Final report must include:
 - Supabase migration: pending application and verification on TrackCake project `rdjjlwupwobyojmkaqau`.
 - Vercel deployment: Pending.
 - Notes: Do not treat the remaining partial features as implemented functionality.
+
+
+---
+
+## Final execution verification — 2026-11-20
+
+### Released and verified
+
+- Final code/documentation commit: `582c30c8e43956bce6ff45c549d4ec2e8caef04a`
+- GitHub Actions run #244: `SUCCESS` — `npm test` (11/11), `npm run check` (0 errors, 0 warnings; 2 hints), and `npm run build` passed.
+- Vercel Production deployment `dpl_8xVq9oosymqZrM8b9Y8zBdcGYwxt` reached `READY` from the exact final commit. Production alias `trackcake.vercel.app` verified.
+- Supabase migration `202611200001_nutrition_catalog` applied to TrackCake project `rdjjlwupwobyojmkaqau`. RLS SELECT policy and anon/authenticated read-only grants verified. Catalogue currently has 0 approved rows; no synthetic facts were seeded.
+- Safe unauthenticated GET smoke check of production succeeded. No diary writes, authenticated tests, or Firecrawl requests were performed.
+
+### Definition-of-done assessment
+
+- [x] Deterministic extraction core implemented and unit-tested for labelled rows and Markdown tables.
+- [x] Serving/unit normalization core implemented and tested; incompatible g/ml bases are rejected.
+- [x] Approved-food catalogue schema, RLS and exact/alias/barcode lookup implemented; curated data population/admin workflow remains outstanding.
+- [x] Deterministic ingredient/recipe calculation helper implemented and tested; interactive ingredient editor is not implemented.
+- [x] Evidence confidence/status helper implemented and tested.
+- [x] Deterministic source paths run before AI for explicitly quantified single foods and complete reviewed web evidence.
+- [ ] Full nullable AI nutrition schema, field-level uncertainty, and ingredient/source evidence validation.
+- [x] Existing review-before-save workflow preserved.
+- [x] Firecrawl remains opt-in, two-page capped, and unused by automated tests.
+- [x] Additive RLS-protected catalogue migration applied and verified.
+- [ ] Full app regression suite and authenticated browser/device testing.
+- [x] README, AGENTS.md, and this execution plan updated truthfully.
+- [x] Core unit tests, Astro/TypeScript check, and production build pass in GitHub Actions.
+- [x] Changes pushed directly to `main`; exact commit and Vercel Production deployment verified.
+
+### Final status
+
+**Partially complete, core released.** The remaining unchecked items above are real scope gaps, not deployment blockers. Do not describe the entire Nutrition Engine V2 plan as finished until the recipe UI, curated catalogue workflow, full AI schema, and full regression/authenticated browser tests are implemented.

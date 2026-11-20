@@ -598,3 +598,43 @@ Do not mark live web lookup or deployment as production-verified until the pendi
 - GitHub Actions: pending.
 - Supabase migration verification: pending.
 - Vercel Production deployment and alias verification: pending.
+
+
+---
+
+## Nutrition Engine V2 execution closeout — 2026-11-20
+
+### Exact release
+
+- Final implementation commit: `582c30c8e43956bce6ff45c549d4ec2e8caef04a`
+- GitHub: https://github.com/AravindSAsok/tracKcake/commit/582c30c8e43956bce6ff45c549d4ec2e8caef04a
+- GitHub Actions run #244: https://github.com/AravindSAsok/tracKcake/actions/runs/44785361282 — SUCCESS.
+- CI results: `npm test` 11 passed / 0 failed; `npm run check` 0 errors / 0 warnings (2 existing hints); `npm run build` passed.
+- Vercel Production deployment: `dpl_8xVq9oosymqZrM8b9Y8zBdcGYwxt`, READY, built from the exact final commit. Production aliases verified: `trackcake.vercel.app`, `trackcake-kukki.vercel.app`, and `trackcake-git-main-kukki.vercel.app`.
+- Safe read-only production smoke check fetched `https://trackcake.vercel.app` successfully. No authenticated account or diary writes were used.
+- Supabase project: `rdjjlwupwobyojmkaqau`. Migration `202611200001_nutrition_catalog` applied successfully.
+- Verified policy: SELECT only for anon/authenticated where `is_approved=true AND approved_at IS NOT NULL`. Privileges verified: anon SELECT true / INSERT false; authenticated SELECT true / UPDATE false. Catalogue row count is 0 by design; no unverified or synthetic food facts were seeded.
+- Supabase security advisor still reports pre-existing anonymous-session policies on `assistant_messages`, `food_entries`, `tracker_settings`, and `workout_plans`, plus leaked-password protection disabled. No nutrition_catalog anonymous-write policy was found. Performance advisor reports the new catalogue indexes as unused because the catalogue is currently empty; retain them for planned lookups.
+- Firecrawl was not called during implementation, tests, or smoke checks. No Firecrawl credits were spent.
+- No diary records or historical nutrition entries were changed.
+
+### Verified implementation scope
+
+- Deterministic parser and tests: labelled text rows, Markdown nutrition tables, supported units, kJ→kcal and mass-unit normalization, explicit serving basis, ambiguity/conflict rejection.
+- Deterministic-first path: a single explicitly quantified text food tries the approved catalogue and structured OFF/USDA lookups before AI; reviewed Firecrawl excerpts use deterministic extraction first when a complete, same-basis, non-conflicting result is available.
+- Removed generic ml↔g density assumptions from the structured scaling path.
+- Approved-food reference table, RLS and read-only lookup are in place. It has no curated records yet.
+- Recipe sum calculation helper and confidence scoring helper are implemented and covered by unit tests.
+
+### Remaining work — do not mark Nutrition Engine V2 fully complete
+
+- A user-facing ingredient/recipe editor, ingredient lookup orchestration, and recipe review/save UX are not implemented.
+- The approved-food catalogue needs a curated, source-attributed seed/administration workflow before it can return matches.
+- Deterministic extraction does not yet cover all HTML/JSON-LD and manufacturer-label layouts.
+- Full cross-source reconciliation and field-level uncertainty UI are not implemented.
+- AI fallback still uses the existing numeric result contract; full nullable per-field nutrition schema and ingredient/source evidence validation remain future work.
+- The current 11 unit tests cover the deterministic core, not the complete app regression suite.
+- Authenticated browser testing of text, photo, live web research, catalogue matches, and diary save remains outstanding. The production smoke check was unauthenticated/read-only.
+- The linked development laptop was offline, so no local working-copy test run or interactive local browser session was possible. GitHub Actions provided the verified check/build/test run.
+
+Status: core deterministic delivery released and verified; full one-shot plan remains partially complete.
