@@ -10,7 +10,11 @@ import {
   type FoodEntry,
   type HistoryPage,
   type MealType,
-  fetchHistoryPage
+  fetchHistoryPage,
+  deleteNutritionRecipe,
+  listNutritionRecipes,
+  saveNutritionRecipe,
+  type NutritionRecipeRecord
 } from "../lib/store";
 
 type DraftItem = {
@@ -63,6 +67,10 @@ const recipeBuilderDialog = byId<HTMLDialogElement>("recipe-builder-dialog");
 const recipeBuilderForm = byId<HTMLFormElement>("recipe-builder-form");
 let recipeIngredientResults: RecipeIngredientResult[] = [];
 let recipeDraft: DraftItem | null = null;
+let recipeCalculation: { total: Record<string, number>; perServing: Record<string, number>; servings: number } | null = null;
+let recipePendingSave = false;
+let editingRecipeId: string | null = null;
+let savedRecipeRecords: NutritionRecipeRecord[] = [];
 const webResearchDialog = byId<HTMLDialogElement>("web-research-dialog");
 let liveResearchSources: WebResearchSource[] = [];
 let liveResearchFood = "";
@@ -1077,6 +1085,7 @@ async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void>
     const aggregate=aggregateIngredientEstimates(recipeIngredientResults.map(item=>({name:item.name,amount:item.amount,unit:item.unit,
       values:item.values,source:item.source,sourceUrl:item.sourceUrl})),servings);
     if(!aggregate)throw new Error("Ingredient values could not be combined safely. Check each amount and result.");
+    recipeCalculation=aggregate;
     const values=aggregate.perServing;
     recipeDraft={name:recipeName.slice(0,90),amount:"1 serving ("+servings+" servings in recipe)",
       calories:Math.round(values.calories_kcal),protein_g:values.protein_g,carbs_g:values.carbs_g,fat_g:values.fat_g,
@@ -1095,8 +1104,27 @@ async function calculateRecipeFromIngredients(event: SubmitEvent): Promise<void>
   } finally { calculateButton.disabled=false; }
 }
 
+async function renderRecipeHistory(): Promise<void> {
+  const container=byId<HTMLDivElement>("recipe-history-list");
+  container.textContent="Loading saved recipes…";
+  try {
+    savedRecipeRecords=await listNutritionRecipes();
+    if(!savedRecipeRecords.length){container.textContent="No saved recipes yet. Calculated recipes appear here after you save them to your diary.";return;}
+    container.innerHTML=savedRecipeRecords.map(record=>
+      '<article class="recipe-history-item"><div><strong>'+escapeHtml(record.recipe_name)+'</strong><p>'+
+      record.servings+' servings · '+record.ingredients.length+' ingredients · '+
+      numberFormat(record.per_serving_nutrition.calories_kcal)+' kcal per serving</p></div>'+
+      '<div class="recipe-history-actions"><button type="button" data-recipe-edit="'+escapeHtml(record.id)+'">Edit / recalculate</button>'+
+      '<button type="button" data-recipe-delete="'+escapeHtml(record.id)+'" aria-label="Delete '+escapeHtml(record.recipe_name)+'">Delete</button></div></article>'
+    ).join("");
+  } catch(error) {
+    container.textContent=error instanceof Error?error.message:"Could not load recipe history.";
+  }
+}
+
 function reviewCalculatedRecipe(): void {
-  if(!recipeDraft||recipeIngredientResults.length<2)return;
+  if(!recipeDraft||recipeIngredientResults.length<2||!recipeCalculation)return;
+  recipePendingSave=true;
   renderReviewItems([recipeDraft]); prepareReviewOptions();
   const attribution=document.getElementById("estimate-attribution");
   if(attribution)attribution.textContent="Combined "+recipeIngredientResults.length+
@@ -1235,12 +1263,40 @@ async function saveReview(event: SubmitEvent): Promise<void> {
     }));
 
     const warnings: string[] = [];
-    for (const entry of created) {
-      const warning = await addEntry(entry);
-      if (warning) warnings.push(warning);
+    let savedDiaryEntryId: string | null = null;
+    if (recipePendingSave && recipeCalculation && recipeIngredientResults.length >= 2 && created.length === 1) {
+      const recipeEntry = created[0];
+      const existingRecipe = editingRecipeId ? savedRecipeRecords.find(record=>record.id===editingRecipeId) : undefined;
+      const existingDiaryEntry = existingRecipe?.diary_entry_id
+        ? entries.find(entry=>entry.id===existingRecipe.diary_entry_id)
+        : undefined;
+      if(existingDiaryEntry){
+        const updatedEntry:FoodEntry={...existingDiaryEntry,name:recipeEntry.name,amount:recipeEntry.amount,
+          calories:recipeEntry.calories,protein_g:recipeEntry.protein_g,carbs_g:recipeEntry.carbs_g,fat_g:recipeEntry.fat_g};
+        const warning=await updateEntry(updatedEntry);if(warning)warnings.push(warning);
+        entries=entries.map(entry=>entry.id===updatedEntry.id?updatedEntry:entry);
+        savedDiaryEntryId=updatedEntry.id;
+      }else{
+        const warning=await addEntry(recipeEntry);if(warning)warnings.push(warning);
+        entries=[recipeEntry,...entries];savedDiaryEntryId=recipeEntry.id;
+      }
+      const recipeRecord:NutritionRecipeRecord={
+        id:editingRecipeId||crypto.randomUUID(),recipe_name:recipeEntry.name,servings:recipeCalculation.servings,
+        ingredients:recipeIngredientResults.map(item=>({name:item.name,amount:item.amount,unit:item.unit,values:item.values,
+          source:item.source,sourceUrl:item.sourceUrl,originalLine:item.originalLine})),
+        total_nutrition:recipeCalculation.total as NutritionRecipeRecord["total_nutrition"],
+        per_serving_nutrition:recipeCalculation.perServing as NutritionRecipeRecord["per_serving_nutrition"],
+        diary_entry_id:savedDiaryEntryId,created_at:existingRecipe?.created_at||new Date().toISOString()
+      };
+      const recipeWarning=await saveNutritionRecipe(recipeRecord);if(recipeWarning)warnings.push(recipeWarning);
+      recipePendingSave=false;editingRecipeId=null;
+    } else {
+      for (const entry of created) {
+        const warning = await addEntry(entry);
+        if (warning) warnings.push(warning);
+      }
+      entries = [...created, ...entries];
     }
-
-    entries = [...created, ...entries];
     render();
     closeDialog("review-dialog");
     quickDescription.value = "";
@@ -1248,6 +1304,7 @@ async function saveReview(event: SubmitEvent): Promise<void> {
     quickTimeManuallySet = false;
     quickMeal.value = byId<HTMLSelectElement>("review-meal").value;
     showToast(warnings[0] ?? `${created.length} ${created.length === 1 ? "food" : "foods"} added to your diary.`, warnings.length ? "error" : "success");
+    if(recipeCalculation){await renderRecipeHistory();recipeCalculation=null;recipeIngredientResults=[];recipeDraft=null;}
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not save the estimate.", "error");
   } finally {
@@ -1303,15 +1360,43 @@ function bindEvents(): void {
   quickForm.addEventListener("submit", (event) => void estimateFood(event));
   byId<HTMLButtonElement>("live-search-button").addEventListener("click", () => void searchLiveFood());
   byId<HTMLButtonElement>("recipe-builder-open").addEventListener("click", () => {
-    recipeIngredientResults=[]; recipeDraft=null;
+    recipeIngredientResults=[]; recipeDraft=null; recipeCalculation=null; recipePendingSave=false; editingRecipeId=null;
     byId<HTMLDivElement>("recipe-breakdown").replaceChildren();
     byId<HTMLDivElement>("recipe-breakdown").hidden=true;
     byId<HTMLElement>("recipe-status").textContent="Use 2–8 ingredients with explicit g or ml quantities. Each ingredient is estimated separately.";
     byId<HTMLButtonElement>("recipe-review").disabled=true;
     openDialog(recipeBuilderDialog);
+    void renderRecipeHistory();
   });
   recipeBuilderForm.addEventListener("submit",event=>void calculateRecipeFromIngredients(event));
   byId<HTMLButtonElement>("recipe-review").addEventListener("click",reviewCalculatedRecipe);
+  byId<HTMLDivElement>("recipe-history-list").addEventListener("click",event=>{
+    const target=event.target;
+    if(!(target instanceof HTMLElement))return;
+    const editButton=target.closest<HTMLButtonElement>("[data-recipe-edit]");
+    const deleteButton=target.closest<HTMLButtonElement>("[data-recipe-delete]");
+    if(editButton){
+      const record=savedRecipeRecords.find(item=>item.id===editButton.dataset.recipeEdit);
+      if(!record)return;
+      editingRecipeId=record.id; recipePendingSave=false; recipeCalculation=null; recipeDraft=null;
+      byId<HTMLInputElement>("recipe-name").value=record.recipe_name;
+      byId<HTMLInputElement>("recipe-servings").value=String(record.servings);
+      byId<HTMLTextAreaElement>("recipe-ingredients").value=record.ingredients.map(item=>item.originalLine).join("\\n");
+      byId<HTMLElement>("recipe-status").textContent="Edit the ingredient lines, then calculate again. Saving updates the existing recipe diary entry.";
+      byId<HTMLButtonElement>("recipe-review").disabled=true;
+      byId<HTMLDivElement>("recipe-breakdown").hidden=true;
+      byId<HTMLTextAreaElement>("recipe-ingredients").focus();
+      return;
+    }
+    if(deleteButton){
+      const id=deleteButton.dataset.recipeDelete;
+      if(id)void (async()=>{
+        if(!window.confirm("Delete this saved recipe and its ingredient history? The diary entry will remain unchanged."))return;
+        try{const warning=await deleteNutritionRecipe(id);await renderRecipeHistory();showToast(warning||"Recipe history deleted. The diary entry is unchanged.",warning?"error":"success");}
+        catch(error){showToast(error instanceof Error?error.message:"Could not delete recipe.","error");}
+      })();
+    }
+  });
   byId<HTMLButtonElement>("web-research-structure").addEventListener("click", () => void structureLiveResearch());
   entryForm.addEventListener("submit", (event) => void saveManualEntry(event));
   reviewForm.addEventListener("submit", (event) => void saveReview(event));
