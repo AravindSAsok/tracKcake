@@ -876,7 +876,7 @@ async function structureLiveResearch(): Promise<void> {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let completed: (EstimateResponse & { provider?: string; model?: string }) | null = null;
+    const streamResult: { value: (EstimateResponse & { provider?: string; model?: string }) | null } = { value: null };
     let streamError = "";
     const handleBlock = (block: string) => {
       const event = block.split("\n").find((line) => line.startsWith("event:"))?.slice(6).trim();
@@ -886,7 +886,7 @@ async function structureLiveResearch(): Promise<void> {
       if (event === "progress" && typeof data.message === "string") {
         byId<HTMLElement>("web-research-status").textContent = data.message;
       }
-      if (event === "complete") completed = data as EstimateResponse & { provider?: string; model?: string };
+      if (event === "complete") streamResult.value = data as EstimateResponse & { provider?: string; model?: string };
       if (event === "error") streamError = typeof data.error === "string" ? data.error : "AI structuring failed.";
     };
     while (true) {
@@ -899,6 +899,7 @@ async function structureLiveResearch(): Promise<void> {
     }
     if (buffer.trim()) handleBlock(buffer);
     if (streamError) throw new Error(streamError);
+    const completed = streamResult.value;
     if (!completed || !Array.isArray(completed.items) || !completed.items.length) {
       throw new Error("AI found no complete nutrition records in the scraped pages. Try another source or a more specific search.");
     }
@@ -1237,7 +1238,7 @@ function bindEvents(): void {
     });
   });
 
-  [entryDialog, reviewDialog, goalDialog].forEach((dialog) => {
+  [entryDialog, reviewDialog, goalDialog, webResearchDialog].forEach((dialog) => {
     dialog.addEventListener("click", (event) => {
       if (event.target === dialog) dialog.close();
     });
