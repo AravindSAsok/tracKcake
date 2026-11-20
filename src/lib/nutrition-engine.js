@@ -284,6 +284,46 @@ export function scoreNutritionEvidence(input = {}) {
   ].filter(Boolean) };
 }
 
+export function reconcileNutritionSources(primary, secondary) {
+  if (!primary) return secondary ? { item: secondary, conflict: false, reasons: [] } : null;
+  if (!secondary) return { item: primary, conflict: false, reasons: [] };
+  const reasons = [];
+  const primaryUnit = primary.nutrition_basis?.match(/per 100 (g|ml)/i)?.[1]?.toLowerCase();
+  const secondaryUnit = secondary.nutrition_basis?.match(/per 100 (g|ml)/i)?.[1]?.toLowerCase();
+  if (primaryUnit && secondaryUnit && primaryUnit !== secondaryUnit) {
+    reasons.push("Sources use incompatible serving units.");
+  }
+  const keys = [["calories","calories",5,0.1],["protein_g","protein_g",0.5,0.15],["carbs_g","carbs_g",0.5,0.15],["fat_g","fat_g",0.5,0.15]];
+  for (const [key, label, absoluteTolerance, relativeTolerance] of keys) {
+    const a = Number(primary[key]);
+    const b = Number(secondary[key]);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      reasons.push("A source is missing " + label + ".");
+      continue;
+    }
+    const tolerance = Math.max(absoluteTolerance, Math.max(Math.abs(a), Math.abs(b)) * relativeTolerance);
+    if (Math.abs(a - b) > tolerance) reasons.push(label + " differs (" + a + " vs " + b + ").");
+  }
+  const conflict = reasons.length > 0;
+  const secondarySource = String(secondary.nutrition_source || "second source").slice(0, 160);
+  return {
+    item: {
+      ...primary,
+      nutrition_source: String(primary.nutrition_source || "Nutrition source") + " + " + secondarySource,
+      nutrition_status: conflict ? "Needs review" : primary.nutrition_status,
+      nutrition_confidence: conflict ? 0 : Math.min(Number(primary.nutrition_confidence) || 0, Number(secondary.nutrition_confidence) || 0),
+      nutrition_conflict: conflict ? reasons.join(" ") : undefined,
+      nutrition_secondary_values: conflict ? {
+        source: secondarySource, calories: secondary.calories, protein_g: secondary.protein_g,
+        carbs_g: secondary.carbs_g, fat_g: secondary.fat_g, basis: secondary.nutrition_basis,
+        url: secondary.nutrition_source_url
+      } : undefined
+    },
+    conflict,
+    reasons
+  };
+}
+
 export function matchCatalogCandidate(item, records) {
   if (!Array.isArray(records)) return null;
   const barcode = String(item?.barcode ?? "").trim();
