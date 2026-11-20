@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  calculateRecipe, extractNutritionFacts, matchCatalogCandidate, normalizeNutrition,
+  aggregateIngredientEstimates, calculateRecipe, extractNutritionFacts, matchCatalogCandidate, normalizeNutrition,
   parseExplicitQuantity, parseNutritionNumber, parseServingBasis, scoreNutritionEvidence, nutrientForLabel, parseValueAndUnit
 } from "../src/lib/nutrition-engine.js";
 
@@ -129,4 +129,26 @@ test("parses individual labelled nutrient rows", () => {
   assert.equal(parseValueAndUnit("4,2 g", "protein_g").value, 4.2);
   assert.equal(parseValueAndUnit("31 g", "carbs_g").value, 31);
   assert.equal(parseValueAndUnit("7.5 g", "fat_g").value, 7.5);
+});
+
+
+test("aggregates explicitly estimated ingredients into a per-serving recipe", () => {
+  const result = aggregateIngredientEstimates([
+    { name:"Rice", amount:100, unit:"g", values:{calories_kcal:130,protein_g:2.7,carbs_g:28,fat_g:0.3}, source:"USDA" },
+    { name:"Lentils", amount:80, unit:"g", values:{calories_kcal:92,protein_g:7.2,carbs_g:16,fat_g:0.4}, source:"Open Food Facts" }
+  ],2);
+  assert.ok(result);
+  assert.equal(result.total.calories_kcal,222);
+  assert.equal(result.perServing.calories_kcal,111);
+  assert.equal(result.perServing.protein_g,4.95);
+  assert.equal(result.contributions.length,2);
+  assert.equal(result.method,"estimated_ingredient_sum");
+});
+
+test("rejects incomplete or unsupported ingredient estimate inputs", () => {
+  const ingredient={name:"Rice",amount:100,unit:"g",values:{calories_kcal:130,protein_g:2,carbs_g:28,fat_g:0.3}};
+  assert.equal(aggregateIngredientEstimates([ingredient,{...ingredient,name:"Dal",amount:0}],2),null);
+  assert.equal(aggregateIngredientEstimates([ingredient,{...ingredient,name:"Dal",unit:"cup"}],2),null);
+  assert.equal(aggregateIngredientEstimates([ingredient,{...ingredient,name:"Dal"}],0),null);
+  assert.equal(aggregateIngredientEstimates([ingredient],1),null);
 });
