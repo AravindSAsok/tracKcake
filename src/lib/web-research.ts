@@ -152,10 +152,11 @@ export async function searchWebNutrition(foodName: string, brand = "", context =
       console.warn("[trackcake-nutrition] Firecrawl search returned HTTP", response.status);
       return null;
     }
-    const payload = await response.json() as { success?: boolean; data?: unknown };
-    if (!payload.success || !Array.isArray(payload.data)) return null;
+    const payload = await response.json() as { success?: boolean; data?: { web?: unknown[] } };
+    const results = payload.data?.web;
+    if (!payload.success || !Array.isArray(results)) return null;
 
-    for (const raw of payload.data.slice(0, 4)) {
+    for (const raw of results.slice(0, 4)) {
       if (!raw || typeof raw !== "object") continue;
       const result = extractRecord(raw as FirecrawlResult, foodName);
       if (result) return result;
