@@ -16,6 +16,7 @@ export type NutritionItem = {
   nutrition_status?: string;
   nutrition_confidence?: number;
   nutrition_method?: string;
+  nutrition_uncertainty?: Record<string, string>;
   nutrition_conflict?: string;
   nutrition_secondary_values?: { source: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; basis?: string; url?: string };
 };
