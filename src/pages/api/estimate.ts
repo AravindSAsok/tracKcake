@@ -39,7 +39,10 @@ function parseItems(value: unknown): EstimatedItem[] {
       carbs_g: asNumber(item.carbs_g),
       fat_g: asNumber(item.fat_g),
       brand: typeof item.brand === "string" ? item.brand.trim().slice(0, 80) : undefined,
-      product_name: typeof item.product_name === "string" ? item.product_name.trim().slice(0, 100) : undefined
+      product_name: typeof item.product_name === "string" ? item.product_name.trim().slice(0, 100) : undefined,
+      nutrition_source: typeof item.nutrition_source === "string" ? item.nutrition_source.slice(0, 180) : undefined,
+      nutrition_basis: typeof item.nutrition_basis === "string" ? item.nutrition_basis.slice(0, 180) : undefined,
+      nutrition_source_url: typeof item.nutrition_source_url === "string" && /^https:\/\//i.test(item.nutrition_source_url) ? item.nutrition_source_url.slice(0, 2048) : undefined
     };
   });
   if (!items.length) throw new Error("No foods were found in that description.");
@@ -190,9 +193,10 @@ async function buildAttempts(
   description: string,
   requestedProvider: Provider | "auto",
   requestedModel?: string,
-  strictModel = false
+  strictModel = false,
+  researchOnly = false
 ): Promise<ModelAttempt[]> {
-  const prompt = promptFor(description);
+  const prompt = promptFor(description, researchOnly);
   const keys: Partial<Record<Provider, string>> = {
     groq: process.env.GROQ_API_KEY?.trim(),
     gemini: process.env.GEMINI_API_KEY?.trim(),
@@ -307,7 +311,7 @@ export const POST: APIRoute = async ({ request }) => {
                   : process.env.OPENROUTER_API_KEY?.trim()
             ));
           if (!configured.length) throw new Error("No AI provider keys are configured in Vercel.");
-          const attempts = await buildAttempts(description, providerChoice, modelChoice, strictModel);
+          const attempts = await buildAttempts(description, providerChoice, modelChoice, strictModel, researchOnly);
           if (!attempts.length) throw new Error("No models are available for the configured API keys.");
 
           const failures: string[] = [];
@@ -319,7 +323,7 @@ export const POST: APIRoute = async ({ request }) => {
             });
             const started = Date.now();
             try {
-              const raw = await attempt.run(promptFor(description, researchOnly));
+              const raw = await attempt.run();
               const items = parseItems(extractJson(raw));
               console.info("[trackcake-ai] provider succeeded", {
                 provider: attempt.provider, model: attempt.model, durationMs: Date.now() - started
