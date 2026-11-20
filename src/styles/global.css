@@ -2838,3 +2838,12 @@ body.calkie-open::before {
 .recipe-breakdown-row span:last-child { text-align:right; font-weight:700; white-space:nowrap; }
 .recipe-actions { flex-wrap:wrap; }
 @media (max-width:520px) { .recipe-actions button { flex:1 1 100%; } }
+
+.recipe-history{border-top:1px solid var(--line,#e8e5df);margin-top:1.1rem;padding-top:1rem}
+.recipe-history h3{font-size:.92rem;margin:0 0 .7rem}
+.recipe-history-item{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.75rem 0;border-bottom:1px solid var(--line,#e8e5df)}
+.recipe-history-item p{margin:.25rem 0 0;color:var(--muted,#777);font-size:.8rem}
+.recipe-history-actions{display:flex;flex-wrap:wrap;gap:.4rem}
+.recipe-history-actions button{font:inherit;font-size:.76rem;padding:.45rem .6rem;border:1px solid var(--line,#ddd);border-radius:8px;background:transparent;color:inherit;cursor:pointer}
+.recipe-history-actions button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+@media(max-width:520px){.recipe-history-item{align-items:flex-start;flex-direction:column}.recipe-history-actions{width:100%}.recipe-history-actions button{min-height:40px}}
