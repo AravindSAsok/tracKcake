@@ -845,3 +845,11 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - Added parser regression tests for ordinary text, valid imports, unsupported/malformed JSON, invalid dates/meals and invalid nutrition types.
 - Writes are sequential rather than a transactional bulk insert; if storage fails midway, the UI reports how many entries were saved.
 - Verify with `npm test`, `npm run check`, and `npm run build` in CI. Do not claim authenticated cloud import or production deployment until separately verified.
+
+
+### Past-day food logging — 2026-11-21
+
+- Added a dedicated **Food date** calendar control to the quick food logger. Users can choose today or any earlier local calendar day before using manual entry, AI text estimates, or photo estimates; the existing eaten-at time is preserved when the date changes.
+- The date picker is capped at the current local day. The selected date is synchronized with the existing datetime-local field, so all existing review-before-save and local/Supabase persistence paths continue to store the actual selected eating timestamp.
+- The JSON import workflow remains governed by its explicit top-level `date` field and is not overridden by the quick-entry date control.
+- Verification pending: run the repository test, Astro check and production build in GitHub Actions after the source commits; verify the resulting production deployment before claiming the feature is live.
