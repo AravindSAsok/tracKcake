@@ -3,12 +3,12 @@ const MAX_ENTRIES = 100;
 const MAX_AMOUNT = 10000;
 function isRecord(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
 function validDate(value) {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
-function validTime(value) { return typeof value === "string" && /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value); }
+function validTime(value) { return typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value); }
 export function parseTrackCakeFoodLog(input) {
   const source = String(input ?? "").trim();
   if (!source || !(source.startsWith("{") || source.startsWith("["))) return null;
