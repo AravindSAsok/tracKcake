@@ -15,7 +15,8 @@ export function normalizeNutritionSearchInput(value: string): { original: string
   if (/\b(whole milk|full[- ]fat milk)\b/.test(lower)) constraints.push("whole milk");
   if (/\b(iced|cold)\b/.test(lower)) constraints.push("iced or cold preparation");
   const food = original
-    .replace(/\b(?:without|no|zero|unsweetened|sugar[- ]free|low[- ]fat|skimmed|whole|full[- ]fat|iced|cold|hot|homemade|plain|added)\b/gi, " ")
+    .replace(/\b(?:without|no|zero)\s+(?:added\s+)?sugar\b/gi, " ")
+    .replace(/\b(?:unsweetened|sugar[- ]free|low[- ]fat|skimmed|whole|full[- ]fat|iced|cold|hot|homemade|plain|added)\b/gi, " ")
     .replace(/\s+/g, " ").trim();
   return { original, food: food || original, constraints };
 }
@@ -29,9 +30,9 @@ export function buildNutritionSearchQueries(
   const clean = (value: string) => value.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
   const queries = [
     clean(original) + " nutrition facts calories protein carbohydrates fat",
-    clean(canonicalFood) + " nutrition facts per 100 g OR per 100 ml",
     clean(canonicalFood) + (constraints.length ? " " + clean(constraints.join(" ")) : "") + " calories nutrition information",
-    ...aiQueries.slice(0, 2).map(clean)
+    ...aiQueries.slice(0, 2).map(clean),
+    clean(canonicalFood) + " nutrition facts per 100 g OR per 100 ml"
   ];
   return [...new Set(queries.filter((query) => query.length >= 12))].slice(0, 4);
 }
