@@ -215,7 +215,8 @@ async function ensureCloud(): Promise<SupabaseClient | null> {
 export async function loadTrackerData(): Promise<TrackerData> {
   const localEntries = readLocalEntries();
   const localGoal = readLocalGoal();
-  const localGoalHistory = readLocalGoalHistory();
+  const storedGoalHistory = readLocalGoalHistory();
+  const localGoalHistory = storedGoalHistory.length ? storedGoalHistory : [{ goal: localGoal, effective_from: new Date().toISOString() }];
 
   if (!cloudConfigured) {
     storageMode = "local";
@@ -300,7 +301,7 @@ export async function loadTrackerData(): Promise<TrackerData> {
           .sort((a, b) => a.effective_from.localeCompare(b.effective_from))
       : [];
     const goalHistory = remoteGoalHistory.length ? remoteGoalHistory : localGoalHistory;
-    if (!remoteGoalHistory.length && goalHistory.length) {
+    if (!remoteGoalHistory.length) {
       const { error } = await client.from("tracker_settings").upsert({ user_id: userId, calorie_goal: goal, goal_history: goalHistory }, { onConflict: "user_id" });
       if (error) throw error;
     }

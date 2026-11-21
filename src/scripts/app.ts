@@ -489,7 +489,6 @@ function renderFoodChart(): void {
   const average = buckets.length ? total / buckets.length : 0;
   const peak = buckets.reduce((best, bucket) => bucket.value > best.value ? bucket : best, { key: "", label: "—", value: 0 });
   const activeDays = new Set(inRange.filter((entry) => entry.calories > 0).map((entry) => localDateKey(entry.eaten_at))).size;
-  const goalDays = period === "day" ? 1 : period === "year" ? 365 : period === "month" ? new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate() : 7;
   byId<HTMLElement>("food-chart-caption").textContent = config.label + " by " + (period === "day" ? "hour" : period === "year" ? "month" : "day") + " · " + periodLabel + " · " + inRange.length + " food entries · " + activeDays + " logged days · average " + decimalFormat(average) + " " + config.unit + " per bucket · peak " + decimalFormat(peak.value) + " " + config.unit;
 }
 
@@ -1617,6 +1616,9 @@ async function saveGoal(event: SubmitEvent): Promise<void> {
 
   try {
     const warning = await persistGoal(goal);
+    if (goalHistory[goalHistory.length - 1]?.goal !== goal) {
+      goalHistory = [...goalHistory, { goal, effective_from: new Date().toISOString() }];
+    }
     calorieGoal = goal;
     render();
     closeDialog("goal-dialog");
