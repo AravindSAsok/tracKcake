@@ -759,7 +759,8 @@ a {
 
 .quick-form textarea {
   width: 100%;
-  min-height: 81px;
+  min-height: 190px;
+  max-height: 45vh;
   padding: 14px 15px;
   resize: vertical;
   border: 1px solid #e5ebe2;
