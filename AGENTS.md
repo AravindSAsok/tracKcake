@@ -818,6 +818,6 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - Live Web Search now tries the configured approved `GEMINI_MODEL` first (if it is in the allowlist), then the remaining approved Gemini candidates sequentially when a candidate is unavailable, errors, or returns invalid/empty normalization JSON. Deterministic normalization and the next provider fallback remain available.
 - Added `tests/ai-models.test.mjs` for the expanded allowlist and text-vs-vision boundaries.
 - Added `scripts/benchmark-gemini-models.mjs`, which tests each live-discovered Gemini candidate against TrackCake's `/api/estimate` using strict single-model mode and the simple food prompt `apple`. It records success only when a complete food item is returned; no Groq/OpenRouter fallback can create a false pass.
-- Extended `.github/workflows/benchmark-models.yml` to run the Gemini benchmark after the production deployment becomes available and upload `gemini-benchmark.md` as a workflow artifact.
+- Added a dedicated `.github/workflows/benchmark-gemini-models.yml` workflow. It waits for the production deployment to expose multiple Gemini candidates, runs the strict model benchmark, publishes `gemini-benchmark.md` to main, and uploads it as an artifact.
 - Do not call a candidate "working" until the post-deploy strict benchmark report records success. The benchmark currently tests simple food input only; mixed meals and constraint-heavy prompts require separate test coverage.
 - Source model catalogue: https://ai.google.dev/gemini-api/docs/models
