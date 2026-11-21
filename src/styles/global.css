@@ -2918,3 +2918,18 @@ body.calkie-open::before {
 .personal-record-card strong{color:#405d40;font-size:16px;font-weight:850;overflow-wrap:anywhere}
 .personal-record-card small{color:#98a296;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
 @media(max-width:620px){.monthly-progress-heading{align-items:flex-start;flex-direction:column}.month-picker{align-self:stretch;justify-content:space-between}.month-picker input{flex:1}.monthly-calendar-summary{gap:5px}.monthly-calendar-summary>div{padding:8px 6px}.monthly-calendar-summary strong{font-size:15px}.monthly-calendar-summary span{font-size:8px}.monthly-calendar-weekdays,.monthly-goal-calendar{gap:3px}.monthly-goal-day,.monthly-goal-empty{min-height:36px}.personal-records-grid{gap:6px}.personal-record-card{padding:9px;gap:7px}.personal-record-card strong{font-size:14px}.personal-record-icon{flex-basis:26px;height:26px}}
+
+
+/* Compact insights: fold today's meal totals into the chart card. */
+.daily-insights{grid-template-columns:1fr}
+.daily-insights .weekly-consistency{padding-left:0}
+.meal-breakdown-fold{margin:0 0 12px;border:1px solid #e8ede5;border-radius:11px;background:#fbfcfa}
+.meal-breakdown-fold summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;cursor:pointer;list-style:none;color:#526c4d;font-size:10px;font-weight:850}
+.meal-breakdown-fold summary::-webkit-details-marker{display:none}
+.meal-breakdown-fold summary::after{content:"＋";color:#7d9970;font-size:14px}
+.meal-breakdown-fold[open] summary::after{content:"−"}
+.meal-breakdown-fold summary small{margin-left:auto;color:#9aa598;font-size:9px;font-weight:600}
+.meal-breakdown-fold .meal-totals{padding:0 13px 12px}
+.food-chart-bar.is-met{fill:#79a96a}
+.food-chart-bar.is-missed{fill:#d98791}
+.food-chart-bar.is-neutral{fill:#cbd4c8}

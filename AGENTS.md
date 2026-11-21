@@ -899,3 +899,12 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - The most-consistent-month record compares months with at least five assessed (logged and completed) days; adherence is goals met divided by assessed days. All records are derived from diary data and are not separately persisted.
 - No new database tables, API endpoints, or dependencies were introduced. Mobile responsive styles were added.
 - Verification: pending GitHub Actions tests/check/build and production deployment verification for this change.
+
+
+### Compact chart and history refinements — 2026-11-22
+
+- Moved “Today's meals” into the nutrition chart card as a collapsed native disclosure; users can expand it to see the existing breakfast/lunch/dinner/snack calorie totals.
+- Kept the last-seven-days consistency panel separate and full-width.
+- Reduced food-history pagination from 10 to 5 entries per page; existing date/search filters and previous/next navigation remain intact.
+- Nutrition chart bars now use the existing goal-streak status: green for a goal-met bucket, rose for a missed-goal bucket, and muted grey when there is no decisive logged status. Day/week/month buckets use their corresponding date; yearly bars use the month's majority of assessed days. Existing streak calendar color explanation remains the legend, so no extra labels were added.
+- No database or API changes. Verification pending CI and production deployment checks.

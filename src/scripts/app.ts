@@ -95,7 +95,7 @@ let historyEntries: FoodEntry[] = [];
 let historyPage = 1;
 let historyRequest = 0;
 let quickTimeManuallySet = false;
-const HISTORY_PAGE_SIZE = 10;
+const HISTORY_PAGE_SIZE = 5;
 
 const mealLabels: Record<MealType, string> = {
   breakfast: "Breakfast",
@@ -562,12 +562,37 @@ function renderFoodChart(): void {
   const plotWidth = width - left - right, plotHeight = height - top - bottom;
   const max = Math.max(1, ...buckets.map((bucket) => bucket.value)) * 1.15;
   const step = plotWidth / Math.max(1, buckets.length);
-  const points = buckets.map((bucket, index) => ({
-    x: left + step * (index + .5),
-    y: top + plotHeight - (bucket.value / max) * plotHeight,
-    value: bucket.value,
-    label: bucket.label
-  }));
+  const points = buckets.map((bucket, index) => {
+    let goalStatus: "met" | "missed" | "neutral" = "neutral";
+    if (period === "day") {
+      const status = goalDayStatus(anchor);
+      goalStatus = status === "met" ? "met" : status === "missed" ? "missed" : "neutral";
+    } else if (period === "week") {
+      const status = goalDayStatus(new Date(bucket.key + "T12:00:00"));
+      goalStatus = status === "met" ? "met" : status === "missed" ? "missed" : "neutral";
+    } else if (period === "month") {
+      const date = new Date(anchor.getFullYear(), anchor.getMonth(), index + 1, 12);
+      const status = goalDayStatus(date);
+      goalStatus = status === "met" ? "met" : status === "missed" ? "missed" : "neutral";
+    } else {
+      const monthStart = new Date(anchor.getFullYear(), index, 1, 12);
+      const daysInMonth = new Date(anchor.getFullYear(), index + 1, 0).getDate();
+      let metDays = 0, missedDays = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const status = goalDayStatus(new Date(anchor.getFullYear(), index, day, 12));
+        if (status === "met") metDays++;
+        else if (status === "missed") missedDays++;
+      }
+      goalStatus = metDays > missedDays ? "met" : missedDays > metDays ? "missed" : "neutral";
+    }
+    return {
+      x: left + step * (index + .5),
+      y: top + plotHeight - (bucket.value / max) * plotHeight,
+      value: bucket.value,
+      label: bucket.label,
+      goalStatus
+    };
+  });
   const grid = [0, .5, 1].map((fraction) => {
     const y = top + plotHeight * fraction;
     return '<line x1="' + left + '" y1="' + y + '" x2="' + (width-right) + '" y2="' + y + '" class="food-chart-grid"/>';
@@ -580,7 +605,7 @@ function renderFoodChart(): void {
     const barWidth = Math.max(3, Math.min(24, step * .58));
     marks = points.map((point) => {
       const barHeight = Math.max(0, top + plotHeight - point.y);
-      return '<rect x="' + (point.x - barWidth/2) + '" y="' + point.y + '" width="' + barWidth + '" height="' + barHeight + '" rx="3" class="food-chart-bar"><title>' + point.label + ': ' + decimalFormat(point.value) + ' ' + config.unit + '</title></rect>';
+      return '<rect x="' + (point.x - barWidth/2) + '" y="' + point.y + '" width="' + barWidth + '" height="' + barHeight + '" rx="3" class="food-chart-bar is-' + point.goalStatus + '"><title>' + point.label + ': ' + decimalFormat(point.value) + ' ' + config.unit + '</title></rect>';
     }).join("");
   }
   const labels = points.map((point) => point.label ? '<text x="' + point.x + '" y="' + (height - 7) + '" text-anchor="middle" class="food-chart-axis-label">' + point.label + '</text>' : "").join("");
