@@ -1,0 +1,73 @@
+name: TrackCake Gemini model benchmark
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/benchmark-gemini-models.mjs"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trackcake-gemini-model-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Wait for the production deployment to expose Gemini candidates
+        env:
+          TRACKCAKE_URL: https://trackcake.vercel.app
+        run: |
+          for attempt in $(seq 1 90); do
+            count=$(curl -fsS "$TRACKCAKE_URL/api/provider-status" | jq -r '.providers[] | select(.provider=="gemini") | .modelCount' 2>/dev/null || echo 0)
+            if [ "${count:-0}" -gt 1 ]; then
+              echo "Production exposes $count Gemini candidates."
+              exit 0
+            fi
+            echo "Waiting for Vercel deployment ($attempt/90)..."
+            sleep 10
+          done
+          echo "Updated Gemini catalogue did not become ready in 15 minutes."
+          exit 1
+
+      - name: Run strict single-model food tests
+        env:
+          TRACKCAKE_URL: https://trackcake.vercel.app
+        run: node scripts/benchmark-gemini-models.mjs
+
+      - name: Publish benchmark report to main
+        if: always()
+        run: |
+          if [ -f gemini-benchmark.md ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add gemini-benchmark.md
+            if ! git diff --cached --quiet; then
+              git commit -m "Publish Gemini model smoke-test results"
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Preserve report as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: trackcake-gemini-benchmark-${{ github.run_id }}
+          path: gemini-benchmark.md
+          if-no-files-found: warn
+          retention-days: 90
