@@ -878,3 +878,10 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - Database migration: `202611220001_goal_history.sql`; applied to Supabase project `rdjjlwupwobyojmkaqau` and verified the `tracker_settings.goal_history` JSONB column exists.
 - Follow-up correctness pass: seed a starting goal-history timestamp for new/local-only accounts, and refresh the in-memory goal history immediately after a successful goal edit.
 - Commit `c56007cc2dcfd9aeed9be610b0f790e6ffaf281c` was pushed to `main`. GitHub Actions run `44951136256` was observed in progress at the time of the check; wait for its terminal result and verify Vercel before claiming production availability.
+
+
+### CI correction — 2026-11-22
+
+- The first goal-streak CI run caught one missing `goalHistory` property in the local cloud-initialization fallback. Added the missing local history to that return path.
+- The same first run passed all 51 deterministic nutrition tests; Astro check failed only on the missing property. The unused local chart variable was removed in the follow-up commit.
+- Re-run the complete GitHub Actions workflow for the correction commit; do not treat the earlier failed run as a passing verification.

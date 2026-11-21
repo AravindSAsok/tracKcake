@@ -226,7 +226,7 @@ export async function loadTrackerData(): Promise<TrackerData> {
   try {
     const client = await ensureCloud();
     if (!client || !userId) {
-      return { entries: localEntries, goal: localGoal, mode: "local" };
+      return { entries: localEntries, goal: localGoal, goalHistory: localGoalHistory, mode: "local" };
     }
 
     const [entriesResult, settingsResult] = await Promise.all([
