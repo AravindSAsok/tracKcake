@@ -68,7 +68,7 @@ async function isModelAvailable(provider: "groq" | "gemini" | "openrouter", apiK
     });
     if (!response.ok) return false;
     const payload = await response.json() as {
-      data?: Array<{ id?: string }>;
+      data?: Array<{ id?: string; name?: string; supportedGenerationMethods?: string[] }>;
       models?: Array<{ name?: string; id?: string; supportedGenerationMethods?: string[] }>;
     };
     const records = payload.data ?? payload.models ?? [];
