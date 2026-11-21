@@ -285,6 +285,103 @@ function renderGoalInsights(): void {
   byId<HTMLElement>("food-streak-caption").textContent = "Last 30 days · green = goal met · rose = goal missed · grey = no food logged · today remains in progress until midnight.";
 }
 
+
+function dayTotalsByDate(): Map<string, { calories: number; protein: number; carbs: number; fat: number; foods: number }> {
+  const totals = new Map<string, { calories: number; protein: number; carbs: number; fat: number; foods: number }>();
+  for (const entry of entries) {
+    const timestamp = new Date(entry.eaten_at).getTime();
+    if (!Number.isFinite(timestamp) || timestamp > Date.now()) continue;
+    const key = localDateKey(entry.eaten_at);
+    const day = totals.get(key) ?? { calories: 0, protein: 0, carbs: 0, fat: 0, foods: 0 };
+    day.calories += Number(entry.calories) || 0;
+    day.protein += Number(entry.protein_g) || 0;
+    day.carbs += Number(entry.carbs_g) || 0;
+    day.fat += Number(entry.fat_g) || 0;
+    day.foods++;
+    totals.set(key, day);
+  }
+  return totals;
+}
+
+function renderMonthlyGoalCalendar(): void {
+  const picker = byId<HTMLInputElement>("goal-month-picker");
+  const today = new Date();
+  const currentMonth = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
+  if (!picker.value) picker.value = currentMonth;
+  const [year, month] = picker.value.split("-").map(Number);
+  if (!year || !month || month < 1 || month > 12) return;
+  const first = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const todayKey = localDateKey(today);
+  const isFutureMonth = first.getTime() > new Date(today.getFullYear(), today.getMonth(), 1).getTime();
+  const calendar = byId<HTMLElement>("monthly-goal-calendar");
+  const cells: string[] = [];
+  for (let blank = 0; blank < first.getDay(); blank++) cells.push('<span class="monthly-goal-empty" aria-hidden="true"></span>');
+  let met = 0, missed = 0, noLog = 0, assessed = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month - 1, day, 12);
+    const key = localDateKey(date);
+    const future = key > todayKey;
+    const status = future ? "future" : goalDayStatus(date);
+    const total = caloriesForDate(key);
+    const goal = goalForDate(date);
+    if (!future) {
+      if (status === "met") { met++; assessed++; }
+      else if (status === "missed") { missed++; assessed++; }
+      else if (status === "no-log") noLog++;
+    }
+    const label = status === "met" ? "Goal achieved" : status === "missed" ? "Goal missed" : status === "today" ? "Today in progress" : status === "future" ? "Future day" : "No food logged";
+    cells.push(`<span class="monthly-goal-day is-${status}" title="${key}: ${label}${future ? "" : " · " + numberFormat(total) + " / " + numberFormat(goal) + " kcal"}"><strong>${day}</strong>${status === "met" ? '<small>✓</small>' : status === "missed" ? '<small>×</small>' : status === "today" ? '<small>•</small>' : ""}</span>`);
+  }
+  calendar.innerHTML = cells.join("");
+  const monthName = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(first);
+  const rate = assessed ? Math.round(met / assessed * 100) : 0;
+  byId<HTMLElement>("monthly-calendar-summary").innerHTML = `
+    <div><strong>${met}</strong><span>Goals met</span></div>
+    <div><strong>${missed}</strong><span>Missed</span></div>
+    <div><strong>${noLog}</strong><span>No log</span></div>
+    <div><strong>${assessed ? rate + "%" : "—"}</strong><span>Consistency</span></div>`;
+  byId<HTMLElement>("monthly-progress-title").textContent = monthName + " goal calendar";
+  byId<HTMLButtonElement>("goal-month-next").disabled = picker.value >= currentMonth;
+  void isFutureMonth;
+}
+
+function renderPersonalRecords(): void {
+  const totals = dayTotalsByDate();
+  const days = [...totals.entries()].map(([date, values]) => ({ date, ...values }));
+  const dateLabel = (key: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(key + "T12:00:00"));
+  const bestProtein = [...days].sort((a, b) => b.protein - a.protein)[0];
+  const bestFoodDay = [...days].sort((a, b) => b.foods - a.foods)[0];
+  const bestBalancedDay = [...days].filter((day) => day.calories > 0).sort((a, b) => {
+    const score = (day: typeof a) => Math.abs(day.calories - goalForDate(new Date(day.date + "T12:00:00"))) / Math.max(1, goalForDate(new Date(day.date + "T12:00:00")));
+    return score(a) - score(b);
+  })[0];
+
+  const monthMap = new Map<string, { met: number; assessed: number }>();
+  for (const day of days) {
+    const date = new Date(day.date + "T12:00:00");
+    const monthKey = day.date.slice(0, 7);
+    const status = goalDayStatus(date);
+    if (status !== "met" && status !== "missed") continue;
+    const record = monthMap.get(monthKey) ?? { met: 0, assessed: 0 };
+    record.assessed++;
+    if (status === "met") record.met++;
+    monthMap.set(monthKey, record);
+  }
+  const bestMonth = [...monthMap.entries()]
+    .filter(([, value]) => value.assessed >= 5)
+    .sort((a, b) => b[1].met / b[1].assessed - a[1].met / a[1].assessed || b[1].met - a[1].met)[0];
+  const monthLabel = bestMonth ? new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(bestMonth[0] + "-01T12:00:00")) : "Not enough data";
+  const records = [
+    { label: "Best protein day", value: bestProtein ? decimalFormat(bestProtein.protein) + " g" : "—", detail: bestProtein ? dateLabel(bestProtein.date) : "Log meals to set a record", icon: "✦" },
+    { label: "Most consistent month", value: bestMonth ? Math.round(bestMonth[1].met / bestMonth[1].assessed * 100) + "%" : "—", detail: bestMonth ? monthLabel + " · " + bestMonth[1].met + "/" + bestMonth[1].assessed + " days" : "Needs 5+ assessed days", icon: "◎" },
+    { label: "Most foods in a day", value: bestFoodDay ? String(bestFoodDay.foods) : "—", detail: bestFoodDay ? dateLabel(bestFoodDay.date) : "No logged days yet", icon: "＋" },
+    { label: "Closest calorie-goal day", value: bestBalancedDay ? numberFormat(bestBalancedDay.calories) + " kcal" : "—", detail: bestBalancedDay ? dateLabel(bestBalancedDay.date) + " · " + numberFormat(goalForDate(new Date(bestBalancedDay.date + "T12:00:00"))) + " kcal goal" : "No calorie data yet", icon: "♡" }
+  ];
+  byId<HTMLElement>("personal-records-grid").innerHTML = records.map((record) => `
+    <article class="personal-record-card"><span class="personal-record-icon" aria-hidden="true">${record.icon}</span><div><span class="personal-record-label">${record.label}</span><strong>${record.value}</strong><small>${record.detail}</small></div></article>`).join("");
+}
+
 function todayEntries(): FoodEntry[] {
   const today = localDateKey(new Date());
   const now = Date.now();
@@ -401,6 +498,8 @@ function render(): void {
   byId<HTMLElement>("range-total").textContent = `${numberFormat(totalCalories)} kcal logged`;
   renderFoodChart();
   renderGoalInsights();
+  renderMonthlyGoalCalendar();
+  renderPersonalRecords();
 
   void renderHistory();
   renderStorageStatus();
@@ -1791,6 +1890,22 @@ function bindEvents(): void {
 
   (["food-chart-period", "food-chart-metric", "food-chart-type", "food-chart-date"] as const).forEach((id) => {
     byId<HTMLElement>(id).addEventListener("change", renderFoodChart);
+  });
+
+  byId<HTMLInputElement>("goal-month-picker").addEventListener("change", renderMonthlyGoalCalendar);
+  byId<HTMLButtonElement>("goal-month-previous").addEventListener("click", () => {
+    const picker = byId<HTMLInputElement>("goal-month-picker");
+    const date = new Date(picker.value + "-01T12:00:00");
+    date.setMonth(date.getMonth() - 1);
+    picker.value = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+    renderMonthlyGoalCalendar();
+  });
+  byId<HTMLButtonElement>("goal-month-next").addEventListener("click", () => {
+    const picker = byId<HTMLInputElement>("goal-month-picker");
+    const date = new Date(picker.value + "-01T12:00:00");
+    date.setMonth(date.getMonth() + 1);
+    picker.value = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+    renderMonthlyGoalCalendar();
   });
 
   document.querySelectorAll<HTMLButtonElement>("[data-close]").forEach((button) => {

@@ -889,3 +889,13 @@ Implementation was committed directly to main in these sequential commits: 8026b
 
 - Local-only/offline initialization also persists its first known goal timestamp when browser storage is available, so later goal edits retain a consistent history.
 - Streak edge case: if today's intake has already exceeded the 110% tolerance band, mark today as a break immediately; if intake is still below the band, keep today in progress until midnight.
+
+
+### Monthly goal calendar and personal nutrition records — 2026-11-22
+
+- Added a month-selectable calendar with previous/next navigation, weekday alignment, daily goal achieved/missed/no-log/today/future states, and monthly counts plus consistency percentage.
+- Calendar evaluates each day against its effective-dated calorie target; future days are excluded from achievement counts and today's partial intake remains in progress until the goal band is reached or exceeded.
+- Added personal records from the currently loaded diary: best protein day, most consistent month, most foods logged in a day, and closest calorie-goal day.
+- The most-consistent-month record compares months with at least five assessed (logged and completed) days; adherence is goals met divided by assessed days. All records are derived from diary data and are not separately persisted.
+- No new database tables, API endpoints, or dependencies were introduced. Mobile responsive styles were added.
+- Verification: pending GitHub Actions tests/check/build and production deployment verification for this change.

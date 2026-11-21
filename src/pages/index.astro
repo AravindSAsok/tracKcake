@@ -232,6 +232,27 @@ import Layout from "../layouts/Layout.astro";
         <div class="food-streak-heading"><strong>Goal streak · last 30 days</strong><span>Daily consistency</span></div>
         <div class="food-streak-calendar" id="food-streak-calendar" aria-label="Goal streak for the last 30 days"></div>
         <p class="food-streak-caption" id="food-streak-caption">Green = goal met · rose = goal missed · grey = no food logged.</p>
+
+        <section class="monthly-progress-panel" aria-labelledby="monthly-progress-title">
+          <div class="monthly-progress-heading">
+            <div><p class="card-kicker">MONTHLY CONSISTENCY</p><h3 id="monthly-progress-title">Your goal calendar</h3></div>
+            <div class="month-picker">
+              <button class="history-page-button" id="goal-month-previous" type="button" aria-label="Previous month">←</button>
+              <label class="sr-only" for="goal-month-picker">Choose calendar month</label>
+              <input id="goal-month-picker" type="month" />
+              <button class="history-page-button" id="goal-month-next" type="button" aria-label="Next month">→</button>
+            </div>
+          </div>
+          <div class="monthly-calendar-summary" id="monthly-calendar-summary" aria-live="polite"></div>
+          <div class="monthly-calendar-weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+          <div class="monthly-goal-calendar" id="monthly-goal-calendar" aria-label="Monthly calorie goal achievement calendar"></div>
+          <p class="food-streak-caption">Each day shows whether your logged calories reached that day's saved target. Future days are not counted.</p>
+        </section>
+
+        <section class="personal-records-panel" aria-labelledby="personal-records-title">
+          <div class="monthly-progress-heading"><div><p class="card-kicker">YOUR PERSONAL BESTS</p><h3 id="personal-records-title">Nutrition records</h3></div><span class="records-period">All logged history</span></div>
+          <div class="personal-records-grid" id="personal-records-grid" aria-live="polite"></div>
+        </section>
       </section>
 
       <section class="day-timeline-card" aria-labelledby="day-timeline-title">

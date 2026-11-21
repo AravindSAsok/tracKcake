@@ -2886,3 +2886,35 @@ body.calkie-open::before {
 .food-streak-day.is-today{background:#f1d69b;border-color:#e5c47a}
 .food-streak-caption{margin:8px 0 0;line-height:1.5}
 @media(max-width:620px){.food-chart-details{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.food-chart-stat{padding:9px}.food-chart-stat strong{font-size:12px}.food-streak-calendar{grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}.calorie-streak{font-size:12px}}
+
+
+/* Monthly goal calendar and personal nutrition records. */
+.monthly-progress-panel,.personal-records-panel{margin-top:18px;padding-top:16px;border-top:1px solid #edf0eb}
+.monthly-progress-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.monthly-progress-heading h3{margin:3px 0 0;color:#405d40;font-size:17px;font-weight:800}
+.month-picker{display:flex;align-items:center;gap:6px}
+.month-picker input{width:145px;min-width:0;padding:7px 8px;border:1px solid #e4e9e1;border-radius:9px;background:#fff;color:#405d40;font:inherit;font-size:11px}
+.month-picker .history-page-button{min-width:30px;padding:6px 8px}
+.monthly-calendar-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:13px 0}
+.monthly-calendar-summary>div{display:flex;flex-direction:column;gap:3px;padding:9px;border-radius:10px;background:#f7f9f5}
+.monthly-calendar-summary strong{color:#405d40;font-size:17px;font-weight:850;font-variant-numeric:tabular-nums}
+.monthly-calendar-summary span{color:#879387;font-size:9px;font-weight:700}
+.monthly-calendar-weekdays,.monthly-goal-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.monthly-calendar-weekdays span{text-align:center;color:#98a296;font-size:9px;font-weight:800;padding:4px 0}
+.monthly-goal-day{position:relative;display:flex;min-height:42px;align-items:center;justify-content:center;flex-direction:column;gap:1px;border:1px solid transparent;border-radius:9px;background:#f0f2ed;color:#899187;font-size:12px}
+.monthly-goal-day strong{font-size:12px;font-weight:800}
+.monthly-goal-day small{font-size:9px;line-height:9px;font-weight:900}
+.monthly-goal-day.is-met{background:#e8f1e4;border-color:#d3e4cb;color:#52784a}
+.monthly-goal-day.is-missed{background:#f8e9e9;border-color:#efd5d7;color:#b96870}
+.monthly-goal-day.is-today{background:#fff3d9;border-color:#ecd49c;color:#9b762d}
+.monthly-goal-day.is-future{background:#fafbf9;color:#c3c9c0;border-style:dashed}
+.monthly-goal-empty{min-height:42px}
+.records-period{color:#98a296;font-size:9px;font-weight:700}
+.personal-records-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.personal-record-card{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:11px;border:1px solid #e8ede5;border-radius:12px;background:#fbfcfa}
+.personal-record-icon{display:grid;place-items:center;flex:0 0 30px;height:30px;border-radius:9px;background:#edf3e9;color:#5b8051;font-size:16px;font-weight:800}
+.personal-record-card>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.personal-record-label{color:#7e8b7d;font-size:9px;font-weight:750}
+.personal-record-card strong{color:#405d40;font-size:16px;font-weight:850;overflow-wrap:anywhere}
+.personal-record-card small{color:#98a296;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+@media(max-width:620px){.monthly-progress-heading{align-items:flex-start;flex-direction:column}.month-picker{align-self:stretch;justify-content:space-between}.month-picker input{flex:1}.monthly-calendar-summary{gap:5px}.monthly-calendar-summary>div{padding:8px 6px}.monthly-calendar-summary strong{font-size:15px}.monthly-calendar-summary span{font-size:8px}.monthly-calendar-weekdays,.monthly-goal-calendar{gap:3px}.monthly-goal-day,.monthly-goal-empty{min-height:36px}.personal-records-grid{gap:6px}.personal-record-card{padding:9px;gap:7px}.personal-record-card strong{font-size:14px}.personal-record-icon{flex-basis:26px;height:26px}}
