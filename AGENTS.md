@@ -797,3 +797,13 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 ### Commits
 
 Implementation was committed directly to main in these sequential commits: 8026b3f, 21b9b61, 9962437, 44eea10, d75d5fd, 9fce097, 5eb23c1, e655f31, 782abdd, 43695be, 93bf5f9, db1e7a3, b8275be, and e899b77. Latest verified main commit at handoff: e899b7735e9ec482904c9fe456b9424128502321.
+
+
+### Smart Nutrition Search V3 final verification update — 2026-11-21
+
+- Extended deterministic normalization to recognize standalone sugar-free phrasing as the same preserved no-added-sugar constraint. Added a fifth regression test for "sugar-free milk coffee".
+- Latest feature commit: 56e91390e56910b98e14c36f86248f6c57696605.
+- GitHub Actions run #378 for that exact commit passed: 42 tests passed, 0 failed; Astro/TypeScript check 0 errors, 0 warnings and 1 existing hint; production build passed.
+- Vercel production deployment for that exact runtime commit is READY: dpl_BPCnpqynAw6YshX9frkVJjCq7ajr. Vercel confirms aliases include trackcake.vercel.app, trackcake-kukki.vercel.app and trackcake-git-main-kukki.vercel.app.
+- Public production homepage returned HTTP 200. Its served client bundle contains the updated live-search status text. No authenticated browser interaction or live POST to Firecrawl was performed; do not describe paid provider search as end-to-end tested.
+- Later changes after this feature commit are documentation-only updates to AGENTS.md. Latest runtime code is deployed from 56e91390e56910b98e14c36f86248f6c57696605.
