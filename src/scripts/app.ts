@@ -9,6 +9,7 @@ import {
   saveGoal as persistGoal,
   updateEntry,
   type FoodEntry,
+  type GoalChange,
   type HistoryPage,
   type MealType,
   fetchHistoryPage,
@@ -87,6 +88,7 @@ let selectedFoodActionId: string | null = null;
 
 let entries: FoodEntry[] = [];
 let calorieGoal = DEFAULT_CALORIE_GOAL;
+let goalHistory: GoalChange[] = [];
 let editingId: string | null = null;
 let toastTimer: number | undefined;
 let historyEntries: FoodEntry[] = [];
@@ -182,6 +184,104 @@ function openDialog(dialog: HTMLDialogElement): void {
 function closeDialog(dialogId: string): void {
   const dialog = document.getElementById(dialogId);
   if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+}
+
+
+function goalForDate(date: Date): number {
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+  let goal = DEFAULT_CALORIE_GOAL;
+  for (const change of goalHistory) {
+    if (new Date(change.effective_from).getTime() <= dayEnd.getTime()) goal = change.goal;
+    else break;
+  }
+  return goal;
+}
+
+function caloriesForDate(key: string): number {
+  return entries.reduce((sum, entry) =>
+    localDateKey(entry.eaten_at) === key && new Date(entry.eaten_at).getTime() <= Date.now()
+      ? sum + entry.calories : sum, 0);
+}
+
+function goalDayStatus(date: Date): "met" | "missed" | "no-log" | "today" {
+  const key = localDateKey(date);
+  const total = caloriesForDate(key);
+  const goal = goalForDate(date);
+  const today = key === localDateKey(new Date());
+  if (total <= 0) return today ? "today" : "no-log";
+  if (total >= goal * 0.9 && total <= goal * 1.1) return "met";
+  return today ? "today" : "missed";
+}
+
+function calculateGoalStreak(): { current: number; best: number; met: number; missed: number; logged: number } {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  let current = 0;
+  let best = 0;
+  let run = 0;
+  let met = 0;
+  let missed = 0;
+  let logged = 0;
+  const todayStatus = goalDayStatus(today);
+  const startOffset = todayStatus === "met" ? 0 : 1;
+  for (let offset = 364; offset >= 0; offset--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - offset);
+    const status = goalDayStatus(date);
+    if (status === "met") { met++; logged++; run++; best = Math.max(best, run); }
+    else {
+      if (status === "missed") { missed++; logged++; }
+      run = 0;
+    }
+  }
+  for (let offset = startOffset; offset < 365; offset++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - offset);
+    if (goalDayStatus(date) !== "met") break;
+    current++;
+  }
+  return { current, best, met, missed, logged };
+}
+
+function renderGoalInsights(): void {
+  const stats = calculateGoalStreak();
+  const streak = byId<HTMLElement>("calorie-streak");
+  streak.textContent = `Streak - ${stats.current}`;
+  streak.setAttribute("aria-label", `Current goal streak: ${stats.current} days`);
+
+  const calendar = byId<HTMLElement>("food-streak-calendar");
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const days = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(date.getDate() - (29 - index));
+    const status = goalDayStatus(date);
+    const label = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(date);
+    const goal = goalForDate(date);
+    const total = caloriesForDate(localDateKey(date));
+    const statusLabel = status === "met" ? "Goal met" : status === "missed" ? "Streak broken" : status === "today" ? "In progress" : "No food logged";
+    return `<span class="food-streak-day is-${status}" title="${label}: ${statusLabel} · ${numberFormat(total)} / ${numberFormat(goal)} kcal" aria-label="${label}: ${statusLabel}"></span>`;
+  }).join("");
+  calendar.innerHTML = days;
+
+  const recent = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(today); date.setDate(date.getDate() - index);
+    return { date, status: goalDayStatus(date), total: caloriesForDate(localDateKey(date)), goal: goalForDate(date) };
+  });
+  const completed = recent.filter((day) => day.status === "met").length;
+  const broken = recent.filter((day) => day.status === "missed").length;
+  const logged = completed + broken;
+  const adherence = logged ? Math.round(completed / logged * 100) : 0;
+  const average = logged ? recent.filter((day) => day.status === "met" || day.status === "missed").reduce((sum, day) => sum + day.total, 0) / logged : 0;
+  byId<HTMLElement>("food-chart-details").innerHTML = `
+    <div class="food-chart-stat"><span>Current streak</span><strong>${stats.current} days</strong></div>
+    <div class="food-chart-stat"><span>Best streak · 365d</span><strong>${stats.best} days</strong></div>
+    <div class="food-chart-stat"><span>Goals met · 30d</span><strong>${completed} days</strong></div>
+    <div class="food-chart-stat"><span>Streak breaks · 30d</span><strong>${broken} days</strong></div>
+    <div class="food-chart-stat"><span>Goal consistency · 30d</span><strong>${adherence}%</strong></div>
+    <div class="food-chart-stat"><span>Average logged calories · 30d</span><strong>${numberFormat(average)} kcal</strong></div>`;
+  byId<HTMLElement>("food-streak-caption").textContent = "Last 30 days · green = goal met · rose = goal missed · grey = no food logged · today remains in progress until midnight.";
 }
 
 function todayEntries(): FoodEntry[] {
@@ -299,6 +399,7 @@ function render(): void {
   byId<HTMLElement>("diary-count").textContent = `${recent.length} ${recent.length === 1 ? "entry" : "entries"}`;
   byId<HTMLElement>("range-total").textContent = `${numberFormat(totalCalories)} kcal logged`;
   renderFoodChart();
+  renderGoalInsights();
 
   void renderHistory();
   renderStorageStatus();
@@ -385,7 +486,11 @@ function renderFoodChart(): void {
   const labels = points.map((point) => point.label ? '<text x="' + point.x + '" y="' + (height - 7) + '" text-anchor="middle" class="food-chart-axis-label">' + point.label + '</text>' : "").join("");
   visual.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + grid + marks + labels + '</svg>';
   const periodLabel = period === "day" ? dateInput.value : period === "week" ? "week of " + localDateKey(start) : period === "month" ? new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(anchor) : String(anchor.getFullYear());
-  byId<HTMLElement>("food-chart-caption").textContent = config.label + " by " + (period === "day" ? "hour" : period === "year" ? "month" : "day") + " · " + periodLabel + " · " + inRange.length + " food entries";
+  const average = buckets.length ? total / buckets.length : 0;
+  const peak = buckets.reduce((best, bucket) => bucket.value > best.value ? bucket : best, { key: "", label: "—", value: 0 });
+  const activeDays = new Set(inRange.filter((entry) => entry.calories > 0).map((entry) => localDateKey(entry.eaten_at))).size;
+  const goalDays = period === "day" ? 1 : period === "year" ? 365 : period === "month" ? new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate() : 7;
+  byId<HTMLElement>("food-chart-caption").textContent = config.label + " by " + (period === "day" ? "hour" : period === "year" ? "month" : "day") + " · " + periodLabel + " · " + inRange.length + " food entries · " + activeDays + " logged days · average " + decimalFormat(average) + " " + config.unit + " per bucket · peak " + decimalFormat(peak.value) + " " + config.unit;
 }
 
 function renderStorageStatus(): void {
@@ -1707,6 +1812,7 @@ async function initialize(): Promise<void> {
     const data = await loadTrackerData();
     entries = data.entries;
     calorieGoal = data.goal;
+    goalHistory = data.goalHistory ?? [];
     render();
     window.setTimeout(showYesterdayRecap, 250);
     if (data.message) showToast(data.message, "error");

@@ -866,3 +866,14 @@ Implementation was committed directly to main in these sequential commits: 8026b
 ## Quick food log placement — 2026-11-22
 - Moved the full-width “What did you eat?” quick food log section directly below the “What's on your plate” nutrition overview, before the secondary insights and food history sections.
 - Kept all existing form IDs, controls, handlers, and diary section intact; this is a layout-only move.
+
+
+### Goal streak and expanded nutrition insights — 2026-11-22
+
+- Added effective-dated calorie goal history to `tracker_settings.goal_history` (JSONB), retaining the existing current `calorie_goal` setting.
+- Added local-first goal history persistence and cloud synchronization; changes are timestamped so past days use the goal that was active then.
+- Added the bold theme-matched `Streak - N` indicator inside the “Every bite counts” calorie card.
+- Added goal consistency calculations: days within 90–110% of that day's saved calorie target count as a goal day; today remains in progress until it reaches the target band; missed logged days are counted as streak breaks and unlogged days are shown separately.
+- Expanded chart detail summaries with current/best streak, 30-day goals met, breaks, adherence, average logged calories, and 30-day daily status markers.
+- Database migration: `202611220001_goal_history.sql`; applied to Supabase project `rdjjlwupwobyojmkaqau` and verified the `tracker_settings.goal_history` JSONB column exists.
+- Verification status: source edits and GitHub push are pending; run `npm run check`, `npm test`, and `npm run build` before reporting code as verified. Check the Vercel deployment for the resulting commit before claiming production availability.

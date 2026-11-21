@@ -2869,3 +2869,20 @@ body.calkie-open::before {
 .food-chart-caption{margin:3px 0 0;color:#9aa598;font-size:9px}
 .quick-form textarea{height:95px;min-height:95px;max-height:22.5vh}
 @media(max-width:620px){.food-chart-card{padding:12px;margin-bottom:18px}.food-chart-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.food-chart-filters label{min-width:0}.food-chart-filters select{width:100%;min-width:0}.food-chart-date-label{grid-column:span 3}.food-chart-filters input{width:100%}.food-chart-visual{height:125px}.quick-form textarea{height:95px;min-height:95px;max-height:22.5vh}}
+
+
+/* Goal streak and richer goal-aware nutrition insights. */
+.calorie-streak{display:inline-flex;align-items:center;margin:8px 0 0;padding:6px 11px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:850;letter-spacing:.2px;font-variant-numeric:tabular-nums}
+.food-chart-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.food-chart-stat{display:flex;flex-direction:column;gap:4px;min-width:0;padding:10px 11px;border:1px solid #e8ede5;border-radius:11px;background:#fbfcfa}
+.food-chart-stat span{color:#879387;font-size:9px;font-weight:700;line-height:1.35}
+.food-chart-stat strong{color:#405d40;font-size:13px;font-weight:850;overflow-wrap:anywhere}
+.food-streak-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;color:#405d40;font-size:11px}
+.food-streak-heading span,.food-streak-caption{color:#98a296;font-size:9px}
+.food-streak-calendar{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:5px;margin-top:9px}
+.food-streak-day{display:block;aspect-ratio:1;min-width:0;border-radius:5px;background:#e9ede7;border:1px solid rgba(0,0,0,.025)}
+.food-streak-day.is-met{background:#83a875;border-color:#719764}
+.food-streak-day.is-missed{background:#d58a91;border-color:#c8757e}
+.food-streak-day.is-today{background:#f1d69b;border-color:#e5c47a}
+.food-streak-caption{margin:8px 0 0;line-height:1.5}
+@media(max-width:620px){.food-chart-details{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.food-chart-stat{padding:9px}.food-chart-stat strong{font-size:12px}.food-streak-calendar{grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}.calorie-streak{font-size:12px}}

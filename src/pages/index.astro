@@ -63,6 +63,7 @@ import Layout from "../layouts/Layout.astro";
             <div>
               <p class="card-kicker">YOUR CALORIE BALANCE</p>
               <h2>Every bite counts.</h2>
+              <p class="calorie-streak" id="calorie-streak">Streak - 0</p>
             </div>
             <span class="live-pill"><span></span> LIVE</span>
           </div>
@@ -227,6 +228,10 @@ import Layout from "../layouts/Layout.astro";
         </div>
         <div id="food-chart-visual" class="food-chart-visual" role="img" aria-label="Food nutrition chart"></div>
         <p id="food-chart-caption" class="food-chart-caption">Choose a period, nutrient and chart style.</p>
+        <div class="food-chart-details" id="food-chart-details" aria-live="polite"></div>
+        <div class="food-streak-heading"><strong>Goal streak · last 30 days</strong><span>Daily consistency</span></div>
+        <div class="food-streak-calendar" id="food-streak-calendar" aria-label="Goal streak for the last 30 days"></div>
+        <p class="food-streak-caption" id="food-streak-caption">Green = goal met · rose = goal missed · grey = no food logged.</p>
       </section>
 
       <section class="day-timeline-card" aria-labelledby="day-timeline-title">

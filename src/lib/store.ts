@@ -18,9 +18,15 @@ export interface FoodEntry {
   source: EntrySource;
 }
 
+export interface GoalChange {
+  goal: number;
+  effective_from: string;
+}
+
 export interface TrackerData {
   entries: FoodEntry[];
   goal: number;
+  goalHistory: GoalChange[];
   mode: StorageMode;
   message?: string;
 }
@@ -31,6 +37,7 @@ interface FoodEntryRow extends FoodEntry {
 
 const ENTRIES_KEY = "trackcake.entries.v1";
 const GOAL_KEY = "trackcake.goal.v1";
+const GOAL_HISTORY_KEY = "trackcake.goal-history.v1";
 const PENDING_ENTRIES_KEY = "trackcake.pending-entries.v1";
 const DEFAULT_GOAL = 2000;
 
@@ -134,10 +141,22 @@ function readLocalGoal(): number {
   }
 }
 
-function writeLocal(entries: FoodEntry[], goal?: number): void {
+function readLocalGoalHistory(): GoalChange[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(GOAL_HISTORY_KEY) || "[]");
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is GoalChange => Boolean(item && typeof item === "object" &&
+      Number.isInteger((item as GoalChange).goal) && (item as GoalChange).goal >= 500 &&
+      (item as GoalChange).goal <= 10000 && typeof (item as GoalChange).effective_from === "string"))
+      .sort((a, b) => a.effective_from.localeCompare(b.effective_from));
+  } catch { return []; }
+}
+
+function writeLocal(entries: FoodEntry[], goal?: number, goalHistory?: GoalChange[]): void {
   try {
     localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
     if (typeof goal === "number") localStorage.setItem(GOAL_KEY, String(goal));
+    if (goalHistory) localStorage.setItem(GOAL_HISTORY_KEY, JSON.stringify(goalHistory));
   } catch {
     throw new Error("This browser could not save your diary. Check available storage space or browser privacy settings.");
   }
@@ -196,10 +215,11 @@ async function ensureCloud(): Promise<SupabaseClient | null> {
 export async function loadTrackerData(): Promise<TrackerData> {
   const localEntries = readLocalEntries();
   const localGoal = readLocalGoal();
+  const localGoalHistory = readLocalGoalHistory();
 
   if (!cloudConfigured) {
     storageMode = "local";
-    return { entries: localEntries, goal: localGoal, mode: "local" };
+    return { entries: localEntries, goal: localGoal, goalHistory: localGoalHistory, mode: "local" };
   }
 
   try {
@@ -216,7 +236,7 @@ export async function loadTrackerData(): Promise<TrackerData> {
         .limit(500),
       client
         .from("tracker_settings")
-        .select("calorie_goal")
+        .select("calorie_goal,goal_history")
         .eq("user_id", userId)
         .maybeSingle()
     ]);
@@ -273,11 +293,23 @@ export async function loadTrackerData(): Promise<TrackerData> {
       if (error) throw error;
     }
 
-    writeLocal(remoteEntries, goal);
+    const remoteGoalHistory = Array.isArray(settingsResult.data?.goal_history)
+      ? (settingsResult.data.goal_history as unknown[]).filter((item): item is GoalChange => Boolean(item && typeof item === "object" &&
+          Number.isInteger((item as GoalChange).goal) && (item as GoalChange).goal >= 500 &&
+          (item as GoalChange).goal <= 10000 && typeof (item as GoalChange).effective_from === "string"))
+          .sort((a, b) => a.effective_from.localeCompare(b.effective_from))
+      : [];
+    const goalHistory = remoteGoalHistory.length ? remoteGoalHistory : localGoalHistory;
+    if (!remoteGoalHistory.length && goalHistory.length) {
+      const { error } = await client.from("tracker_settings").upsert({ user_id: userId, calorie_goal: goal, goal_history: goalHistory }, { onConflict: "user_id" });
+      if (error) throw error;
+    }
+    writeLocal(remoteEntries, goal, goalHistory);
     storageMode = stillPending.length ? "local" : "cloud";
     return {
       entries: remoteEntries,
       goal,
+      goalHistory,
       mode: stillPending.length ? "local" : "cloud",
       message: stillPending.length
         ? "Your food is safe on this device. TrackCake will retry cloud sync when your connection is available."
@@ -290,6 +322,7 @@ export async function loadTrackerData(): Promise<TrackerData> {
     return {
       entries: localEntries,
       goal: localGoal,
+      goalHistory: localGoalHistory,
       mode: "local",
       message: "Cloud storage is not ready. Your diary is saved on this device for now."
     };
@@ -475,7 +508,12 @@ export async function saveGoal(goal: number): Promise<string | undefined> {
     throw new Error("Choose a daily goal between 500 and 10,000 kcal.");
   }
 
-  writeLocal(readLocalEntries(), goal);
+  const goalHistory = readLocalGoalHistory();
+  const lastChange = goalHistory[goalHistory.length - 1];
+  if (!lastChange || lastChange.goal !== goal) {
+    goalHistory.push({ goal, effective_from: new Date().toISOString() });
+  }
+  writeLocal(readLocalEntries(), goal, goalHistory);
 
   if (!cloudConfigured) return;
   try {
@@ -484,6 +522,7 @@ export async function saveGoal(goal: number): Promise<string | undefined> {
     const { error } = await client.from("tracker_settings").upsert({
       user_id: userId,
       calorie_goal: goal,
+      goal_history: goalHistory,
       updated_at: new Date().toISOString()
     }, { onConflict: "user_id" });
     if (error) throw error;
