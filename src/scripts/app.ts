@@ -500,7 +500,7 @@ function setQuickDefaults(): void {
 }
 
 function openManualEntry(entry?: FoodEntry): void {
-  if (!entry && !quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
+  if (!entry && !quickTimeManuallySet) { quickTime.value = dateTimeLocalValue(); quickDate.value = quickTime.value.slice(0, 10); }
   editingId = entry?.id ?? null;
   byId<HTMLElement>("entry-heading").textContent = entry ? "Edit food" : "Add a food";
   byId<HTMLInputElement>("entry-name").value = entry?.name ?? "";
@@ -576,6 +576,7 @@ async function saveManualEntry(event: SubmitEvent): Promise<void> {
     closeDialog("entry-dialog");
     if (!existing) {
       quickTime.value = dateTimeLocalValue();
+      quickDate.value = quickTime.value.slice(0, 10);
       quickTimeManuallySet = false;
     }
     showToast(warning ?? (existing ? "Food entry updated." : "Food added to your diary."), warning ? "error" : "success");
@@ -741,7 +742,7 @@ function updatePhotoProgress(event: PhotoStreamEvent): void {
 
 async function estimatePhoto(): Promise<void> {
   recipePendingSave=false;
-  if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
+  if (!quickTimeManuallySet) { quickTime.value = dateTimeLocalValue(); quickDate.value = quickTime.value.slice(0, 10); }
   const file = photoInput.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
@@ -1189,6 +1190,7 @@ async function importTrackCakeJson(raw: string): Promise<boolean> {
     render();
     quickDescription.value = "";
     quickTime.value = dateTimeLocalValue();
+    quickDate.value = quickTime.value.slice(0, 10);
     quickTimeManuallySet = false;
     quickMeal.value = "auto";
     const dateLabel = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(year, month - 1, day, 12));
