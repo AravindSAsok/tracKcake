@@ -33,7 +33,7 @@ test("does not require every preparation modifier to appear on a nutrition page"
     "Protein: 1.7 g",
     "Carbohydrates: 2.4 g",
     "Total fat: 1.6 g"
-  ].join("\\n");
+  ].join("\n");
   assert.equal(isRelevantNutritionEvidence("milk coffee", "Coffee with milk", page), true);
 });
 
