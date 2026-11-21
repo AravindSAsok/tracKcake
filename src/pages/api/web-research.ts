@@ -71,8 +71,9 @@ async function isModelAvailable(provider: "groq" | "gemini" | "openrouter", apiK
       data?: Array<{ id?: string }>;
       models?: Array<{ name?: string; id?: string }>;
     };
-    const available = payload.data ?? payload.models ?? [];
-    return available.some((item) => (item.id ?? item.name ?? "").replace(/^models\//, "") === model);
+    const ids = payload.data?.map((item) => item.id ?? "") ??
+      payload.models?.map((item) => item.id ?? item.name ?? "") ?? [];
+    return ids.some((id) => id.replace(/^models\//, "") === model);
   } catch {
     return false;
   }
