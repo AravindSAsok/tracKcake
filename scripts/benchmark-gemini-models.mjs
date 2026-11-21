@@ -2,6 +2,7 @@
 import { writeFile } from "node:fs/promises";
 
 const base = (process.env.TRACKCAKE_URL || "https://trackcake.vercel.app").replace(/\/$/, "");
+// Keep this benchmark intentionally simple: isolate basic food identification per model.
 const query = "apple";
 const rows = [];
 const startedAt = new Date().toISOString();
