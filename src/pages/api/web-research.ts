@@ -69,11 +69,16 @@ async function isModelAvailable(provider: "groq" | "gemini" | "openrouter", apiK
     if (!response.ok) return false;
     const payload = await response.json() as {
       data?: Array<{ id?: string }>;
-      models?: Array<{ name?: string; id?: string }>;
+      models?: Array<{ name?: string; id?: string; supportedGenerationMethods?: string[] }>;
     };
-    const ids = payload.data?.map((item) => item.id ?? "") ??
-      payload.models?.map((item) => item.id ?? item.name ?? "") ?? [];
-    return ids.some((id) => id.replace(/^models\//, "") === model);
+    const records = payload.data ?? payload.models ?? [];
+    return records.some((item) => {
+      const id = (item.id ?? item.name ?? "").replace(/^models\//, "");
+      const supportsGeneration = provider !== "gemini" ||
+        !item.supportedGenerationMethods ||
+        item.supportedGenerationMethods.includes("generateContent");
+      return id === model && supportsGeneration;
+    });
   } catch {
     return false;
   }
@@ -126,7 +131,13 @@ async function aiNormalizeFood(original: string, fallbackFood: string, constrain
             if (!response.ok) continue;
             const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
             raw = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
-            if (raw) break;
+            const candidate = parseJsonObject(raw);
+            const candidateFood = typeof candidate?.canonical_food === "string" ? candidate.canonical_food.trim() : "";
+            const inputTokens = fallbackFood.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
+            const candidateTokens = candidateFood.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
+            const overlap = inputTokens.filter((token) => candidateTokens.includes(token)).length;
+            if (candidateFood && candidateTokens.length && (overlap > 0 || inputTokens.length === 0)) break;
+            raw = "";
           } catch {
             // Try the next approved Gemini candidate before falling back to OpenRouter.
           }
