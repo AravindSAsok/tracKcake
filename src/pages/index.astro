@@ -127,6 +127,76 @@ import Layout from "../layouts/Layout.astro";
         </article>
       </section>
 
+      <section class="quick-add-card" aria-labelledby="quick-add-title">
+        <div class="section-heading quick-heading">
+          <div>
+            <p class="card-kicker">QUICK FOOD LOG</p>
+            <h2 id="quick-add-title">What did you eat?</h2>
+            <p>Describe your food normally, or paste a TrackCake food-log JSON (up to 100,000 characters) to import entries directly without an AI estimate.</p>
+          </div>
+          <span class="ai-orb" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
+          </span>
+        </div>
+
+        <form id="quick-add-form" class="quick-form">
+          <label class="sr-only" for="food-description">Describe what you ate and how much</label>
+          <textarea id="food-description" rows="8" maxlength="100000" placeholder="e.g. 2 idlis and 1 cup sambar… or paste TrackCake food-log JSON" required></textarea>
+          <div class="quick-form-bottom">
+            <div class="quick-controls">
+              <label class="control-label" for="quick-meal">Meal
+                <select id="quick-meal">
+                  <option value="auto">Auto · based on time</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                </select>
+              </label>
+              <label class="control-label" for="quick-date">Food date
+                <input id="quick-date" type="date" aria-label="Choose the day you ate this food" />
+              </label>
+              <label class="control-label" for="quick-time">Eaten at
+                <input id="quick-time" type="datetime-local" />
+              </label>
+              <label class="control-label" for="quick-provider">AI provider
+                <select id="quick-provider">
+                  <option value="auto">Automatic fallback</option>
+                  <option value="groq">Groq</option>
+                  <option value="gemini" selected>Gemini</option>
+                  <option value="openrouter">OpenRouter</option>
+                </select>
+              </label>
+              <label class="control-label" for="quick-model">Model
+                <select id="quick-model" disabled>
+                  <option value="">Automatic fallback</option>
+                </select>
+              </label>
+              <span class="model-status" id="quick-model-status" aria-live="polite">Automatic fallback is enabled.</span>
+            </div>
+            <div class="quick-buttons">
+              <input id="food-photo-input" type="file" accept="image/*" hidden />
+              <button class="secondary-button" id="photo-add" type="button">
+                <span aria-hidden="true">▧</span> Photo entry
+              </button>
+              <button class="secondary-button" id="manual-add" type="button">
+                <span aria-hidden="true">＋</span> Manual entry
+              </button>
+              <button class="secondary-button" id="live-search-button" type="button" title="Spend Firecrawl credits only when you choose live research">
+                <span aria-hidden="true">⌕</span> Live web search
+              </button>
+              <button class="secondary-button" id="recipe-builder-open" type="button"><span aria-hidden="true">＋</span> Build recipe</button>
+              <button class="primary-button" id="estimate-button" type="submit">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
+                <span>Estimate with AI</span>
+              </button>
+            </div>
+          </div>
+          <p class="form-hint" id="estimate-hint"><span aria-hidden="true">✦</span> You'll review every estimate before it is added to your diary.</p>
+          <p class="form-hint photo-privacy-hint"><span aria-hidden="true">⌑</span> TrackCake does not store photos. Your selected AI provider may apply its own data-retention policy.</p>
+        </form>
+      </section>
+
       <section class="daily-insights" aria-label="Today's meals and weekly consistency">
         <div class="meal-breakdown">
           <div class="insights-heading"><p class="card-kicker">TODAY&#39;S MEALS</p><span class="insights-subtitle">Calories by meal</span></div>
@@ -175,75 +245,7 @@ import Layout from "../layouts/Layout.astro";
 
       <section class="content-grid">
         <div class="main-column">
-          <section class="quick-add-card" aria-labelledby="quick-add-title">
-            <div class="section-heading quick-heading">
-              <div>
-                <p class="card-kicker">QUICK FOOD LOG</p>
-                <h2 id="quick-add-title">What did you eat?</h2>
-                <p>Describe your food normally, or paste a TrackCake food-log JSON (up to 100,000 characters) to import entries directly without an AI estimate.</p>
-              </div>
-              <span class="ai-orb" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
-              </span>
-            </div>
 
-            <form id="quick-add-form" class="quick-form">
-              <label class="sr-only" for="food-description">Describe what you ate and how much</label>
-              <textarea id="food-description" rows="8" maxlength="100000" placeholder="e.g. 2 idlis and 1 cup sambar… or paste TrackCake food-log JSON" required></textarea>
-              <div class="quick-form-bottom">
-                <div class="quick-controls">
-                  <label class="control-label" for="quick-meal">Meal
-                    <select id="quick-meal">
-                      <option value="auto">Auto · based on time</option>
-                      <option value="breakfast">Breakfast</option>
-                      <option value="lunch">Lunch</option>
-                      <option value="dinner">Dinner</option>
-                      <option value="snack">Snack</option>
-                    </select>
-                  </label>
-                  <label class="control-label" for="quick-date">Food date
-                    <input id="quick-date" type="date" aria-label="Choose the day you ate this food" />
-                  </label>
-                  <label class="control-label" for="quick-time">Eaten at
-                    <input id="quick-time" type="datetime-local" />
-                  </label>
-                  <label class="control-label" for="quick-provider">AI provider
-                    <select id="quick-provider">
-                      <option value="auto">Automatic fallback</option>
-                      <option value="groq">Groq</option>
-                      <option value="gemini" selected>Gemini</option>
-                      <option value="openrouter">OpenRouter</option>
-                    </select>
-                  </label>
-                  <label class="control-label" for="quick-model">Model
-                    <select id="quick-model" disabled>
-                      <option value="">Automatic fallback</option>
-                    </select>
-                  </label>
-                  <span class="model-status" id="quick-model-status" aria-live="polite">Automatic fallback is enabled.</span>
-                </div>
-                <div class="quick-buttons">
-                  <input id="food-photo-input" type="file" accept="image/*" hidden />
-                  <button class="secondary-button" id="photo-add" type="button">
-                    <span aria-hidden="true">▧</span> Photo entry
-                  </button>
-                  <button class="secondary-button" id="manual-add" type="button">
-                    <span aria-hidden="true">＋</span> Manual entry
-                  </button>
-                  <button class="secondary-button" id="live-search-button" type="button" title="Spend Firecrawl credits only when you choose live research">
-                    <span aria-hidden="true">⌕</span> Live web search
-                  </button>
-                  <button class="secondary-button" id="recipe-builder-open" type="button"><span aria-hidden="true">＋</span> Build recipe</button>
-                  <button class="primary-button" id="estimate-button" type="submit">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
-                    <span>Estimate with AI</span>
-                  </button>
-                </div>
-              </div>
-              <p class="form-hint" id="estimate-hint"><span aria-hidden="true">✦</span> You'll review every estimate before it is added to your diary.</p>
-              <p class="form-hint photo-privacy-hint"><span aria-hidden="true">⌑</span> TrackCake does not store photos. Your selected AI provider may apply its own data-retention policy.</p>
-            </form>
-          </section>
 
           <section class="diary-section" id="diary" aria-labelledby="diary-title">
             <div class="diary-heading">

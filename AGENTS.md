@@ -861,3 +861,8 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - Reduced the quick food description textarea from 190px minimum height to 95px while preserving its full width and resize behavior.
 - November 20 backfill: existing egg and 250ml milk tea rows were retained; only missing foods from the user's November 20 log were added with explicitly estimated nutrition and placeholder times where the user did not provide exact times.
 - Verification: pending build/test and live database row-count verification after commit.
+
+
+## Quick food log placement — 2026-11-22
+- Moved the full-width “What did you eat?” quick food log section directly below the “What's on your plate” nutrition overview, before the secondary insights and food history sections.
+- Kept all existing form IDs, controls, handlers, and diary section intact; this is a layout-only move.
