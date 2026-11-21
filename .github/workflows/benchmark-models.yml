@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - "scripts/benchmark-models.mjs"
-      - "scripts/benchmark-gemini-models.mjs"
 
 permissions:
   contents: write
@@ -56,11 +55,6 @@ jobs:
           TRACKCAKE_URL: https://trackcake.vercel.app
         run: node scripts/benchmark-models.mjs
 
-      - name: Test Gemini models one by one (strict model selection)
-        env:
-          TRACKCAKE_URL: https://trackcake.vercel.app
-        run: node scripts/benchmark-gemini-models.mjs
-
       - name: Publish final report once
         if: always()
         run: |
@@ -77,8 +71,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: trackcake-benchmark-${{ github.run_id }}
-          path: |
-            benchmark.md
-            gemini-benchmark.md
+          path: benchmark.md
           if-no-files-found: warn
           retention-days: 90
