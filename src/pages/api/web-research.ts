@@ -4,7 +4,7 @@ import { VERIFIED_MODELS } from "../../lib/ai-models";
 import { buildNutritionSearchQueries, isRelevantNutritionEvidence, normalizeNutritionSearchInput } from "../../lib/web-research-query";
 
 export const prerender = false;
-export const maxDuration = 45;
+export const maxDuration = 60;
 
 const MAX_RESULTS_PER_QUERY = 5;
 const MAX_EVIDENCE_CHARS = 4200;
@@ -52,6 +52,32 @@ function parseJsonObject(raw: string): Record<string, unknown> | null {
   } catch { return null; }
 }
 
+
+async function isModelAvailable(provider: "groq" | "gemini" | "openrouter", apiKey: string, model: string): Promise<boolean> {
+  const endpoint = provider === "groq"
+    ? "https://api.groq.com/openai/v1/models"
+    : provider === "gemini"
+      ? "https://generativelanguage.googleapis.com/v1beta/models"
+      : "https://openrouter.ai/api/v1/models";
+  try {
+    const response = await fetch(endpoint, {
+      headers: provider === "gemini"
+        ? { "x-goog-api-key": apiKey }
+        : { Authorization: "Bearer " + apiKey },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!response.ok) return false;
+    const payload = await response.json() as {
+      data?: Array<{ id?: string }>;
+      models?: Array<{ name?: string; id?: string }>;
+    };
+    const available = payload.data ?? payload.models ?? [];
+    return available.some((item) => (item.id ?? item.name ?? "").replace(/^models\//, "") === model);
+  } catch {
+    return false;
+  }
+}
+
 async function aiNormalizeFood(original: string, fallbackFood: string, constraints: string[]): Promise<{ food: string; queries: string[] }> {
   const prompt = [
     "Normalize this user-entered food phrase for nutrition web search.",
@@ -73,6 +99,7 @@ async function aiNormalizeFood(original: string, fallbackFood: string, constrain
 
   for (const provider of providers) {
     if (!provider.key || !provider.model) continue;
+    if (!(await isModelAvailable(provider.name, provider.key, provider.model))) continue;
     try {
       let raw = "";
       if (provider.name === "gemini") {
