@@ -8,10 +8,14 @@ export const VERIFIED_MODELS: Record<AiProvider, readonly string[]> = {
     "qwen/qwen3.8-27b",
     "openai/gpt-oss-20b"
   ],
-  // Temporarily enabled for user testing. It passed the simple "apple" test
-  // but failed the mixed-meal test twice (timeout, then provider high demand).
-  // Keep this experimental until repeated mixed-meal tests pass.
+  // Candidate text models. Live catalogue checks and strict benchmark runs
+  // determine which ones are actually usable for TrackCake.
+  // Keep preview/retired/audio/image-only models out of this list.
   gemini: [
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
     "gemini-flash-lite-latest"
   ],
   openrouter: [
