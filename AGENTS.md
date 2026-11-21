@@ -832,3 +832,16 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - The test validates simple-food estimation only. It does not yet establish mixed-meal quality or Live Web Search normalization quality.
 - GitHub Actions run #44883378865 completed the benchmark and uploaded artifact #14698718450. Its automatic report push initially lost a race with concurrent main commits; the report was committed directly and the workflow now rebases before publishing future reports.
 - Corrected TypeScript model-catalogue types in commit `639029504a4e4bbb4b90512a2b2861c6125078c7`. GitHub Actions run #44883417183 passed tests, Astro/TypeScript check and production build. Vercel deployment `dpl_GBydGd5Wz4eDeRX8VS3q8rysoxKs` is READY with the `trackcake.vercel.app` alias.
+
+
+---
+
+## TrackCake food-log JSON import — 2026-11-21
+
+- The quick food-description textarea recognizes JSON before calling `/api/estimate`. Ordinary natural-language descriptions continue through the existing AI estimate and review workflow.
+- Versioned contract: `trackcake_import: "food-log-v1"`; top-level `date` is a real YYYY-MM-DD date and `entries` contains 1–100 records. Each record requires name, amount, finite numeric calories/protein_g/carbs_g/fat_g and meal_type; optional time is local 24-hour HH:mm and defaults to 12:00.
+- Malformed JSON and JSON without the supported marker are rejected with a clear message and are never sent to AI.
+- The complete payload is validated before the first write. Entries are separate diary rows with generated IDs and source=manual; existing entries are not overwritten. Existing addEntry persistence supports local or Supabase storage.
+- Added parser regression tests for ordinary text, valid imports, unsupported/malformed JSON, invalid dates/meals and invalid nutrition types.
+- Writes are sequential rather than a transactional bulk insert; if storage fails midway, the UI reports how many entries were saved.
+- Verify with `npm test`, `npm run check`, and `npm run build` in CI. Do not claim authenticated cloud import or production deployment until separately verified.
