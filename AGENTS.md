@@ -791,7 +791,7 @@ Status: core deterministic delivery released and verified; full one-shot plan re
   - astro check: 0 errors, 0 warnings, 1 existing hint.
   - astro build: passed.
 - A preceding run failed only on a TypeScript union type in the provider model-catalogue response. The type was corrected in e899b7735e9ec482904c9fe456b9424128502321; the successful run above is for that corrected commit.
-- Production Vercel deployment for the exact commit was created as dpl_B4ET7ue3uEWpVUY3aiJJGmMzzceJ and was still BUILDING at handoff time. Do not claim production is live until it reaches READY and the production alias is verified.
+- Production Vercel deployment for runtime commit e899b7735e9ec482904c9fe456b9424128502321 is READY as dpl_B4ET7ue3uEWpVUY3aiJJGmMzzceJ. Vercel confirms the production aliases include trackcake.vercel.app and trackcake-git-main-kukki.vercel.app. The later AGENTS.md-only documentation commit does not change runtime code.
 - Not yet tested against real Firecrawl/provider credentials. GitHub Actions tests cover pure normalization/relevance/query logic, not live paid API calls. After deployment, perform a smoke test with "milk coffee without sugar" using configured credentials and confirm the source pages, constraints and evidence review work end to end.
 
 ### Commits
