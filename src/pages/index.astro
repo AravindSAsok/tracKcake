@@ -165,7 +165,7 @@ import Layout from "../layouts/Layout.astro";
               <div>
                 <p class="card-kicker">QUICK FOOD LOG</p>
                 <h2 id="quick-add-title">What did you eat?</h2>
-                <p>Describe your food normally, or paste a TrackCake food-log JSON to import entries directly without an AI estimate.</p>
+                <p>Describe your food normally, or paste a TrackCake food-log JSON (up to 100,000 characters) to import entries directly without an AI estimate.</p>
               </div>
               <span class="ai-orb" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
@@ -174,7 +174,7 @@ import Layout from "../layouts/Layout.astro";
 
             <form id="quick-add-form" class="quick-form">
               <label class="sr-only" for="food-description">Describe what you ate and how much</label>
-              <textarea id="food-description" rows="2" maxlength="700" placeholder="e.g. 2 idlis and 1 cup sambar… or paste TrackCake food-log JSON" required></textarea>
+              <textarea id="food-description" rows="8" maxlength="100000" placeholder="e.g. 2 idlis and 1 cup sambar… or paste TrackCake food-log JSON" required></textarea>
               <div class="quick-form-bottom">
                 <div class="quick-controls">
                   <label class="control-label" for="quick-meal">Meal
