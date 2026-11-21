@@ -885,3 +885,6 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - The first goal-streak CI run caught one missing `goalHistory` property in the local cloud-initialization fallback. Added the missing local history to that return path.
 - The same first run passed all 51 deterministic nutrition tests; Astro check failed only on the missing property. The unused local chart variable was removed in the follow-up commit.
 - Re-run the complete GitHub Actions workflow for the correction commit; do not treat the earlier failed run as a passing verification.
+
+
+- Local-only/offline initialization also persists its first known goal timestamp when browser storage is available, so later goal edits retain a consistent history.

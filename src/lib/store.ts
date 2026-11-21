@@ -217,6 +217,9 @@ export async function loadTrackerData(): Promise<TrackerData> {
   const localGoal = readLocalGoal();
   const storedGoalHistory = readLocalGoalHistory();
   const localGoalHistory = storedGoalHistory.length ? storedGoalHistory : [{ goal: localGoal, effective_from: new Date().toISOString() }];
+  if (!storedGoalHistory.length) {
+    try { localStorage.setItem(GOAL_HISTORY_KEY, JSON.stringify(localGoalHistory)); } catch { /* Keep the in-memory baseline if storage is unavailable. */ }
+  }
 
   if (!cloudConfigured) {
     storageMode = "local";
