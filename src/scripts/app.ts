@@ -575,7 +575,6 @@ function renderFoodChart(): void {
       const status = goalDayStatus(date);
       goalStatus = status === "met" ? "met" : status === "missed" ? "missed" : "neutral";
     } else {
-      const monthStart = new Date(anchor.getFullYear(), index, 1, 12);
       const daysInMonth = new Date(anchor.getFullYear(), index + 1, 0).getDate();
       let metDays = 0, missedDays = 0;
       for (let day = 1; day <= daysInMonth; day++) {
