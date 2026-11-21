@@ -1,4 +1,5 @@
 import { aggregateIngredientEstimates, parseExplicitQuantity } from "../lib/nutrition-engine.js";
+import { parseTrackCakeFoodLog } from "../lib/food-log-import.js";
 import {
   addEntry,
   DEFAULT_CALORIE_GOAL,
@@ -1159,16 +1160,62 @@ function reviewCalculatedRecipe(): void {
   closeDialog("recipe-builder-dialog"); openDialog(reviewDialog);
 }
 
+async function importTrackCakeJson(raw: string): Promise<boolean> {
+  const foodLog = parseTrackCakeFoodLog(raw);
+  if (!foodLog) return false;
+  const [year, month, day] = foodLog.date.split("-").map(Number);
+  const created: FoodEntry[] = foodLog.entries.map((item) => {
+    const [hour, minute] = item.time.split(":").map(Number);
+    return { id: crypto.randomUUID(), name: item.name, amount: item.amount, calories: item.calories,
+      protein_g: item.protein_g, carbs_g: item.carbs_g, fat_g: item.fat_g, meal_type: item.meal_type,
+      eaten_at: new Date(year, month - 1, day, hour, minute, 0, 0).toISOString(), source: "manual" };
+  });
+  const button = byId<HTMLButtonElement>("estimate-button");
+  button.disabled = true;
+  const label = button.querySelector("span");
+  if (label) label.textContent = "Importing…";
+  let saved = 0;
+  const warnings: string[] = [];
+  try {
+    for (const entry of created) {
+      const warning = await addEntry(entry);
+      entries.unshift(entry);
+      saved += 1;
+      if (warning) warnings.push(warning);
+    }
+    render();
+    quickDescription.value = "";
+    quickTime.value = dateTimeLocalValue();
+    quickTimeManuallySet = false;
+    quickMeal.value = "auto";
+    const dateLabel = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(year, month - 1, day, 12));
+    showToast(warnings[0] ?? `${saved} food ${saved === 1 ? "entry" : "entries"} imported for ${dateLabel}.`, warnings.length ? "error" : "success");
+  } catch (error) {
+    render();
+    showToast(saved ? `${saved} of ${created.length} entries imported. Remaining entries failed: ${error instanceof Error ? error.message : "storage error"}` : error instanceof Error ? error.message : "Could not import this food log.", "error");
+  } finally {
+    button.disabled = false;
+    if (label) label.textContent = "Estimate with AI";
+  }
+  return true;
+}
+
 async function estimateFood(event: SubmitEvent): Promise<void> {
   event.preventDefault();
   recipePendingSave=false;
-  if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
   const description = quickDescription.value.trim();
   if (!description) {
     showToast("Describe what you ate first.", "error");
     quickDescription.focus();
     return;
   }
+  try {
+    if (await importTrackCakeJson(description)) return;
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Invalid TrackCake JSON.", "error");
+    return;
+  }
+  if (!quickTimeManuallySet) quickTime.value = dateTimeLocalValue();
 
   const button = byId<HTMLButtonElement>("estimate-button");
   const buttonLabel = button.querySelector("span");
