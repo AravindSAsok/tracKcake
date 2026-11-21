@@ -8,7 +8,7 @@ export function normalizeNutritionSearchInput(value: string): { original: string
   const original = String(value ?? "").trim().replace(/\s+/g, " ").slice(0, 180);
   const lower = original.toLowerCase();
   const constraints: string[] = [];
-  if (/\b(without|no|zero|unsweetened|sugar free|sugar-free)\b.{0,18}\bsugar\b|\bunsweetened\b/.test(lower)) {
+  if (/\b(?:sugar[- ]free|unsweetened)\b|\b(without|no|zero)\b.{0,18}\bsugar\b/.test(lower)) {
     constraints.push("no added sugar");
   }
   if (/\b(low[- ]fat|skimmed|skim milk)\b/.test(lower)) constraints.push("low-fat or skimmed milk");
