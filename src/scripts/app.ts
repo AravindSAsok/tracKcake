@@ -883,8 +883,13 @@ async function searchLiveFood(): Promise<void> {
         <pre>${escapeHtml(source.content)}</pre>
       </details>
     `).join("");
+    const interpreted = payload.normalized_food && payload.normalized_food.toLowerCase() !== food.toLowerCase()
+      ? " Interpreted as: " + payload.normalized_food + "." : "";
+    const constraints = payload.constraints?.length ? " Preserved constraints: " + payload.constraints.join(", ") + "." : "";
+    const queryCount = payload.search?.successful_searches ?? payload.search?.queries?.length ?? 0;
+    const resultCount = payload.search?.results_found ?? payload.sources.length;
     byId<HTMLElement>("web-research-status").textContent =
-      "Found " + payload.sources.length + " relevant nutrition source(s) for “" + food + "”. Showing compact nutrition-focused excerpts; verify the serving and source before saving.";
+      "Found " + payload.sources.length + " nutrition evidence source(s). Searched " + queryCount + " query variants and reviewed " + resultCount + " pages." + interpreted + constraints + " Verify the serving and source before saving.";
     openDialog(webResearchDialog);
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not search live food sources.", "error");
