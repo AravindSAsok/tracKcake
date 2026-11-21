@@ -8,7 +8,7 @@ export const maxDuration = 45;
 
 const MAX_RESULTS_PER_QUERY = 5;
 const MAX_EVIDENCE_CHARS = 4200;
-const NUTRIENT_TERMS = /calor(?:ie|ies)|energy|kcal|protein|carbohydrate|\\bcarbs?\\b|total fat|\\bfat\\b|serving size|per 100\\s*(?:g|ml)|nutrition facts|nutritional value/i;
+const NUTRIENT_TERMS = /calor(?:ie|ies)|energy|kcal|protein|carbohydrate|\bcarbs?\b|total fat|\bfat\b|serving size|per 100\s*(?:g|ml)|nutrition facts|nutritional value/i;
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -22,19 +22,19 @@ function safeUrl(value: unknown): string | null {
     if (url.protocol !== "https:" || url.username || url.password) return null;
     const host = url.hostname.toLowerCase();
     if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") ||
-        /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(host) || host.includes(":")) return null;
+        /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return null;
     return url.toString();
   } catch { return null; }
 }
 
 function nutritionExcerpt(markdown: string): string | null {
-  const lines = markdown.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = markdown.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const selected = new Set<number>();
   for (let i = 0; i < lines.length; i += 1) {
     if (!NUTRIENT_TERMS.test(lines[i])) continue;
     for (let j = Math.max(0, i - 1); j <= Math.min(lines.length - 1, i + 1); j += 1) selected.add(j);
   }
-  const excerpt = [...selected].sort((a, b) => a - b).map((index) => lines[index]).join("\\n");
+  const excerpt = [...selected].sort((a, b) => a - b).map((index) => lines[index]).join("\n");
   return excerpt.length >= 50 ? excerpt.slice(0, MAX_EVIDENCE_CHARS) : null;
 }
 
@@ -63,7 +63,7 @@ async function aiNormalizeFood(original: string, fallbackFood: string, constrain
     "Input: " + original,
     "Deterministic food candidate: " + fallbackFood,
     "Detected constraints: " + (constraints.join(", ") || "none")
-  ].join("\\n");
+  ].join("\n");
 
   const providers = [
     { name: "groq", key: process.env.GROQ_API_KEY?.trim(), model: VERIFIED_MODELS.groq[0], endpoint: "https://api.groq.com/openai/v1/chat/completions" },
@@ -117,8 +117,6 @@ async function aiNormalizeFood(original: string, fallbackFood: string, constrain
       const queries = Array.isArray(parsed?.search_queries)
         ? parsed!.search_queries.filter((item): item is string => typeof item === "string").map((item) => item.trim().slice(0, 220)).filter((item) => item.length >= 8).slice(0, 3)
         : [];
-      // Reject empty, excessively broad, or unrelated model output; deterministic
-      // identity remains the fallback and user constraints are never discarded.
       const inputTokens = fallbackFood.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
       const candidateTokens = food.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
       const overlap = inputTokens.filter((token) => candidateTokens.includes(token)).length;
@@ -126,7 +124,7 @@ async function aiNormalizeFood(original: string, fallbackFood: string, constrain
         return { food, queries };
       }
     } catch {
-      // Search still proceeds with deterministic normalization if AI is unavailable.
+      // Search proceeds with deterministic normalization if AI is unavailable.
     }
   }
   return { food: fallbackFood, queries: [] };
@@ -214,13 +212,7 @@ export const POST: APIRoute = async ({ request }) => {
           values: extracted.values, basis: extracted.basis
         })
       } : null;
-      return [{
-        title: row.title,
-        url: row.url,
-        content,
-        facts,
-        source_tier: sourceTier(row.url)
-      }];
+      return [{ title: row.title, url: row.url, content, facts, source_tier: sourceTier(row.url) }];
     }).sort((a, b) => a.source_tier - b.source_tier || Number(Boolean(b.facts)) - Number(Boolean(a.facts)))
       .slice(0, 8);
 
