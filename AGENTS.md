@@ -807,3 +807,17 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - Vercel production deployment for that exact runtime commit is READY: dpl_BPCnpqynAw6YshX9frkVJjCq7ajr. Vercel confirms aliases include trackcake.vercel.app, trackcake-kukki.vercel.app and trackcake-git-main-kukki.vercel.app.
 - Public production homepage returned HTTP 200. Its served client bundle contains the updated live-search status text. No authenticated browser interaction or live POST to Firecrawl was performed; do not describe paid provider search as end-to-end tested.
 - Later changes after this feature commit are documentation-only updates to AGENTS.md. Latest runtime code is deployed from 56e91390e56910b98e14c36f86248f6c57696605.
+
+
+---
+
+## Gemini model expansion and benchmark handoff — 2026-11-21
+
+- Expanded the approved Gemini text-candidate allowlist to include `gemini-3.8-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, and the existing `gemini-flash-lite-latest`. This list is a candidate allowlist, not a claim that every model has passed TrackCake quality tests.
+- Provider discovery now includes Gemini 3.8 Flash rather than filtering it out. Gemini API catalogue entries must support `generateContent` when that capability metadata is supplied.
+- Live Web Search now tries the configured approved `GEMINI_MODEL` first (if it is in the allowlist), then the remaining approved Gemini candidates sequentially when a candidate is unavailable, errors, or returns invalid/empty normalization JSON. Deterministic normalization and the next provider fallback remain available.
+- Added `tests/ai-models.test.mjs` for the expanded allowlist and text-vs-vision boundaries.
+- Added `scripts/benchmark-gemini-models.mjs`, which tests each live-discovered Gemini candidate against TrackCake's `/api/estimate` using strict single-model mode and the simple food prompt `apple`. It records success only when a complete food item is returned; no Groq/OpenRouter fallback can create a false pass.
+- Extended `.github/workflows/benchmark-models.yml` to run the Gemini benchmark after the production deployment becomes available and upload `gemini-benchmark.md` as a workflow artifact.
+- Do not call a candidate "working" until the post-deploy strict benchmark report records success. The benchmark currently tests simple food input only; mixed meals and constraint-heavy prompts require separate test coverage.
+- Source model catalogue: https://ai.google.dev/gemini-api/docs/models
