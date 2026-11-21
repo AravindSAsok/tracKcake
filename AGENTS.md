@@ -821,3 +821,14 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - Added a dedicated `.github/workflows/benchmark-gemini-models.yml` workflow. It waits for the production deployment to expose multiple Gemini candidates, runs the strict model benchmark, publishes `gemini-benchmark.md` to main, and uploads it as an artifact.
 - Do not call a candidate "working" until the post-deploy strict benchmark report records success. The benchmark currently tests simple food input only; mixed meals and constraint-heavy prompts require separate test coverage.
 - Source model catalogue: https://ai.google.dev/gemini-api/docs/models
+
+
+### Gemini simple-food benchmark results — 2026-11-21
+
+- Production strict single-model benchmark run #44883378865 tested all five candidates with `apple` through `/api/estimate`. Strict mode prevented provider fallback.
+- Passed: `gemini-flash-lite-latest` (1.25s) and `gemini-3.1-flash-lite` (2.30s).
+- Failed on this single run: `gemini-3.5-flash-lite` and `gemini-3.6-flash` returned temporary provider high-demand errors; `gemini-3.8-flash` timed out after approximately 30s.
+- Report is committed as `gemini-benchmark.md`. These failures are availability observations, not proof of permanent model incapability. Re-test under lower provider load before removing candidates.
+- The test validates simple-food estimation only. It does not yet establish mixed-meal quality or Live Web Search normalization quality.
+- GitHub Actions run #44883378865 completed the benchmark and uploaded artifact #14698718450. Its automatic report push initially lost a race with concurrent main commits; the report was committed directly and the workflow now rebases before publishing future reports.
+- Corrected TypeScript model-catalogue types in commit `639029504a4e4bbb4b90512a2b2861c6125078c7`. GitHub Actions run #44883417183 passed tests, Astro/TypeScript check and production build. Vercel deployment `dpl_GBydGd5Wz4eDeRX8VS3q8rysoxKs` is READY with the `trackcake.vercel.app` alias.
