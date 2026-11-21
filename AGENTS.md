@@ -756,3 +756,44 @@ Status: core deterministic delivery released and verified; full one-shot plan re
 - Release status at handoff: production alias `trackcake.vercel.app` points to deployment `dpl_8DQwyr2MQxFQBgFwYwDvXn5xAHnC`, built from `350bb459b4084de5bcf5290f97a061cae7291ede`. This predates the latest optional-nutrient runtime implementation. Do not claim the latest runtime is deployed until the alias is verified against a deployment containing it.
 - Remaining verification: deploy the latest runtime commit when Vercel deployment quota permits; complete authenticated recipe create/edit/delete/diary-link E2E testing with a signed-in test session; add only reviewed, source-backed catalogue records. No synthetic catalogue nutrition values are allowed.
 - Future agents: do not recreate or execute the deleted one-shot plan. Read this file, inspect the current code and GitHub history, and act only on a new explicit user request. Continue appending concise dated implementation, verification, deployment and blocker notes here.
+
+
+---
+
+## Smart Nutrition Search V3 implementation handoff — 2026-11-21
+
+### What changed on main
+
+- Added src/lib/web-research-query.ts with deterministic food-name normalization, preservation of detected preparation/negative constraints, multi-query generation and less brittle nutrition evidence relevance checks.
+- Reworked src/pages/api/web-research.ts:
+  - AI query refinement uses a configured Groq, Gemini or OpenRouter model only after checking that exact TrackCake-verified model against the provider's live model catalogue.
+  - Provider/model failure falls back to deterministic normalization; it does not block Firecrawl search.
+  - The original phrase is retained, detected constraints are carried separately, and up to three query variants are submitted to Firecrawl in parallel.
+  - Each query requests up to five web results. URLs are validated and deduplicated; up to eight evidence excerpts are returned.
+  - Government, education and Open Food Facts domains receive ranking preference. Evidence still needs a meaningful food identity match, at least two nutrition metric labels and a numeric nutrition value.
+  - The strict deterministic nutrition extractor remains unchanged. A search result with incomplete facts is evidence only (facts: null), not a verified nutrition record.
+- Updated src/scripts/app.ts to show normalized food, preserved constraints, number of successful query variants and number of candidate pages reviewed in the live-research dialog.
+- Added tests/web-research-query.test.mjs with four regression tests, including the exact "milk coffee without sugar" example.
+- Updated README live-research architecture/limits and added docs/smart-nutrition-search-v3.md.
+
+### Safety and product boundaries
+
+- Firecrawl remains opt-in: it is called only when the user explicitly presses Live web search. Ordinary text/photo estimates do not invoke it.
+- AI normalization creates query terms only. It never generates nutrition facts.
+- User constraints are preserved even when the model is unavailable.
+- Search relevance does not certify nutrition facts. Deterministic extraction and the existing source-allowlisted AI structuring/review flow remain in place.
+- No new provider or database dependency was added; no user diary data or production secrets were accessed.
+
+### Verification and release
+
+- GitHub Actions run #374 for commit e899b7735e9ec482904c9fe456b9424128502321 completed successfully:
+  - 41 tests passed, 0 failed.
+  - astro check: 0 errors, 0 warnings, 1 existing hint.
+  - astro build: passed.
+- A preceding run failed only on a TypeScript union type in the provider model-catalogue response. The type was corrected in e899b7735e9ec482904c9fe456b9424128502321; the successful run above is for that corrected commit.
+- Production Vercel deployment for the exact commit was created as dpl_B4ET7ue3uEWpVUY3aiJJGmMzzceJ and was still BUILDING at handoff time. Do not claim production is live until it reaches READY and the production alias is verified.
+- Not yet tested against real Firecrawl/provider credentials. GitHub Actions tests cover pure normalization/relevance/query logic, not live paid API calls. After deployment, perform a smoke test with "milk coffee without sugar" using configured credentials and confirm the source pages, constraints and evidence review work end to end.
+
+### Commits
+
+Implementation was committed directly to main in these sequential commits: 8026b3f, 21b9b61, 9962437, 44eea10, d75d5fd, 9fce097, 5eb23c1, e655f31, 782abdd, 43695be, 93bf5f9, db1e7a3, b8275be, and e899b77. Latest verified main commit at handoff: e899b7735e9ec482904c9fe456b9424128502321.
