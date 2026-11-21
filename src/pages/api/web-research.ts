@@ -100,26 +100,40 @@ async function aiNormalizeFood(original: string, fallbackFood: string, constrain
 
   for (const provider of providers) {
     if (!provider.key || !provider.model) continue;
-    if (!(await isModelAvailable(provider.name, provider.key, provider.model))) continue;
     try {
       let raw = "";
       if (provider.name === "gemini") {
-        const response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(provider.model) + ":generateContent",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-goog-api-key": provider.key },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0, maxOutputTokens: 400, responseMimeType: "application/json" }
-            }),
-            signal: AbortSignal.timeout(6500)
+        const configuredModel = process.env.GEMINI_MODEL?.trim();
+        const geminiModels = [...new Set([
+          ...(configuredModel && VERIFIED_MODELS.gemini.includes(configuredModel) ? [configuredModel] : []),
+          ...VERIFIED_MODELS.gemini
+        ])];
+        for (const model of geminiModels) {
+          if (!(await isModelAvailable("gemini", provider.key, model))) continue;
+          try {
+            const response = await fetch(
+              "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-goog-api-key": provider.key },
+                body: JSON.stringify({
+                  contents: [{ role: "user", parts: [{ text: prompt }] }],
+                  generationConfig: { temperature: 0, maxOutputTokens: 400, responseMimeType: "application/json" }
+                }),
+                signal: AbortSignal.timeout(6500)
+              }
+            );
+            if (!response.ok) continue;
+            const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+            raw = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
+            if (raw) break;
+          } catch {
+            // Try the next approved Gemini candidate before falling back to OpenRouter.
           }
-        );
-        if (!response.ok) continue;
-        const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-        raw = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
+        }
+        if (!raw) continue;
       } else {
+        if (!(await isModelAvailable(provider.name, provider.key, provider.model))) continue;
         const response = await fetch(provider.endpoint, {
           method: "POST",
           headers: {
