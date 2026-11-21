@@ -39,7 +39,7 @@ type DraftItem = {
 
 type WebResearchFacts = { values: Record<string, number>; basis: { amount: number; unit: "g" | "ml"; label: string }; sourceTitle?: string; sourceUrl?: string; extractionMethod?: string };
 type WebResearchSource = { title: string; url: string; content: string; facts?: WebResearchFacts | null };
-type WebResearchResponse = { food?: string; sources?: WebResearchSource[]; error?: string };
+type WebResearchResponse = { food?: string; normalized_food?: string; constraints?: string[]; search?: { queries?: string[]; results_found?: number; successful_searches?: number; accepted_sources?: number }; sources?: WebResearchSource[]; error?: string };
 
 type EstimateResponse = { items?: DraftItem[]; error?: string };
 type RecipeIngredientResult = {
@@ -863,7 +863,7 @@ async function searchLiveFood(): Promise<void> {
   const button = byId<HTMLButtonElement>("live-search-button");
   button.disabled = true;
   button.textContent = "Searching live web…";
-  byId<HTMLElement>("web-research-status").textContent = "Using Firecrawl credits to search and scrape food information…";
+  byId<HTMLElement>("web-research-status").textContent = "Understanding your food description, refining search queries and checking live nutrition sources…";
   byId<HTMLDivElement>("web-research-sources").replaceChildren();
   try {
     const response = await fetch("/api/web-research", {
