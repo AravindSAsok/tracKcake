@@ -12,7 +12,7 @@ test("normalizes milk coffee without sugar while preserving the no-added-sugar c
   assert.deepEqual(result.constraints, ["no added sugar"]);
 });
 
-test("generates multiple distinct queries without losing the user's original phrase", () => {
+test("generates multiple queries and includes the AI-refined query", () => {
   const input = normalizeNutritionSearchInput("milk coffee without sugar");
   const queries = buildNutritionSearchQueries(
     input.original,
@@ -23,6 +23,7 @@ test("generates multiple distinct queries without losing the user's original phr
   assert.ok(queries.length >= 3);
   assert.ok(queries.some((query) => query.includes("milk coffee without sugar")));
   assert.ok(queries.some((query) => query.includes("no added sugar")));
+  assert.ok(queries.some((query) => query.includes("unsweetened coffee with milk")));
 });
 
 test("does not require every preparation modifier to appear on a nutrition page", () => {
