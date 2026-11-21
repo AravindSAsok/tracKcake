@@ -26,7 +26,8 @@ TrackCake makes food logging easier without hiding the details. Add meals manual
 
 ## Features
 
-- **Three food-entry workflows:** manual logging, natural-language estimates, and photo-based food recognition.
+- **Four food-entry workflows:** manual logging, natural-language estimates, photo-based food recognition, and direct TrackCake JSON import from the quick-entry box.
+- **Direct food-log JSON import:** paste a versioned `food-log-v1` JSON payload into the quick-entry box. TrackCake recognizes JSON, validates the complete payload before writing, and saves each entry directly to its specified local date, time, and meal without calling an AI provider.
 - **Multi-provider AI:** connect Groq, Google Gemini, and OpenRouter; discover models available to configured API keys.
 - **Model selection and fallback:** select a provider/model or use automatic provider fallback.
 - **Review before saving:** AI suggestions are editable and never silently added to the diary.
