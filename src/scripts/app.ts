@@ -62,6 +62,7 @@ const toastElement = byId<HTMLDivElement>("toast");
 const quickForm = byId<HTMLFormElement>("quick-add-form");
 const quickDescription = byId<HTMLTextAreaElement>("food-description");
 const quickMeal = byId<HTMLSelectElement>("quick-meal");
+const quickDate = byId<HTMLInputElement>("quick-date");
 const quickTime = byId<HTMLInputElement>("quick-time");
 const photoInput = byId<HTMLInputElement>("food-photo-input");
 const entryDialog = byId<HTMLDialogElement>("entry-dialog");
@@ -493,6 +494,8 @@ async function renderHistory(): Promise<void> {
 function setQuickDefaults(): void {
   quickMeal.value = "auto";
   quickTime.value = dateTimeLocalValue();
+  quickDate.value = quickTime.value.slice(0, 10);
+  quickDate.max = quickDate.value;
   quickTimeManuallySet = false;
 }
 
@@ -1432,7 +1435,16 @@ async function saveGoal(event: SubmitEvent): Promise<void> {
 }
 
 function bindEvents(): void {
-  quickTime.addEventListener("input", () => { quickTimeManuallySet = true; });
+  quickDate.addEventListener("change", () => {
+    if (!quickDate.value) return;
+    const time = quickTime.value.slice(11, 16) || "12:00";
+    quickTime.value = `${quickDate.value}T${time}`;
+    quickTimeManuallySet = true;
+  });
+  quickTime.addEventListener("input", () => {
+    quickTimeManuallySet = true;
+    if (quickTime.value) quickDate.value = quickTime.value.slice(0, 10);
+  });
   quickForm.addEventListener("submit", (event) => void estimateFood(event));
   byId<HTMLButtonElement>("live-search-button").addEventListener("click", () => void searchLiveFood());
   byId<HTMLButtonElement>("recipe-builder-open").addEventListener("click", () => {
