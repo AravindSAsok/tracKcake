@@ -888,3 +888,4 @@ Implementation was committed directly to main in these sequential commits: 8026b
 
 
 - Local-only/offline initialization also persists its first known goal timestamp when browser storage is available, so later goal edits retain a consistent history.
+- Streak edge case: if today's intake has already exceeded the 110% tolerance band, mark today as a break immediately; if intake is still below the band, keep today in progress until midnight.

@@ -211,7 +211,8 @@ function goalDayStatus(date: Date): "met" | "missed" | "no-log" | "today" {
   const today = key === localDateKey(new Date());
   if (total <= 0) return today ? "today" : "no-log";
   if (total >= goal * 0.9 && total <= goal * 1.1) return "met";
-  return today ? "today" : "missed";
+  if (today && total <= goal * 1.1) return "today";
+  return "missed";
 }
 
 function calculateGoalStreak(): { current: number; best: number; met: number; missed: number; logged: number } {
@@ -224,7 +225,7 @@ function calculateGoalStreak(): { current: number; best: number; met: number; mi
   let missed = 0;
   let logged = 0;
   const todayStatus = goalDayStatus(today);
-  const startOffset = todayStatus === "met" ? 0 : 1;
+  const startOffset = todayStatus === "today" ? 1 : 0;
   for (let offset = 364; offset >= 0; offset--) {
     const date = new Date(today);
     date.setDate(date.getDate() - offset);
