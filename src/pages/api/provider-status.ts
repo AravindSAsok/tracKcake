@@ -62,7 +62,7 @@ async function probe(
       if (provider === "gemini") {
         return Boolean(model.name) &&
           (!model.supportedGenerationMethods || model.supportedGenerationMethods.includes("generateContent")) &&
-          !/(2[.]5|3[.]8|tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
+          !/(2[.]5|tts|image|banana|lyria|transcrib|robotics|deep-research|antigravity|computer-use)/.test(id);
       }
       return Boolean(model.id) &&
         !(/:batch$|image|banana|audio|speech|transcrib|tts|lyria|video|embedding/.test(id)) &&
