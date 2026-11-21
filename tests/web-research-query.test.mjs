@@ -12,6 +12,12 @@ test("normalizes milk coffee without sugar while preserving the no-added-sugar c
   assert.deepEqual(result.constraints, ["no added sugar"]);
 });
 
+test("recognizes sugar-free as a no-added-sugar constraint", () => {
+  const result = normalizeNutritionSearchInput("sugar-free milk coffee");
+  assert.equal(result.food, "milk coffee");
+  assert.deepEqual(result.constraints, ["no added sugar"]);
+});
+
 test("generates multiple queries and includes the AI-refined query", () => {
   const input = normalizeNutritionSearchInput("milk coffee without sugar");
   const queries = buildNutritionSearchQueries(
