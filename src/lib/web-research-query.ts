@@ -5,18 +5,18 @@ const MODIFIER_STOP_WORDS = new Set([
 ]);
 
 export function normalizeNutritionSearchInput(value: string): { original: string; food: string; constraints: string[] } {
-  const original = String(value ?? "").trim().replace(/\\s+/g, " ").slice(0, 180);
+  const original = String(value ?? "").trim().replace(/\s+/g, " ").slice(0, 180);
   const lower = original.toLowerCase();
   const constraints: string[] = [];
-  if (/\\b(without|no|zero|unsweetened|sugar free|sugar-free)\\b.{0,18}\\bsugar\\b|\\bunsweetened\\b/.test(lower)) {
+  if (/\b(without|no|zero|unsweetened|sugar free|sugar-free)\b.{0,18}\bsugar\b|\bunsweetened\b/.test(lower)) {
     constraints.push("no added sugar");
   }
-  if (/\\b(low[- ]fat|skimmed|skim milk)\\b/.test(lower)) constraints.push("low-fat or skimmed milk");
-  if (/\\b(whole milk|full[- ]fat milk)\\b/.test(lower)) constraints.push("whole milk");
-  if (/\\b(iced|cold)\\b/.test(lower)) constraints.push("iced or cold preparation");
+  if (/\b(low[- ]fat|skimmed|skim milk)\b/.test(lower)) constraints.push("low-fat or skimmed milk");
+  if (/\b(whole milk|full[- ]fat milk)\b/.test(lower)) constraints.push("whole milk");
+  if (/\b(iced|cold)\b/.test(lower)) constraints.push("iced or cold preparation");
   const food = original
-    .replace(/\\b(?:without|no|zero|unsweetened|sugar[- ]free|low[- ]fat|skimmed|whole|full[- ]fat|iced|cold|hot|homemade|plain|added)\\b/gi, " ")
-    .replace(/\\s+/g, " ").trim();
+    .replace(/\b(?:without|no|zero|unsweetened|sugar[- ]free|low[- ]fat|skimmed|whole|full[- ]fat|iced|cold|hot|homemade|plain|added)\b/gi, " ")
+    .replace(/\s+/g, " ").trim();
   return { original, food: food || original, constraints };
 }
 
@@ -26,7 +26,7 @@ export function buildNutritionSearchQueries(
   aiQueries: string[] = [],
   constraints: string[] = []
 ): string[] {
-  const clean = (value: string) => value.replace(/[\\r\\n]+/g, " ").replace(/\\s+/g, " ").trim().slice(0, 220);
+  const clean = (value: string) => value.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
   const queries = [
     clean(original) + " nutrition facts calories protein carbohydrates fat",
     clean(canonicalFood) + " nutrition facts per 100 g OR per 100 ml",
@@ -41,15 +41,13 @@ export function isRelevantNutritionEvidence(food: string, title: string, markdow
   const tokens = food.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ")
     .split(" ").filter((token) => token.length > 2 && !ignored.has(token));
   const haystack = (title + " " + markdown).toLowerCase();
-  // A source need not repeat every preparation modifier. At least one meaningful
-  // food identity token must be present; the requested preparation is retained separately.
   if (tokens.length && !tokens.some((token) => haystack.includes(token))) return false;
   const metrics = [
     /calor(?:ie|ies)|energy|kcal/i,
     /protein/i,
-    /carbohydrate|\\bcarbs?\\b/i,
-    /total fat|\\bfat\\b/i
+    /carbohydrate|\bcarbs?\b/i,
+    /total fat|\bfat\b/i
   ];
   const metricCount = metrics.filter((pattern) => pattern.test(markdown)).length;
-  return metricCount >= 2 && /\\d+(?:\\.\\d+)?\\s*(?:kcal|calories|g|grams|mg|kj)\\b/i.test(markdown);
+  return metricCount >= 2 && /\d+(?:\.\d+)?\s*(?:kcal|calories|g|grams|mg|kj)\b/i.test(markdown);
 }
