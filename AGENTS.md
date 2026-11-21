@@ -853,3 +853,11 @@ Implementation was committed directly to main in these sequential commits: 8026b
 - The date picker is capped at the current local day. The selected date is synchronized with the existing datetime-local field, so all existing review-before-save and local/Supabase persistence paths continue to store the actual selected eating timestamp.
 - The JSON import workflow remains governed by its explicit top-level `date` field and is not overridden by the quick-entry date control.
 - Verification pending: run the repository test, Astro check and production build in GitHub Actions after the source commits; verify the resulting production deployment before claiming the feature is live.
+
+
+## Food insights chart and compact food input — 2026-11-22
+- Added a compact nutrition trends chart to the dashboard with Day / Week / Month / Year periods, Calories / Protein / Carbs / Fat metrics, Bar / Line chart styles, and an anchor-date filter.
+- Chart aggregates the signed-in diary entries already loaded by the existing tracker store; no new table, API endpoint, or third-party chart dependency was introduced.
+- Reduced the quick food description textarea from 190px minimum height to 95px while preserving its full width and resize behavior.
+- November 20 backfill: existing egg and 250ml milk tea rows were retained; only missing foods from the user's November 20 log were added with explicitly estimated nutrition and placeholder times where the user did not provide exact times.
+- Verification: pending build/test and live database row-count verification after commit.

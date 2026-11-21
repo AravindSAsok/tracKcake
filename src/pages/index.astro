@@ -144,6 +144,21 @@ import Layout from "../layouts/Layout.astro";
         </div>
       </section>
 
+      <section class="food-chart-card" aria-labelledby="food-chart-title">
+        <div class="food-chart-heading">
+          <div><p class="card-kicker">NUTRITION TRENDS</p><h2 id="food-chart-title">Your food insights</h2></div>
+          <strong id="food-chart-total" class="food-chart-total">0 kcal</strong>
+        </div>
+        <div class="food-chart-filters" aria-label="Chart filters">
+          <label>Period<select id="food-chart-period"><option value="week">Week</option><option value="day">Day</option><option value="month">Month</option><option value="year">Year</option></select></label>
+          <label>Metric<select id="food-chart-metric"><option value="calories">Calories</option><option value="protein">Protein</option><option value="carbs">Carbs</option><option value="fat">Fat</option></select></label>
+          <label>Chart<select id="food-chart-type"><option value="bar">Bar</option><option value="line">Line</option></select></label>
+          <label class="food-chart-date-label">Date<input id="food-chart-date" type="date" /></label>
+        </div>
+        <div id="food-chart-visual" class="food-chart-visual" role="img" aria-label="Food nutrition chart"></div>
+        <p id="food-chart-caption" class="food-chart-caption">Choose a period, nutrient and chart style.</p>
+      </section>
+
       <section class="day-timeline-card" aria-labelledby="day-timeline-title">
         <div class="day-timeline-heading">
           <div>

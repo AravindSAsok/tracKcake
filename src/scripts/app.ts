@@ -298,9 +298,94 @@ function render(): void {
 
   byId<HTMLElement>("diary-count").textContent = `${recent.length} ${recent.length === 1 ? "entry" : "entries"}`;
   byId<HTMLElement>("range-total").textContent = `${numberFormat(totalCalories)} kcal logged`;
+  renderFoodChart();
 
   void renderHistory();
   renderStorageStatus();
+}
+
+function renderFoodChart(): void {
+  const visual = document.getElementById("food-chart-visual");
+  if (!visual) return;
+  const period = byId<HTMLSelectElement>("food-chart-period").value;
+  const metric = byId<HTMLSelectElement>("food-chart-metric").value;
+  const chartType = byId<HTMLSelectElement>("food-chart-type").value;
+  const dateInput = byId<HTMLInputElement>("food-chart-date");
+  if (!dateInput.value) dateInput.value = localDateKey(new Date());
+  const anchor = new Date(dateInput.value + "T12:00:00");
+  if (Number.isNaN(anchor.getTime())) return;
+
+  const metricConfig: Record<string, { key: "calories" | "protein_g" | "carbs_g" | "fat_g"; label: string; unit: string }> = {
+    calories: { key: "calories", label: "Calories", unit: "kcal" },
+    protein: { key: "protein_g", label: "Protein", unit: "g" },
+    carbs: { key: "carbs_g", label: "Carbs", unit: "g" },
+    fat: { key: "fat_g", label: "Fat", unit: "g" }
+  };
+  const config = metricConfig[metric] ?? metricConfig.calories;
+  const buckets: { key: string; label: string; value: number }[] = [];
+  let start: Date;
+  let end: Date;
+  if (period === "day") {
+    start = new Date(anchor); start.setHours(0, 0, 0, 0);
+    end = new Date(start); end.setDate(end.getDate() + 1);
+    for (let hour = 0; hour < 24; hour++) buckets.push({ key: String(hour), label: hour % 3 === 0 ? String(hour).padStart(2, "0") : "", value: 0 });
+  } else if (period === "week") {
+    start = new Date(anchor); start.setDate(start.getDate() - ((start.getDay() + 6) % 7)); start.setHours(0, 0, 0, 0);
+    end = new Date(start); end.setDate(end.getDate() + 7);
+    for (let day = 0; day < 7; day++) { const date = new Date(start); date.setDate(date.getDate() + day); buckets.push({ key: localDateKey(date), label: new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(date), value: 0 }); }
+  } else if (period === "month") {
+    start = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    end = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1);
+    for (let day = 1; day <= new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate(); day++) buckets.push({ key: String(day), label: day === 1 || day % 5 === 0 ? String(day) : "", value: 0 });
+  } else {
+    start = new Date(anchor.getFullYear(), 0, 1);
+    end = new Date(anchor.getFullYear() + 1, 0, 1);
+    for (let month = 0; month < 12; month++) buckets.push({ key: String(month), label: new Intl.DateTimeFormat("en-IN", { month: "short" }).format(new Date(anchor.getFullYear(), month, 1)), value: 0 });
+  }
+  const inRange = entries.filter((entry) => {
+    const time = new Date(entry.eaten_at);
+    return Number.isFinite(time.getTime()) && time >= start && time < end;
+  });
+  for (const entry of inRange) {
+    const time = new Date(entry.eaten_at);
+    let index = -1;
+    if (period === "day") index = time.getHours();
+    else if (period === "week") index = buckets.findIndex((bucket) => bucket.key === localDateKey(time));
+    else if (period === "month") index = time.getDate() - 1;
+    else index = time.getMonth();
+    if (index >= 0 && buckets[index]) buckets[index].value += Number(entry[config.key]) || 0;
+  }
+  const total = buckets.reduce((sum, bucket) => sum + bucket.value, 0);
+  byId<HTMLElement>("food-chart-total").textContent = decimalFormat(total) + " " + config.unit;
+  const width = 620, height = 176, left = 34, right = 10, top = 12, bottom = 28;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const max = Math.max(1, ...buckets.map((bucket) => bucket.value)) * 1.15;
+  const step = plotWidth / Math.max(1, buckets.length);
+  const points = buckets.map((bucket, index) => ({
+    x: left + step * (index + .5),
+    y: top + plotHeight - (bucket.value / max) * plotHeight,
+    value: bucket.value,
+    label: bucket.label
+  }));
+  const grid = [0, .5, 1].map((fraction) => {
+    const y = top + plotHeight * fraction;
+    return '<line x1="' + left + '" y1="' + y + '" x2="' + (width-right) + '" y2="' + y + '" class="food-chart-grid"/>';
+  }).join("");
+  let marks = "";
+  if (chartType === "line") {
+    const path = points.map((point, index) => (index ? "L" : "M") + point.x.toFixed(1) + " " + point.y.toFixed(1)).join(" ");
+    marks = '<path d="' + path + '" class="food-chart-line"/>' + points.map((point) => '<circle cx="' + point.x + '" cy="' + point.y + '" r="3" class="food-chart-point"><title>' + point.label + ': ' + decimalFormat(point.value) + ' ' + config.unit + '</title></circle>').join("");
+  } else {
+    const barWidth = Math.max(3, Math.min(24, step * .58));
+    marks = points.map((point) => {
+      const barHeight = Math.max(0, top + plotHeight - point.y);
+      return '<rect x="' + (point.x - barWidth/2) + '" y="' + point.y + '" width="' + barWidth + '" height="' + barHeight + '" rx="3" class="food-chart-bar"><title>' + point.label + ': ' + decimalFormat(point.value) + ' ' + config.unit + '</title></rect>';
+    }).join("");
+  }
+  const labels = points.map((point) => point.label ? '<text x="' + point.x + '" y="' + (height - 7) + '" text-anchor="middle" class="food-chart-axis-label">' + point.label + '</text>' : "").join("");
+  visual.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + grid + marks + labels + '</svg>';
+  const periodLabel = period === "day" ? dateInput.value : period === "week" ? "week of " + localDateKey(start) : period === "month" ? new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(anchor) : String(anchor.getFullYear());
+  byId<HTMLElement>("food-chart-caption").textContent = config.label + " by " + (period === "day" ? "hour" : period === "year" ? "month" : "day") + " · " + periodLabel + " · " + inRange.length + " food entries";
 }
 
 function renderStorageStatus(): void {
@@ -1595,6 +1680,10 @@ function bindEvents(): void {
 
   byId<HTMLDivElement>("review-items").addEventListener("input", updateReviewTotal);
 
+
+  (["food-chart-period", "food-chart-metric", "food-chart-type", "food-chart-date"] as const).forEach((id) => {
+    byId<HTMLElement>(id).addEventListener("change", renderFoodChart);
+  });
 
   document.querySelectorAll<HTMLButtonElement>("[data-close]").forEach((button) => {
     button.addEventListener("click", () => {

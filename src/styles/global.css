@@ -2848,3 +2848,24 @@ body.calkie-open::before {
 .recipe-history-actions button{font:inherit;font-size:.76rem;padding:.45rem .6rem;border:1px solid var(--line,#ddd);border-radius:8px;background:transparent;color:inherit;cursor:pointer}
 .recipe-history-actions button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 @media(max-width:520px){.recipe-history-item{align-items:flex-start;flex-direction:column}.recipe-history-actions{width:100%}.recipe-history-actions button{min-height:40px}}
+
+
+/* Compact, switchable nutrition chart. */
+.food-chart-card{margin:0 0 22px;padding:14px 16px;border:1px solid #e8ede5;border-radius:15px;background:#fff;box-shadow:0 5px 20px rgba(38,66,43,.03)}
+.food-chart-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.food-chart-heading h2{margin:3px 0 0;color:#314737;font-family:"Manrope",sans-serif;font-size:15px;letter-spacing:-.3px}
+.food-chart-total{color:#4f7548;font-size:13px;font-weight:800;white-space:nowrap}
+.food-chart-filters{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.food-chart-filters label{display:flex;flex-direction:column;gap:4px;color:#8a968b;font-size:9px;font-weight:700}
+.food-chart-filters select,.food-chart-filters input{height:30px;max-width:100%;padding:0 8px;border:1px solid #e7ece4;border-radius:8px;background:#fff;color:#516251;font-size:10px}
+.food-chart-filters input{width:132px}
+.food-chart-visual{height:138px;margin-top:8px;min-width:0}
+.food-chart-visual svg{display:block;width:100%;height:100%;overflow:visible}
+.food-chart-grid{stroke:#edf1ea;stroke-width:1;stroke-dasharray:3 4}
+.food-chart-bar{fill:#83a875}
+.food-chart-line{fill:none;stroke:#648b59;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.food-chart-point{fill:#648b59;stroke:#fff;stroke-width:1.5}
+.food-chart-axis-label{fill:#9aa598;font-size:9px}
+.food-chart-caption{margin:3px 0 0;color:#9aa598;font-size:9px}
+.quick-form textarea{height:95px;min-height:95px;max-height:22.5vh}
+@media(max-width:620px){.food-chart-card{padding:12px;margin-bottom:18px}.food-chart-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.food-chart-filters label{min-width:0}.food-chart-filters select{width:100%;min-width:0}.food-chart-date-label{grid-column:span 3}.food-chart-filters input{width:100%}.food-chart-visual{height:125px}.quick-form textarea{height:95px;min-height:95px;max-height:22.5vh}}
